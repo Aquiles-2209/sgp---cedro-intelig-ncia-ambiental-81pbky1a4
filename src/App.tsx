@@ -1,29 +1,48 @@
-/* Main App Component - Handles routing (using react-router-dom), query client and other providers - use this file to add all routes */
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import Index from './pages/Index'
-import NotFound from './pages/NotFound'
-import Layout from './components/Layout'
+import { AppStateProvider } from '@/hooks/use-app-state'
 
-// ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
-// AVOID REMOVING ANY CONTEXT PROVIDERS FROM THIS FILE (e.g. TooltipProvider, Toaster, Sonner)
+import Layout from './components/Layout'
+import { AuthGuard } from './components/auth-guard'
+import NotFound from './pages/NotFound'
+import Login from './pages/Login'
+import Dashboard from './pages/Index'
+import Projects from './pages/Projects'
+import ProjectNew from './pages/ProjectNew'
+import ProjectDetails from './pages/ProjectDetails'
+import Teams from './pages/Teams'
 
 const App = () => (
-  <BrowserRouter>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES MUST BE ADDED HERE */}
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </TooltipProvider>
-  </BrowserRouter>
+  <AppStateProvider>
+    <BrowserRouter>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+
+          {/* Protected Routes wrapped in Layout */}
+          <Route
+            element={
+              <AuthGuard>
+                <Layout />
+              </AuthGuard>
+            }
+          >
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/projetos" element={<Projects />} />
+            <Route path="/projetos/novo" element={<ProjectNew />} />
+            <Route path="/projetos/:id" element={<ProjectDetails />} />
+            <Route path="/equipes" element={<Teams />} />
+          </Route>
+
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </TooltipProvider>
+    </BrowserRouter>
+  </AppStateProvider>
 )
 
 export default App
