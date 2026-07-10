@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Search, Calendar, Users2, Briefcase, Pencil } from 'lucide-react'
+import { Plus, Search, Calendar, Users2, Briefcase, Pencil, Download } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ProjectStatus, normalizeDate } from '@/types/models'
+import { exportProjectReport } from '@/lib/export-report'
 
 const statusColors: Record<ProjectStatus, string> = {
   'Em Andamento': 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -15,7 +16,7 @@ const statusColors: Record<ProjectStatus, string> = {
 }
 
 export default function Projects() {
-  const { projects, allocations } = useAppState()
+  const { projects, allocations, tasks } = useAppState()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('todos')
 
@@ -64,6 +65,9 @@ export default function Projects() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {filtered.map((project) => {
           const allocCount = allocations.filter((a) => a.project === project.id).length
+          const projAllocs = allocations.filter((a) => a.project === project.id)
+          const projTasks = tasks.filter((t) => t.project === project.id)
+          const handleExport = () => exportProjectReport(project, projAllocs, projTasks)
           return (
             <Card
               key={project.id}
@@ -78,6 +82,15 @@ export default function Projects() {
                     <span className="text-xs font-mono text-slate-400 bg-slate-50 px-2 py-1 rounded">
                       {project.contract_id}
                     </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={handleExport}
+                      title="Exportar relatório"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </Button>
                     <Button asChild variant="ghost" size="icon" className="h-7 w-7">
                       <Link to={`/projetos/${project.id}/editar`}>
                         <Pencil className="h-3.5 w-3.5" />

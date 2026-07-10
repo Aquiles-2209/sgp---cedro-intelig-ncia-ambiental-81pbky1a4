@@ -1,5 +1,15 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Calendar, FileText, Briefcase, AlertTriangle, Clock } from 'lucide-react'
+import {
+  ArrowLeft,
+  Edit,
+  Calendar,
+  FileText,
+  Briefcase,
+  AlertTriangle,
+  Clock,
+  CheckSquare,
+  Download,
+} from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,7 +22,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { isDeadlineSoon, normalizeDate } from '@/types/models'
+import { isDeadlineSoon, normalizeDate, TaskStatus } from '@/types/models'
+import { exportProjectReport } from '@/lib/export-report'
+import { TaskDialog, TaskList } from '@/components/task-dialog'
 
 const statusColors: Record<string, string> = {
   'Em Andamento': 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -23,12 +35,25 @@ const statusColors: Record<string, string> = {
 export default function ProjectDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { projects, allocations } = useAppState()
+  const { projects, allocations, tasks, addTask, editTask, removeTask } = useAppState()
   const project = projects.find((p) => p.id === id)
 
   if (!project) return <div className="p-8 text-center">Projeto não encontrado.</div>
 
   const projAllocs = allocations.filter((a) => a.project === id)
+  const projTasks = tasks.filter((t) => t.project === id)
+
+  const handleExport = () => {
+    exportProjectReport(project, projAllocs, projTasks)
+  }
+
+  const handleTaskStatusChange = async (taskId: string, status: TaskStatus) => {
+    await editTask(taskId, { status })
+  }
+
+  const handleTaskDelete = async (taskId: string) => {
+    await removeTask(taskId)
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-fade-in-up">
@@ -54,13 +79,18 @@ export default function ProjectDetails() {
             </p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          className="bg-white"
-          onClick={() => navigate(`/projetos/${id}/editar`)}
-        >
-          <Edit className="h-4 w-4 mr-2" /> Editar Projeto
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="bg-white" onClick={handleExport}>
+            <Download className="h-4 w-4 mr-2" /> Exportar Relatório
+          </Button>
+          <Button
+            variant="outline"
+            className="bg-white"
+            onClick={() => navigate(`/projetos/${id}/editar`)}
+          >
+            <Edit className="h-4 w-4 mr-2" /> Editar Projeto
+          </Button>
+        </div>
       </div>
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
@@ -115,6 +145,10 @@ export default function ProjectDetails() {
                   >
                     {projAllocs.filter((a) => isDeadlineSoon(a.end_date)).length}
                   </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Total de tarefas</span>
+                  <span className="font-medium">{projTasks.length}</span>
                 </div>
               </div>
             </CardContent>
@@ -172,6 +206,21 @@ export default function ProjectDetails() {
           </CardContent>
         </Card>
       )}
+      <Card className="border-slate-200 shadow-sm">
+        <CardContent className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2 text-slate-800">
+              <CheckSquare className="h-5 w-5 text-slate-400" /> Tarefas do Projeto
+            </h3>
+            <TaskDialog projectId={id!} allocations={projAllocs} onAdd={addTask} />
+          </div>
+          <TaskList
+            tasks={projTasks}
+            onEditStatus={handleTaskStatusChange}
+            onDelete={handleTaskDelete}
+          />
+        </CardContent>
+      </Card>
     </div>
   )
 }
