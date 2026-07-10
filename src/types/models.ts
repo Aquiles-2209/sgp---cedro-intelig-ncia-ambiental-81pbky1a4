@@ -59,19 +59,4 @@ export interface Task {
   expand?: { project?: Project; allocation?: Allocation }
 }
 
-export type TaskStatus = 'Pendente' | 'Em Andamento' | 'Concluído'
-
-export interface Task {
-  id: string
-  project: string
-  allocation: string
-  title: string
-  description: string
-  status: TaskStatus
-  due_date: string
-  created: string
-  updated: string
-  expand?: { project?: Project; allocation?: Allocation }
-}
-
 import { differenceInDays } from 'date-fns'
