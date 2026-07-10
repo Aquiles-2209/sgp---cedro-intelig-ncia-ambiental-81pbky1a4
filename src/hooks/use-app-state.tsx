@@ -16,6 +16,7 @@ interface AppStateContextType {
   login: (email: string) => void
   logout: () => void
   addProject: (project: Project) => void
+  updateProject: (project: Project) => void
   addTeam: (team: Team) => void
 }
 
@@ -61,13 +62,23 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
+  const updateProject = (project: Project) => {
+    setProjects((prev) => prev.map((p) => (p.id === project.id ? project : p)))
+    toast({
+      title: 'Projeto atualizado com sucesso!',
+      className: 'bg-emerald-50 text-emerald-900 border-emerald-200',
+    })
+  }
+
   const addTeam = (team: Team) => {
     setTeams((prev) => [...prev, team])
     toast({ title: 'Equipe adicionada com sucesso!' })
   }
 
   return (
-    <AppStateContext.Provider value={{ user, projects, teams, login, logout, addProject, addTeam }}>
+    <AppStateContext.Provider
+      value={{ user, projects, teams, login, logout, addProject, updateProject, addTeam }}
+    >
       {children}
     </AppStateContext.Provider>
   )

@@ -1,15 +1,28 @@
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Calendar, FileText, Briefcase, UserCheck } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { ArrowLeft, Edit, Calendar, FileText, Briefcase, UserCheck, Clock } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+
+const statusColors: Record<string, string> = {
+  'Em Andamento': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  Concluído: 'bg-slate-100 text-slate-700 border-slate-200',
+  Planejado: 'bg-blue-50 text-blue-700 border-blue-200',
+}
 
 export default function ProjectDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { projects, teams } = useAppState()
+  const { projects } = useAppState()
 
   const project = projects.find((p) => p.id === id)
 
@@ -17,9 +30,7 @@ export default function ProjectDetails() {
     return <div className="p-8 text-center">Projeto não encontrado.</div>
   }
 
-  const projectTeams = project.teamIds
-    .map((tid) => teams.find((t) => t.id === tid))
-    .filter(Boolean) as typeof teams
+  const hasProjectTeams = project.projectTeams && project.projectTeams.length > 0
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-fade-in-up">
@@ -36,16 +47,7 @@ export default function ProjectDetails() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">{project.name}</h1>
-              <Badge
-                variant="outline"
-                className={
-                  project.status === 'Em Andamento'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : project.status === 'Concluído'
-                      ? 'bg-slate-100 text-slate-700'
-                      : 'bg-blue-50 text-blue-700'
-                }
-              >
+              <Badge variant="outline" className={statusColors[project.status]}>
                 {project.status}
               </Badge>
             </div>
@@ -54,7 +56,11 @@ export default function ProjectDetails() {
             </p>
           </div>
         </div>
-        <Button variant="outline" className="bg-white">
+        <Button
+          variant="outline"
+          className="bg-white"
+          onClick={() => navigate(`/projetos/${id}/editar`)}
+        >
           <Edit className="h-4 w-4 mr-2" /> Editar Projeto
         </Button>
       </div>
@@ -69,7 +75,6 @@ export default function ProjectDetails() {
               <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
                 {project.description || 'Nenhuma descrição fornecida.'}
               </p>
-
               <div className="mt-8 grid grid-cols-2 gap-4 pt-6 border-t border-slate-100">
                 <div>
                   <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
@@ -98,41 +103,65 @@ export default function ProjectDetails() {
           <Card className="border-slate-200 shadow-sm">
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold flex items-center gap-2 mb-4 text-slate-800">
-                <UserCheck className="h-5 w-5 text-slate-400" /> Equipe Alocada
+                <UserCheck className="h-5 w-5 text-slate-400" /> Equipes Alocadas
               </h3>
-              {projectTeams.length === 0 ? (
-                <p className="text-sm text-slate-500">Nenhuma equipe alocada.</p>
-              ) : (
-                <div className="space-y-6">
-                  {projectTeams.map((team) => (
-                    <div key={team.id}>
-                      <h4 className="font-medium text-slate-900 text-sm mb-3 px-2 py-1 bg-slate-50 rounded-md border border-slate-100">
-                        {team.name}
-                      </h4>
-                      <ul className="space-y-3 pl-1">
-                        {team.members.map((member) => (
-                          <li key={member.id} className="flex items-center gap-3 group">
-                            <Avatar className="h-8 w-8 border border-slate-200">
-                              <AvatarImage src={member.avatar} />
-                              <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="text-sm font-medium text-slate-900 group-hover:text-primary transition-colors">
-                                {member.name}
-                              </p>
-                              <p className="text-xs text-slate-500">{member.role}</p>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
+              {hasProjectTeams ? (
+                <div className="space-y-3">
+                  {project.projectTeams.map((team) => (
+                    <div
+                      key={team.id}
+                      className="px-3 py-2 bg-slate-50 rounded-md border border-slate-100"
+                    >
+                      <p className="font-medium text-slate-900 text-sm">{team.name}</p>
+                      <p className="text-xs text-slate-500">{team.members.length} membro(s)</p>
                     </div>
                   ))}
                 </div>
+              ) : (
+                <p className="text-sm text-slate-500">Nenhuma equipe alocada.</p>
               )}
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {hasProjectTeams && (
+        <Card className="border-slate-200 shadow-sm">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-4 text-slate-800">
+              <Clock className="h-5 w-5 text-slate-400" /> Alocação de Membros e Períodos
+            </h3>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Equipe</TableHead>
+                  <TableHead>Membro</TableHead>
+                  <TableHead>Função</TableHead>
+                  <TableHead>Início</TableHead>
+                  <TableHead>Término</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {project.projectTeams.map((team) =>
+                  team.members.map((member) => (
+                    <TableRow key={member.id}>
+                      <TableCell className="font-medium text-slate-900">{team.name}</TableCell>
+                      <TableCell className="text-slate-700">{member.name}</TableCell>
+                      <TableCell className="text-slate-600">{member.role}</TableCell>
+                      <TableCell className="text-slate-600">
+                        {new Date(member.startDate).toLocaleDateString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="text-slate-600">
+                        {new Date(member.endDate).toLocaleDateString('pt-BR')}
+                      </TableCell>
+                    </TableRow>
+                  )),
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

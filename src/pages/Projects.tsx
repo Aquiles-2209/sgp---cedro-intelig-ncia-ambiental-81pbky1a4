@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Search, Calendar, Users2 } from 'lucide-react'
+import { Plus, Search, Calendar, Users2, Briefcase, Pencil } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -81,9 +81,16 @@ export default function Projects() {
                   <Badge variant="outline" className={statusColors[project.status]}>
                     {project.status}
                   </Badge>
-                  <span className="text-xs font-mono text-slate-400 bg-slate-50 px-2 py-1 rounded">
-                    {project.contractId}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-slate-400 bg-slate-50 px-2 py-1 rounded">
+                      {project.contractId}
+                    </span>
+                    <Button asChild variant="ghost" size="icon" className="h-7 w-7">
+                      <Link to={`/projetos/${project.id}/editar`}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
 
                 <div>

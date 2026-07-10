@@ -12,6 +12,7 @@ import Dashboard from './pages/Index'
 import Projects from './pages/Projects'
 import ProjectNew from './pages/ProjectNew'
 import ProjectDetails from './pages/ProjectDetails'
+import ProjectEdit from './pages/ProjectEdit'
 import Teams from './pages/Teams'
 
 const App = () => (
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/projetos" element={<Projects />} />
             <Route path="/projetos/novo" element={<ProjectNew />} />
             <Route path="/projetos/:id" element={<ProjectDetails />} />
+            <Route path="/projetos/:id/editar" element={<ProjectEdit />} />
             <Route path="/equipes" element={<Teams />} />
           </Route>
 

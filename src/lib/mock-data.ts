@@ -69,6 +69,55 @@ export const mockProjects: Project[] = [
     description:
       'Redesign completo e migração do portal legado corporativo para nova stack com React e Node.js. Inclui treinamento das equipes internas.',
     teamIds: ['t1', 't2'],
+    projectTeams: [
+      {
+        id: 'pt1',
+        name: 'Equipe de Desenvolvimento',
+        members: [
+          {
+            id: 'pm1',
+            name: 'Carlos Silva',
+            role: 'Gerente de Projeto',
+            startDate: '2026-01-10',
+            endDate: '2026-08-15',
+          },
+          {
+            id: 'pm2',
+            name: 'Ana Costa',
+            role: 'Desenvolvedora Frontend',
+            startDate: '2026-01-15',
+            endDate: '2026-07-30',
+          },
+          {
+            id: 'pm3',
+            name: 'Bruno Santos',
+            role: 'Desenvolvedor Backend',
+            startDate: '2026-02-01',
+            endDate: '2026-08-10',
+          },
+        ],
+      },
+      {
+        id: 'pt2',
+        name: 'Equipe de Design',
+        members: [
+          {
+            id: 'pm4',
+            name: 'Mariana Lima',
+            role: 'UX Designer',
+            startDate: '2026-01-10',
+            endDate: '2026-05-30',
+          },
+          {
+            id: 'pm5',
+            name: 'Roberto Alves',
+            role: 'UI Designer',
+            startDate: '2026-03-01',
+            endDate: '2026-06-15',
+          },
+        ],
+      },
+    ],
   },
   {
     id: 'p2',
@@ -81,6 +130,21 @@ export const mockProjects: Project[] = [
     description:
       'Migração de bancos de dados on-premise para infraestrutura AWS. Estruturação de pipelines CI/CD.',
     teamIds: ['t3'],
+    projectTeams: [
+      {
+        id: 'pt3',
+        name: 'Infraestrutura Cloud',
+        members: [
+          {
+            id: 'pm6',
+            name: 'Fernanda Rocha',
+            role: 'DevOps Engineer',
+            startDate: '2026-06-01',
+            endDate: '2026-12-20',
+          },
+        ],
+      },
+    ],
   },
   {
     id: 'p3',
@@ -93,5 +157,27 @@ export const mockProjects: Project[] = [
     description:
       'Desenvolvimento de app móvel iOS e Android para rastreamento de entregas em tempo real.',
     teamIds: ['t1'],
+    projectTeams: [
+      {
+        id: 'pt4',
+        name: 'Equipe Mobile',
+        members: [
+          {
+            id: 'pm7',
+            name: 'Carlos Silva',
+            role: 'Tech Lead',
+            startDate: '2025-05-10',
+            endDate: '2025-11-30',
+          },
+          {
+            id: 'pm8',
+            name: 'Ana Costa',
+            role: 'Mobile Developer',
+            startDate: '2025-06-01',
+            endDate: '2025-11-15',
+          },
+        ],
+      },
+    ],
   },
 ]

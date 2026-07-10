@@ -13,6 +13,20 @@ export interface Team {
   members: Member[]
 }
 
+export interface ProjectMember {
+  id: string
+  name: string
+  role: string
+  startDate: string
+  endDate: string
+}
+
+export interface ProjectTeam {
+  id: string
+  name: string
+  members: ProjectMember[]
+}
+
 export interface Project {
   id: string
   name: string
@@ -23,4 +37,5 @@ export interface Project {
   status: ProjectStatus
   description: string
   teamIds: string[]
+  projectTeams: ProjectTeam[]
 }

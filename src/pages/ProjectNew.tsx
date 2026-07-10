@@ -48,6 +48,7 @@ export default function ProjectNew() {
       ...data,
       id: `p-${Date.now()}`,
       teamIds: selectedTeams,
+      projectTeams: [],
     }
     addProject(newProject)
     navigate('/projetos')
