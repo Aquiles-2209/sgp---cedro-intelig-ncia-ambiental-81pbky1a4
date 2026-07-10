@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Briefcase, Users, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, Briefcase, CalendarRange, Settings, LogOut } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -11,18 +11,18 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { useAppState } from '@/hooks/use-app-state'
+import { useAuth } from '@/hooks/use-auth'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Projetos', href: '/projetos', icon: Briefcase },
-  { name: 'Equipes', href: '/equipes', icon: Users },
+  { name: 'Mapa de Alocação', href: '/allocation-map', icon: CalendarRange },
   { name: 'Configurações', href: '#', icon: Settings },
 ]
 
 export function AppSidebar() {
   const location = useLocation()
-  const { logout } = useAppState()
+  const { signOut } = useAuth()
 
   return (
     <Sidebar className="border-r border-slate-200 bg-white">
@@ -66,7 +66,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              onClick={logout}
+              onClick={signOut}
               className="text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"
             >
               <LogOut className="h-5 w-5" />

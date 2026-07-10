@@ -1,27 +1,17 @@
 import { Link } from 'react-router-dom'
-import { Briefcase, Users, FileText, CheckCircle2, ChevronRight, Activity } from 'lucide-react'
+import { Briefcase, Activity, Users, AlertTriangle, ChevronRight, CheckCircle2 } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
-
-function getProgress(start: string, end: string) {
-  const s = new Date(start).getTime()
-  const e = new Date(end).getTime()
-  const now = new Date().getTime()
-  if (now < s) return 0
-  if (now > e) return 100
-  return Math.round(((now - s) / (e - s)) * 100)
-}
+import { getProgress, isDeadlineSoon, normalizeDate } from '@/types/models'
 
 export default function Dashboard() {
-  const { projects, teams } = useAppState()
+  const { projects, allocations } = useAppState()
 
   const activeProjects = projects.filter((p) => p.status === 'Em Andamento')
-  const activeTeams = new Set(activeProjects.flatMap((p) => p.teamIds)).size
-  const totalMembers = teams.reduce((acc, team) => acc + team.members.length, 0)
   const completedProjects = projects.filter((p) => p.status === 'Concluído')
+  const upcomingDeadlines = allocations.filter((a) => isDeadlineSoon(a.end_date))
 
   const metrics = [
     {
@@ -32,35 +22,34 @@ export default function Dashboard() {
       bg: 'bg-blue-100',
     },
     {
-      title: 'Contratos Ativos',
+      title: 'Projetos Ativos',
       value: activeProjects.length,
       icon: Activity,
       color: 'text-emerald-600',
       bg: 'bg-emerald-100',
     },
     {
-      title: 'Equipes Alocadas',
-      value: activeTeams,
+      title: 'Pessoas Alocadas',
+      value: new Set(allocations.map((a) => a.member_name)).size,
       icon: Users,
       color: 'text-amber-600',
       bg: 'bg-amber-100',
     },
     {
-      title: 'Membros da Equipe',
-      value: totalMembers,
-      icon: FileText,
-      color: 'text-purple-600',
-      bg: 'bg-purple-100',
+      title: 'Prazos Próximos',
+      value: upcomingDeadlines.length,
+      icon: AlertTriangle,
+      color: 'text-red-600',
+      bg: 'bg-red-100',
     },
   ]
 
   return (
-    <div className="space-y-8 animate-stagger-1">
+    <div className="space-y-8 animate-fade-in-up">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
         <p className="text-slate-500 mt-1">Visão geral das suas operações e equipes.</p>
       </div>
-
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {metrics.map((m, i) => (
           <Card
@@ -81,7 +70,6 @@ export default function Dashboard() {
           </Card>
         ))}
       </div>
-
       <div className="grid gap-6 md:grid-cols-7">
         <Card className="md:col-span-4 border-slate-200 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-4">
@@ -98,7 +86,8 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-6">
             {activeProjects.map((project) => {
-              const progress = getProgress(project.startDate, project.endDate)
+              const progress = getProgress(project.start_date, project.end_date)
+              const projAllocs = allocations.filter((a) => a.project === project.id)
               return (
                 <div
                   key={project.id}
@@ -115,7 +104,7 @@ export default function Dashboard() {
                         </Link>
                       </h4>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        {project.contractId} • {project.client}
+                        {project.contract_id} • {project.client}
                       </p>
                     </div>
                     <Badge
@@ -127,54 +116,69 @@ export default function Dashboard() {
                   </div>
                   <Progress value={progress} className="h-2" />
                   <div className="flex items-center justify-between mt-1">
-                    <div className="flex -space-x-2 overflow-hidden">
-                      {project.teamIds.map((tid) => {
-                        const team = teams.find((t) => t.id === tid)
-                        return team?.members.slice(0, 3).map((m) => (
-                          <Avatar key={m.id} className="h-7 w-7 border-2 border-white inline-block">
-                            <AvatarImage src={m.avatar} alt={m.name} />
-                            <AvatarFallback className="text-[10px]">
-                              {m.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                        ))
-                      })}
-                    </div>
+                    <span className="text-xs text-slate-600">
+                      {projAllocs.length} membros alocados
+                    </span>
                     <span className="text-xs text-slate-500 font-medium">
-                      Prazo: {new Date(project.endDate).toLocaleDateString('pt-BR')}
+                      Prazo:{' '}
+                      {new Date(normalizeDate(project.end_date) + 'T00:00:00').toLocaleDateString(
+                        'pt-BR',
+                      )}
                     </span>
                   </div>
                 </div>
               )
             })}
             {activeProjects.length === 0 && (
-              <div className="text-center py-8 text-slate-500">
-                Nenhum projeto em andamento no momento.
-              </div>
+              <div className="text-center py-8 text-slate-500">Nenhum projeto em andamento.</div>
             )}
           </CardContent>
         </Card>
-
         <Card className="md:col-span-3 border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-xl">Últimos Concluídos</CardTitle>
-            <CardDescription>Projetos finalizados recentemente.</CardDescription>
+            <CardTitle className="text-xl">Alertas de Prazo</CardTitle>
+            <CardDescription>Membros com prazo próximo (7 dias).</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {completedProjects.slice(0, 4).map((project) => (
-              <div key={project.id} className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+          <CardContent className="space-y-3">
+            {upcomingDeadlines.map((a) => {
+              const project = projects.find((p) => p.id === a.project)
+              return (
+                <div
+                  key={a.id}
+                  className="flex items-center gap-3 p-2 rounded-lg bg-red-50 border border-red-100"
+                >
+                  <AlertTriangle className="h-5 w-5 text-red-500 shrink-0" />
+                  <div className="flex-1 overflow-hidden">
+                    <p className="text-sm font-semibold text-slate-900 truncate">{a.member_name}</p>
+                    <p className="text-xs text-slate-500 truncate">
+                      {project?.name} • {a.function}
+                    </p>
+                  </div>
+                  <span className="text-xs font-medium text-red-600">
+                    {new Date(normalizeDate(a.end_date) + 'T00:00:00').toLocaleDateString('pt-BR')}
+                  </span>
                 </div>
-                <div className="flex-1 overflow-hidden">
-                  <h4 className="text-sm font-semibold text-slate-900 truncate">{project.name}</h4>
-                  <p className="text-xs text-slate-500 truncate">{project.client}</p>
+              )
+            })}
+            {upcomingDeadlines.length === 0 && (
+              <div className="space-y-3">
+                <div className="text-center py-4 text-slate-500 text-sm">Nenhum prazo próximo.</div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase mb-3">
+                    Últimos Concluídos
+                  </p>
+                  {completedProjects.slice(0, 3).map((project) => (
+                    <div key={project.id} className="flex items-center gap-3 mb-2">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+                      <div className="flex-1 overflow-hidden">
+                        <p className="text-sm font-semibold text-slate-900 truncate">
+                          {project.name}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate">{project.client}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))}
-            {completedProjects.length === 0 && (
-              <div className="text-center py-6 text-slate-500 text-sm">
-                Nenhum projeto concluído ainda.
               </div>
             )}
           </CardContent>

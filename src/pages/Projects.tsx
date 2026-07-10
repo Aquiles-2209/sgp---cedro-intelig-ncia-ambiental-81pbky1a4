@@ -6,8 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { ProjectStatus } from '@/types/models'
+import { ProjectStatus, normalizeDate } from '@/types/models'
 
 const statusColors: Record<ProjectStatus, string> = {
   'Em Andamento': 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -16,16 +15,16 @@ const statusColors: Record<ProjectStatus, string> = {
 }
 
 export default function Projects() {
-  const { projects, teams } = useAppState()
+  const { projects, allocations } = useAppState()
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('todos')
+  const [statusFilter, setStatusFilter] = useState('todos')
 
-  const filteredProjects = projects.filter((p) => {
-    const matchesSearch =
+  const filtered = projects.filter((p) => {
+    const matchSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.contractId.toLowerCase().includes(search.toLowerCase())
-    const matchesStatus = statusFilter === 'todos' || p.status === statusFilter
-    return matchesSearch && matchesStatus
+      p.contract_id.toLowerCase().includes(search.toLowerCase())
+    const matchStatus = statusFilter === 'todos' || p.status === statusFilter
+    return matchSearch && matchStatus
   })
 
   return (
@@ -41,7 +40,6 @@ export default function Projects() {
           </Link>
         </Button>
       </div>
-
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
@@ -53,7 +51,7 @@ export default function Projects() {
           />
         </div>
         <select
-          className="h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
+          className="h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
@@ -63,14 +61,9 @@ export default function Projects() {
           <option value="Concluído">Concluído</option>
         </select>
       </div>
-
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {filteredProjects.map((project) => {
-          // Flatten all team members for this project
-          const projectMembers = project.teamIds
-            .flatMap((tid) => teams.find((t) => t.id === tid)?.members || [])
-            .slice(0, 5) // display up to 5
-
+        {filtered.map((project) => {
+          const allocCount = allocations.filter((a) => a.project === project.id).length
           return (
             <Card
               key={project.id}
@@ -83,7 +76,7 @@ export default function Projects() {
                   </Badge>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono text-slate-400 bg-slate-50 px-2 py-1 rounded">
-                      {project.contractId}
+                      {project.contract_id}
                     </span>
                     <Button asChild variant="ghost" size="icon" className="h-7 w-7">
                       <Link to={`/projetos/${project.id}/editar`}>
@@ -92,52 +85,40 @@ export default function Projects() {
                     </Button>
                   </div>
                 </div>
-
                 <div>
                   <h3 className="font-bold text-lg text-slate-900 line-clamp-1 group-hover:text-primary transition-colors">
                     <Link to={`/projetos/${project.id}`}>{project.name}</Link>
                   </h3>
                   <p className="text-sm text-slate-500 mt-1">{project.client}</p>
                 </div>
-
                 <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
                   <div className="flex items-center text-sm text-slate-500">
                     <Calendar className="mr-2 h-4 w-4 shrink-0 text-slate-400" />
                     <span>
-                      {new Date(project.startDate).toLocaleDateString('pt-BR')} até{' '}
-                      {new Date(project.endDate).toLocaleDateString('pt-BR')}
+                      {new Date(normalizeDate(project.start_date) + 'T00:00:00').toLocaleDateString(
+                        'pt-BR',
+                      )}{' '}
+                      até{' '}
+                      {new Date(normalizeDate(project.end_date) + 'T00:00:00').toLocaleDateString(
+                        'pt-BR',
+                      )}
                     </span>
                   </div>
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center">
                       <Users2 className="mr-2 h-4 w-4 text-slate-400" />
-                      <div className="flex -space-x-2">
-                        {projectMembers.map((m, i) => (
-                          <Avatar key={i} className="h-6 w-6 border-2 border-white">
-                            <AvatarImage src={m.avatar} />
-                            <AvatarFallback className="text-[9px]">
-                              {m.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                        ))}
-                      </div>
+                      <span className="text-sm text-slate-600">{allocCount} membro(s)</span>
                     </div>
-                    {project.teamIds.length > 0 && (
-                      <span className="text-xs text-slate-400 font-medium">
-                        {project.teamIds.length} Equipe(s)
-                      </span>
-                    )}
                   </div>
                 </div>
               </CardContent>
             </Card>
           )
         })}
-
-        {filteredProjects.length === 0 && (
+        {filtered.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center p-12 text-slate-500 bg-white rounded-xl border border-dashed border-slate-200">
             <Briefcase className="h-10 w-10 text-slate-300 mb-3" />
-            <p>Nenhum projeto encontrado com os filtros atuais.</p>
+            <p>Nenhum projeto encontrado.</p>
           </div>
         )}
       </div>

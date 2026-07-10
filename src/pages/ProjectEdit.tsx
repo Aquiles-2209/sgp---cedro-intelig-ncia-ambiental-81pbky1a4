@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
-import { Project, ProjectTeam, ProjectMember, ProjectStatus } from '@/types/models'
+import { ProjectStatus, normalizeDate } from '@/types/models'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,88 +16,137 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DatePicker } from '@/components/date-picker'
-import { ProjectTimeline } from '@/components/project-timeline'
-import { ProjectTeamManager } from '@/components/project-team-manager'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+
+interface LocalAlloc {
+  id: string
+  member_name: string
+  function: string
+  start_date: string
+  end_date: string
+  isNew: boolean
+}
 
 const statusOptions: ProjectStatus[] = ['Planejado', 'Em Andamento', 'Concluído']
 
 export default function ProjectEdit() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { projects, updateProject } = useAppState()
+  const { projects, allocations, editProject, addAllocation, editAllocation, removeAllocation } =
+    useAppState()
+  const project = projects.find((p) => p.id === id)
 
-  const existingProject = projects.find((p) => p.id === id)
-
-  const [formData, setFormData] = useState({
-    name: existingProject?.name || '',
-    contractId: existingProject?.contractId || '',
-    client: existingProject?.client || '',
-    startDate: existingProject?.startDate || '',
-    endDate: existingProject?.endDate || '',
-    status: existingProject?.status || ('Planejado' as ProjectStatus),
-    description: existingProject?.description || '',
+  const [form, setForm] = useState({
+    name: '',
+    contract_id: '',
+    client: '',
+    start_date: '',
+    end_date: '',
+    status: 'Planejado' as ProjectStatus,
+    description: '',
   })
+  const [localAllocs, setLocalAllocs] = useState<LocalAlloc[]>([])
+  const [saving, setSaving] = useState(false)
 
-  const [projectTeams, setProjectTeams] = useState<ProjectTeam[]>(
-    existingProject?.projectTeams || [],
-  )
-
-  if (!existingProject) {
-    return <div className="p-8 text-center">Projeto não encontrado.</div>
-  }
-
-  const updateField = (field: string, value: string) =>
-    setFormData((prev) => ({ ...prev, [field]: value }))
-
-  const addTeam = () =>
-    setProjectTeams((prev) => [...prev, { id: `pt-${Date.now()}`, name: '', members: [] }])
-
-  const updateTeamName = (teamId: string, name: string) =>
-    setProjectTeams((prev) => prev.map((t) => (t.id === teamId ? { ...t, name } : t)))
-
-  const removeTeam = (teamId: string) =>
-    setProjectTeams((prev) => prev.filter((t) => t.id !== teamId))
-
-  const addMember = (teamId: string) => {
-    const newMember: ProjectMember = {
-      id: `pm-${Date.now()}`,
-      name: '',
-      role: '',
-      startDate: formData.startDate,
-      endDate: formData.endDate,
+  useEffect(() => {
+    if (project) {
+      setForm({
+        name: project.name,
+        contract_id: project.contract_id,
+        client: project.client,
+        start_date: normalizeDate(project.start_date),
+        end_date: normalizeDate(project.end_date),
+        status: project.status,
+        description: project.description,
+      })
     }
-    setProjectTeams((prev) =>
-      prev.map((t) => (t.id === teamId ? { ...t, members: [...t.members, newMember] } : t)),
-    )
-  }
+  }, [project])
 
-  const updateMember = (
-    teamId: string,
-    memberId: string,
-    field: keyof ProjectMember,
-    value: string,
-  ) =>
-    setProjectTeams((prev) =>
-      prev.map((t) =>
-        t.id === teamId
-          ? {
-              ...t,
-              members: t.members.map((m) => (m.id === memberId ? { ...m, [field]: value } : m)),
-            }
-          : t,
-      ),
-    )
+  useEffect(() => {
+    if (id) {
+      setLocalAllocs(
+        allocations
+          .filter((a) => a.project === id)
+          .map((a) => ({
+            id: a.id,
+            member_name: a.member_name,
+            function: a.function,
+            start_date: normalizeDate(a.start_date),
+            end_date: normalizeDate(a.end_date),
+            isNew: false,
+          })),
+      )
+    }
+  }, [allocations, id])
 
-  const removeMember = (teamId: string, memberId: string) =>
-    setProjectTeams((prev) =>
-      prev.map((t) =>
-        t.id === teamId ? { ...t, members: t.members.filter((m) => m.id !== memberId) } : t,
-      ),
-    )
+  if (!project) return <div className="p-8 text-center">Projeto não encontrado.</div>
 
-  const handleSave = () => {
-    updateProject({ ...existingProject, ...formData, projectTeams })
-    navigate(`/projetos/${id}`)
+  const update = (field: string, value: string) => setForm((prev) => ({ ...prev, [field]: value }))
+  const updateAlloc = (allocId: string, field: keyof LocalAlloc, value: string) =>
+    setLocalAllocs((prev) => prev.map((a) => (a.id === allocId ? { ...a, [field]: value } : a)))
+  const addAllocRow = () =>
+    setLocalAllocs((prev) => [
+      ...prev,
+      {
+        id: `new-${Date.now()}`,
+        member_name: '',
+        function: '',
+        start_date: form.start_date,
+        end_date: form.end_date,
+        isNew: true,
+      },
+    ])
+  const removeAllocRow = (allocId: string) =>
+    setLocalAllocs((prev) => prev.filter((a) => a.id !== allocId))
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await editProject(id!, form)
+      for (const alloc of localAllocs) {
+        if (alloc.isNew && alloc.member_name) {
+          await addAllocation({
+            project: id,
+            member_name: alloc.member_name,
+            function: alloc.function,
+            start_date: alloc.start_date,
+            end_date: alloc.end_date,
+          })
+        } else if (!alloc.isNew) {
+          const orig = allocations.find((a) => a.id === alloc.id)
+          if (
+            orig &&
+            (orig.member_name !== alloc.member_name ||
+              orig.function !== alloc.function ||
+              normalizeDate(orig.start_date) !== alloc.start_date ||
+              normalizeDate(orig.end_date) !== alloc.end_date)
+          ) {
+            await editAllocation(alloc.id, {
+              member_name: alloc.member_name,
+              function: alloc.function,
+              start_date: alloc.start_date,
+              end_date: alloc.end_date,
+            })
+          }
+        }
+      }
+      const removed = allocations.filter(
+        (a) => a.project === id && !localAllocs.find((la) => la.id === a.id),
+      )
+      for (const r of removed) {
+        await removeAllocation(r.id)
+      }
+      navigate(`/projetos/${id}`)
+    } catch {
+      setSaving(false)
+    }
   }
 
   return (
@@ -108,12 +157,9 @@ export default function ProjectEdit() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Editar Projeto</h1>
-          <p className="text-slate-500 text-sm">
-            Modifique detalhes e gerencie alocações de equipe.
-          </p>
+          <p className="text-slate-500 text-sm">Modifique detalhes e gerencie alocações.</p>
         </div>
       </div>
-
       <Card className="border-slate-200 shadow-sm">
         <CardContent className="p-6 space-y-6">
           <h3 className="font-semibold text-lg text-slate-800 border-b border-slate-100 pb-2">
@@ -122,25 +168,22 @@ export default function ProjectEdit() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label>Nome do Projeto</Label>
-              <Input value={formData.name} onChange={(e) => updateField('name', e.target.value)} />
+              <Input value={form.name} onChange={(e) => update('name', e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Cliente</Label>
-              <Input
-                value={formData.client}
-                onChange={(e) => updateField('client', e.target.value)}
-              />
+              <Input value={form.client} onChange={(e) => update('client', e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Número do Contrato</Label>
               <Input
-                value={formData.contractId}
-                onChange={(e) => updateField('contractId', e.target.value)}
+                value={form.contract_id}
+                onChange={(e) => update('contract_id', e.target.value)}
               />
             </div>
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={formData.status} onValueChange={(v) => updateField('status', v)}>
+              <Select value={form.status} onValueChange={(v) => update('status', v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -155,55 +198,101 @@ export default function ProjectEdit() {
             </div>
             <div className="space-y-2">
               <Label>Data de Início</Label>
-              <DatePicker
-                value={formData.startDate}
-                onChange={(v) => updateField('startDate', v)}
-              />
+              <DatePicker value={form.start_date} onChange={(v) => update('start_date', v)} />
             </div>
             <div className="space-y-2">
               <Label>Data de Término</Label>
-              <DatePicker value={formData.endDate} onChange={(v) => updateField('endDate', v)} />
+              <DatePicker value={form.end_date} onChange={(v) => update('end_date', v)} />
             </div>
           </div>
           <div className="space-y-2">
             <Label>Descrição e Objetivos</Label>
             <Textarea
-              value={formData.description}
-              onChange={(e) => updateField('description', e.target.value)}
+              value={form.description}
+              onChange={(e) => update('description', e.target.value)}
               rows={4}
             />
           </div>
         </CardContent>
       </Card>
-
       <Card className="border-slate-200 shadow-sm">
         <CardContent className="p-6">
-          <ProjectTeamManager
-            teams={projectTeams}
-            onAddTeam={addTeam}
-            onUpdateTeamName={updateTeamName}
-            onRemoveTeam={removeTeam}
-            onAddMember={addMember}
-            onUpdateMember={updateMember}
-            onRemoveMember={removeMember}
-          />
+          <div className="flex justify-between items-center border-b border-slate-100 pb-2 mb-4">
+            <h3 className="font-semibold text-lg text-slate-800">Alocações de Membros</h3>
+            <Button type="button" variant="outline" size="sm" onClick={addAllocRow}>
+              <Plus className="h-4 w-4 mr-2" /> Adicionar Membro
+            </Button>
+          </div>
+          {localAllocs.length === 0 && (
+            <p className="text-sm text-slate-500 text-center py-8">Nenhum membro alocado.</p>
+          )}
+          {localAllocs.length > 0 && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Função</TableHead>
+                  <TableHead className="w-36">Início</TableHead>
+                  <TableHead className="w-36">Término</TableHead>
+                  <TableHead className="w-10"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {localAllocs.map((alloc) => (
+                  <TableRow key={alloc.id}>
+                    <TableCell>
+                      <Input
+                        value={alloc.member_name}
+                        onChange={(e) => updateAlloc(alloc.id, 'member_name', e.target.value)}
+                        className="h-9"
+                        placeholder="Nome completo"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={alloc.function}
+                        onChange={(e) => updateAlloc(alloc.id, 'function', e.target.value)}
+                        className="h-9"
+                        placeholder="Ex: Meio Ambiente"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <DatePicker
+                        value={alloc.start_date}
+                        onChange={(v) => updateAlloc(alloc.id, 'start_date', v)}
+                        compact
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <DatePicker
+                        value={alloc.end_date}
+                        onChange={(v) => updateAlloc(alloc.id, 'end_date', v)}
+                        compact
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeAllocRow(alloc.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
-
-      {projectTeams.some((t) => t.members.length > 0) && (
-        <ProjectTimeline
-          teams={projectTeams}
-          projectStart={formData.startDate}
-          projectEnd={formData.endDate}
-        />
-      )}
-
       <div className="flex justify-end gap-3">
         <Button variant="outline" onClick={() => navigate(-1)}>
           Cancelar
         </Button>
-        <Button onClick={handleSave}>
-          <Save className="w-4 h-4 mr-2" /> Salvar Alterações
+        <Button onClick={handleSave} disabled={saving}>
+          <Save className="w-4 h-4 mr-2" /> {saving ? 'Salvando...' : 'Salvar Alterações'}
         </Button>
       </div>
     </div>

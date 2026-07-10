@@ -2,12 +2,12 @@ import { Outlet } from 'react-router-dom'
 import { Search, Bell } from 'lucide-react'
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/app-sidebar'
-import { useAppState } from '@/hooks/use-app-state'
+import { useAuth } from '@/hooks/use-auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 
 export default function Layout() {
-  const { user } = useAppState()
+  const { user } = useAuth()
 
   return (
     <SidebarProvider>

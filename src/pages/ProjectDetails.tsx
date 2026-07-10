@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Calendar, FileText, Briefcase, UserCheck, Clock } from 'lucide-react'
+import { ArrowLeft, Edit, Calendar, FileText, Briefcase, AlertTriangle, Clock } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { isDeadlineSoon, normalizeDate } from '@/types/models'
 
 const statusColors: Record<string, string> = {
   'Em Andamento': 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -22,15 +23,12 @@ const statusColors: Record<string, string> = {
 export default function ProjectDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { projects } = useAppState()
-
+  const { projects, allocations } = useAppState()
   const project = projects.find((p) => p.id === id)
 
-  if (!project) {
-    return <div className="p-8 text-center">Projeto não encontrado.</div>
-  }
+  if (!project) return <div className="p-8 text-center">Projeto não encontrado.</div>
 
-  const hasProjectTeams = project.projectTeams && project.projectTeams.length > 0
+  const projAllocs = allocations.filter((a) => a.project === id)
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-fade-in-up">
@@ -52,7 +50,7 @@ export default function ProjectDetails() {
               </Badge>
             </div>
             <p className="text-slate-500 mt-1 flex items-center gap-2">
-              <Briefcase className="h-4 w-4" /> {project.client} • {project.contractId}
+              <Briefcase className="h-4 w-4" /> {project.client} • {project.contract_id}
             </p>
           </div>
         </div>
@@ -64,7 +62,6 @@ export default function ProjectDetails() {
           <Edit className="h-4 w-4 mr-2" /> Editar Projeto
         </Button>
       </div>
-
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
           <Card className="border-slate-200 shadow-sm">
@@ -78,54 +75,53 @@ export default function ProjectDetails() {
               <div className="mt-8 grid grid-cols-2 gap-4 pt-6 border-t border-slate-100">
                 <div>
                   <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Data de Início
+                    Início
                   </p>
                   <p className="font-medium text-slate-900 mt-1 flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-slate-400" />
-                    {new Date(project.startDate).toLocaleDateString('pt-BR')}
+                    {new Date(normalizeDate(project.start_date) + 'T00:00:00').toLocaleDateString(
+                      'pt-BR',
+                    )}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Previsão de Término
+                    Término
                   </p>
                   <p className="font-medium text-slate-900 mt-1 flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-slate-400" />
-                    {new Date(project.endDate).toLocaleDateString('pt-BR')}
+                    {new Date(normalizeDate(project.end_date) + 'T00:00:00').toLocaleDateString(
+                      'pt-BR',
+                    )}
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-
         <div className="space-y-6">
           <Card className="border-slate-200 shadow-sm">
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold flex items-center gap-2 mb-4 text-slate-800">
-                <UserCheck className="h-5 w-5 text-slate-400" /> Equipes Alocadas
-              </h3>
-              {hasProjectTeams ? (
-                <div className="space-y-3">
-                  {project.projectTeams.map((team) => (
-                    <div
-                      key={team.id}
-                      className="px-3 py-2 bg-slate-50 rounded-md border border-slate-100"
-                    >
-                      <p className="font-medium text-slate-900 text-sm">{team.name}</p>
-                      <p className="text-xs text-slate-500">{team.members.length} membro(s)</p>
-                    </div>
-                  ))}
+              <h3 className="text-lg font-semibold mb-4 text-slate-800">Resumo de Alocação</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Total de membros</span>
+                  <span className="font-medium">{projAllocs.length}</span>
                 </div>
-              ) : (
-                <p className="text-sm text-slate-500">Nenhuma equipe alocada.</p>
-              )}
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Prazos próximos</span>
+                  <span
+                    className={`font-medium ${projAllocs.filter((a) => isDeadlineSoon(a.end_date)).length > 0 ? 'text-red-600' : ''}`}
+                  >
+                    {projAllocs.filter((a) => isDeadlineSoon(a.end_date)).length}
+                  </span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
       </div>
-
-      {hasProjectTeams && (
+      {projAllocs.length > 0 && (
         <Card className="border-slate-200 shadow-sm">
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold flex items-center gap-2 mb-4 text-slate-800">
@@ -134,29 +130,43 @@ export default function ProjectDetails() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Equipe</TableHead>
                   <TableHead>Membro</TableHead>
                   <TableHead>Função</TableHead>
                   <TableHead>Início</TableHead>
                   <TableHead>Término</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {project.projectTeams.map((team) =>
-                  team.members.map((member) => (
-                    <TableRow key={member.id}>
-                      <TableCell className="font-medium text-slate-900">{team.name}</TableCell>
-                      <TableCell className="text-slate-700">{member.name}</TableCell>
-                      <TableCell className="text-slate-600">{member.role}</TableCell>
+                {projAllocs.map((a) => {
+                  const soon = isDeadlineSoon(a.end_date)
+                  return (
+                    <TableRow key={a.id} className={soon ? 'bg-red-50' : ''}>
+                      <TableCell className="font-medium text-slate-900">{a.member_name}</TableCell>
+                      <TableCell className="text-slate-600">{a.function}</TableCell>
                       <TableCell className="text-slate-600">
-                        {new Date(member.startDate).toLocaleDateString('pt-BR')}
+                        {new Date(normalizeDate(a.start_date) + 'T00:00:00').toLocaleDateString(
+                          'pt-BR',
+                        )}
                       </TableCell>
-                      <TableCell className="text-slate-600">
-                        {new Date(member.endDate).toLocaleDateString('pt-BR')}
+                      <TableCell className={soon ? 'text-red-600 font-medium' : 'text-slate-600'}>
+                        {new Date(normalizeDate(a.end_date) + 'T00:00:00').toLocaleDateString(
+                          'pt-BR',
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {soon ? (
+                          <span className="flex items-center gap-1 text-red-600 text-xs font-medium">
+                            <AlertTriangle className="h-3 w-3" />
+                            Prazo próximo
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs">Em dia</span>
+                        )}
                       </TableCell>
                     </TableRow>
-                  )),
-                )}
+                  )
+                })}
               </TableBody>
             </Table>
           </CardContent>
