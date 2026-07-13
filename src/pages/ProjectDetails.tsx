@@ -14,6 +14,8 @@ import {
 import { useAppState } from '@/hooks/use-app-state'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getTeamMembers, type TeamMember } from '@/services/team-members'
+import { getTaskAssignments } from '@/services/task-assignments'
+import type { TaskAssignment } from '@/types/models'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -51,7 +53,6 @@ export default function ProjectDetails() {
     allocations,
     tasks,
     timeEntries,
-    taskAssignments,
     addTask,
     editTask,
     removeTask,
@@ -63,6 +64,7 @@ export default function ProjectDetails() {
   } = useAppState()
   const { toast } = useToast()
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  const [localTaskAssignments, setLocalTaskAssignments] = useState<TaskAssignment[]>([])
   const [savingAssignmentKey, setSavingAssignmentKey] = useState<string>('')
   const project = projects.find((p) => p.id === id)
 
@@ -75,11 +77,22 @@ export default function ProjectDetails() {
     }
   }, [])
 
+  const loadTaskAssignments = useCallback(async () => {
+    try {
+      const data = await getTaskAssignments()
+      setLocalTaskAssignments(data)
+    } catch {
+      /* silent */
+    }
+  }, [])
+
   useEffect(() => {
     loadTeamMembers()
-  }, [loadTeamMembers])
+    loadTaskAssignments()
+  }, [loadTeamMembers, loadTaskAssignments])
 
   useRealtime('team_members', () => loadTeamMembers())
+  useRealtime('task_assignments', () => loadTaskAssignments())
 
   if (!project) return <div className="p-8 text-center">Projeto não encontrado.</div>
 
@@ -130,11 +143,12 @@ export default function ProjectDetails() {
   }
 
   const handleRemoveMember = async (taskId: string, memberId: string) => {
-    const assignment = taskAssignments.find(
+    const assignment = localTaskAssignments.find(
       (ta) => ta.task === taskId && ta.team_member === memberId,
     )
     if (assignment) {
       await removeTaskAssignment(assignment.id)
+      await loadTaskAssignments()
       toast({ title: 'Membro removido da tarefa.' })
     }
   }
@@ -145,7 +159,7 @@ export default function ProjectDetails() {
     field: 'start_date' | 'end_date',
     value: string,
   ) => {
-    const assignment = taskAssignments.find(
+    const assignment = localTaskAssignments.find(
       (ta) => ta.task === taskId && ta.team_member === memberId,
     )
     const currentStart = normalizeDate(assignment?.start_date)
@@ -172,6 +186,7 @@ export default function ProjectDetails() {
       } else {
         await addTaskAssignment({ task: taskId, team_member: memberId, [field]: value })
       }
+      await loadTaskAssignments()
       toast({ title: 'Data atualizada com sucesso!' })
     } catch {
       toast({ title: 'Erro ao salvar a data.', variant: 'destructive' })
@@ -344,7 +359,7 @@ export default function ProjectDetails() {
           <TaskList
             tasks={projTasks}
             timeEntries={timeEntries}
-            taskAssignments={taskAssignments.filter((ta) =>
+            taskAssignments={localTaskAssignments.filter((ta) =>
               projTasks.some((t) => t.id === ta.task),
             )}
             projectId={id!}

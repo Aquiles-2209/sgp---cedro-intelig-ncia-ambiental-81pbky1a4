@@ -189,10 +189,20 @@ export function TaskList({
                           onStop={onStopTimer}
                         />
                       </div>
-                      <div className="flex items-center gap-3 mt-1.5 ml-5">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
-                            Data de Início
+                      <div className="flex items-center gap-4 mt-2 ml-5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide whitespace-nowrap">
+                            Início
+                          </span>
+                          <span
+                            className={cn(
+                              'text-xs font-medium',
+                              assignment?.start_date ? 'text-slate-700' : 'text-slate-300',
+                            )}
+                          >
+                            {assignment?.start_date
+                              ? safeFormatDate(assignment.start_date)
+                              : 'Não definida'}
                           </span>
                           <DatePicker
                             compact
@@ -204,9 +214,19 @@ export function TaskList({
                             loading={savingAssignmentKey === `${task.id}-${member.id}-start_date`}
                           />
                         </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
-                            Data de Término
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide whitespace-nowrap">
+                            Término
+                          </span>
+                          <span
+                            className={cn(
+                              'text-xs font-medium',
+                              assignment?.end_date ? 'text-slate-700' : 'text-slate-300',
+                            )}
+                          >
+                            {assignment?.end_date
+                              ? safeFormatDate(assignment.end_date)
+                              : 'Não definida'}
                           </span>
                           <DatePicker
                             compact
