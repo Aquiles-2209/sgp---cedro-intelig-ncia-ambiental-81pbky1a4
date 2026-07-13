@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Briefcase, CalendarRange, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, Briefcase, CalendarRange, Settings, LogOut, Users2 } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/use-auth'
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Projetos', href: '/projetos', icon: Briefcase },
+  { name: 'Membros', href: '/membros', icon: Users2 },
   { name: 'Mapa de Alocação', href: '/allocation-map', icon: CalendarRange },
   { name: 'Configurações', href: '#', icon: Settings },
 ]

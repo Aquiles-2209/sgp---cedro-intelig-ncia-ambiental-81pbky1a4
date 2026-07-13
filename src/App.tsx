@@ -15,6 +15,7 @@ import ProjectNew from './pages/ProjectNew'
 import ProjectDetails from './pages/ProjectDetails'
 import ProjectEdit from './pages/ProjectEdit'
 import AllocationMap from './pages/AllocationMap'
+import Members from './pages/Members'
 
 const App = () => (
   <AuthProvider>
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/projetos/:id" element={<ProjectDetails />} />
               <Route path="/projetos/:id/editar" element={<ProjectEdit />} />
               <Route path="/allocation-map" element={<AllocationMap />} />
+              <Route path="/membros" element={<Members />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
