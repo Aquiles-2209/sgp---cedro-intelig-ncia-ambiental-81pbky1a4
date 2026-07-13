@@ -47,6 +47,7 @@ interface TaskListProps {
     field: 'start_date' | 'end_date',
     value: string,
   ) => Promise<void>
+  savingAssignmentKey?: string
 }
 
 export function TaskList({
@@ -62,6 +63,7 @@ export function TaskList({
   onStopTimer,
   onRemoveMember,
   onSetAssignmentDate,
+  savingAssignmentKey,
 }: TaskListProps) {
   if (tasks.length === 0) {
     return (
@@ -199,6 +201,7 @@ export function TaskList({
                               onSetAssignmentDate(task.id, member.id, 'start_date', v)
                             }
                             placeholder="—"
+                            loading={savingAssignmentKey === `${task.id}-${member.id}-start_date`}
                           />
                         </div>
                         <div className="flex items-center gap-1">
@@ -210,6 +213,7 @@ export function TaskList({
                             value={assignment?.end_date || ''}
                             onChange={(v) => onSetAssignmentDate(task.id, member.id, 'end_date', v)}
                             placeholder="—"
+                            loading={savingAssignmentKey === `${task.id}-${member.id}-end_date`}
                           />
                         </div>
                       </div>

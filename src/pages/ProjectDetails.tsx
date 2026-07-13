@@ -63,6 +63,7 @@ export default function ProjectDetails() {
   } = useAppState()
   const { toast } = useToast()
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  const [savingAssignmentKey, setSavingAssignmentKey] = useState<string>('')
   const project = projects.find((p) => p.id === id)
 
   const loadTeamMembers = useCallback(async () => {
@@ -163,10 +164,19 @@ export default function ProjectDetails() {
       })
       return
     }
-    if (assignment) {
-      await editTaskAssignment(assignment.id, { [field]: value })
-    } else {
-      await addTaskAssignment({ task: taskId, team_member: memberId, [field]: value })
+    const saveKey = `${taskId}-${memberId}-${field}`
+    setSavingAssignmentKey(saveKey)
+    try {
+      if (assignment) {
+        await editTaskAssignment(assignment.id, { [field]: value })
+      } else {
+        await addTaskAssignment({ task: taskId, team_member: memberId, [field]: value })
+      }
+      toast({ title: 'Data atualizada com sucesso!' })
+    } catch {
+      toast({ title: 'Erro ao salvar a data.', variant: 'destructive' })
+    } finally {
+      setSavingAssignmentKey('')
     }
   }
 
@@ -346,6 +356,7 @@ export default function ProjectDetails() {
             onStopTimer={handleStopTimer}
             onRemoveMember={handleRemoveMember}
             onSetAssignmentDate={handleSetAssignmentDate}
+            savingAssignmentKey={savingAssignmentKey}
           />
         </CardContent>
       </Card>
