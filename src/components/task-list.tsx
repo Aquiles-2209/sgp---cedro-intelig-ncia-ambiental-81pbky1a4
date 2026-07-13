@@ -4,7 +4,7 @@ import {
   TaskStatus,
   Allocation,
   TimeEntry,
-  normalizeDate,
+  safeFormatDate,
   formatDuration,
 } from '@/types/models'
 import { Button } from '@/components/ui/button'
@@ -83,22 +83,8 @@ export function TaskList({
               )}
               <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400 flex-wrap">
                 <span>{memberName}</span>
-                {task.start_date && (
-                  <span>
-                    Início:{' '}
-                    {new Date(normalizeDate(task.start_date) + 'T00:00:00').toLocaleDateString(
-                      'pt-BR',
-                    )}
-                  </span>
-                )}
-                {task.due_date && (
-                  <span>
-                    Prazo:{' '}
-                    {new Date(normalizeDate(task.due_date) + 'T00:00:00').toLocaleDateString(
-                      'pt-BR',
-                    )}
-                  </span>
-                )}
+                {task.start_date && <span>Início: {safeFormatDate(task.start_date)}</span>}
+                {task.due_date && <span>Prazo: {safeFormatDate(task.due_date)}</span>}
                 {totalTime > 0 && (
                   <span className="text-slate-600 font-medium">
                     Trabalhado: {formatDuration(totalTime)}

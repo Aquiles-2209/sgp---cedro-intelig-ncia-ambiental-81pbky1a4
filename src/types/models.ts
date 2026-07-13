@@ -25,13 +25,24 @@ export interface Allocation {
   expand?: { project?: Project }
 }
 
-export function normalizeDate(dateStr: string): string {
+export function normalizeDate(dateStr: string | null | undefined): string {
   if (!dateStr) return ''
   return dateStr.split('T')[0].split(' ')[0]
 }
 
-export function isDeadlineSoon(endDate: string): boolean {
-  const days = differenceInDays(new Date(normalizeDate(endDate) + 'T00:00:00'), new Date())
+export function safeFormatDate(dateStr: string | null | undefined): string {
+  const normalized = normalizeDate(dateStr)
+  if (!normalized) return '—'
+  const d = new Date(normalized + 'T00:00:00')
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('pt-BR')
+}
+
+export function isDeadlineSoon(endDate: string | null | undefined): boolean {
+  if (!endDate) return false
+  const d = new Date(normalizeDate(endDate) + 'T00:00:00')
+  if (isNaN(d.getTime())) return false
+  const days = differenceInDays(d, new Date())
   return days >= 0 && days <= 7
 }
 

@@ -22,6 +22,7 @@ export function DatePicker({
 }: DatePickerProps) {
   const [open, setOpen] = useState(false)
   const date = value ? new Date(value + 'T00:00:00') : undefined
+  const isValidDate = date instanceof Date && !isNaN(date.getTime())
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -31,11 +32,11 @@ export function DatePicker({
           className={cn(
             'w-full justify-start text-left font-normal',
             compact ? 'h-9 px-2 text-xs' : 'h-10',
-            !value && 'text-muted-foreground',
+            !isValidDate && 'text-muted-foreground',
           )}
         >
           <CalendarIcon className={cn('shrink-0', compact ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2')} />
-          {value ? format(date!, 'dd/MM/yyyy', { locale: ptBR }) : placeholder}
+          {isValidDate ? format(date, 'dd/MM/yyyy', { locale: ptBR }) : placeholder}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">

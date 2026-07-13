@@ -22,7 +22,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { isDeadlineSoon, normalizeDate, TaskStatus, formatDuration } from '@/types/models'
+import {
+  isDeadlineSoon,
+  normalizeDate,
+  safeFormatDate,
+  TaskStatus,
+  formatDuration,
+} from '@/types/models'
 import { exportProjectReport } from '@/lib/export-report'
 import { TaskDialog } from '@/components/task-dialog'
 import { TaskList } from '@/components/task-list'
@@ -151,9 +157,7 @@ export default function ProjectDetails() {
                   </p>
                   <p className="font-medium text-slate-900 mt-1 flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-slate-400" />
-                    {new Date(normalizeDate(project.start_date) + 'T00:00:00').toLocaleDateString(
-                      'pt-BR',
-                    )}
+                    {safeFormatDate(project.start_date)}
                   </p>
                 </div>
                 <div>
@@ -162,9 +166,7 @@ export default function ProjectDetails() {
                   </p>
                   <p className="font-medium text-slate-900 mt-1 flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-slate-400" />
-                    {new Date(normalizeDate(project.end_date) + 'T00:00:00').toLocaleDateString(
-                      'pt-BR',
-                    )}
+                    {safeFormatDate(project.end_date)}
                   </p>
                 </div>
               </div>
@@ -231,14 +233,10 @@ export default function ProjectDetails() {
                       <TableCell className="font-medium text-slate-900">{a.member_name}</TableCell>
                       <TableCell className="text-slate-600">{a.function}</TableCell>
                       <TableCell className="text-slate-600">
-                        {new Date(normalizeDate(a.start_date) + 'T00:00:00').toLocaleDateString(
-                          'pt-BR',
-                        )}
+                        {safeFormatDate(a.start_date)}
                       </TableCell>
                       <TableCell className={soon ? 'text-red-600 font-medium' : 'text-slate-600'}>
-                        {new Date(normalizeDate(a.end_date) + 'T00:00:00').toLocaleDateString(
-                          'pt-BR',
-                        )}
+                        {safeFormatDate(a.end_date)}
                       </TableCell>
                       <TableCell>
                         {soon ? (
