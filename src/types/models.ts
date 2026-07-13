@@ -81,6 +81,17 @@ export interface Task {
   expand?: { project?: Project; allocation?: Allocation[]; members?: TeamMember[] }
 }
 
+export interface TaskAssignment {
+  id: string
+  task: string
+  team_member: string
+  start_date: string
+  end_date: string
+  created: string
+  updated: string
+  expand?: { task?: Task; team_member?: TeamMember }
+}
+
 export interface TimeEntry {
   id: string
   task: string

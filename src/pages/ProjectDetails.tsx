@@ -51,11 +51,14 @@ export default function ProjectDetails() {
     allocations,
     tasks,
     timeEntries,
+    taskAssignments,
     addTask,
     editTask,
     removeTask,
     addTimeEntry,
     editTimeEntry,
+    addTaskAssignment,
+    editTaskAssignment,
   } = useAppState()
   const { toast } = useToast()
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
@@ -130,6 +133,22 @@ export default function ProjectDetails() {
     const currentMembers = Array.isArray(task.members) ? task.members : []
     const newMembers = currentMembers.filter((m) => m !== memberId)
     await editTask(taskId, { members: newMembers })
+  }
+
+  const handleSetAssignmentDate = async (
+    taskId: string,
+    memberId: string,
+    field: 'start_date' | 'end_date',
+    value: string,
+  ) => {
+    const assignment = taskAssignments.find(
+      (ta) => ta.task === taskId && ta.team_member === memberId,
+    )
+    if (assignment) {
+      await editTaskAssignment(assignment.id, { [field]: value })
+    } else {
+      await addTaskAssignment({ task: taskId, team_member: memberId, [field]: value })
+    }
   }
 
   return (
@@ -296,6 +315,9 @@ export default function ProjectDetails() {
           <TaskList
             tasks={projTasks}
             timeEntries={timeEntries}
+            taskAssignments={taskAssignments.filter((ta) =>
+              projTasks.some((t) => t.id === ta.task),
+            )}
             projectId={id!}
             teamMembers={teamMembers}
             onEdit={editTask}
@@ -304,6 +326,7 @@ export default function ProjectDetails() {
             onStartTimer={handleStartTimer}
             onStopTimer={handleStopTimer}
             onRemoveMember={handleRemoveMember}
+            onSetAssignmentDate={handleSetAssignmentDate}
           />
         </CardContent>
       </Card>

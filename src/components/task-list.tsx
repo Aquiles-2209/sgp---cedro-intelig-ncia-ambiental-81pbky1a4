@@ -1,5 +1,12 @@
 import { Pencil, Trash2, X, Users } from 'lucide-react'
-import { Task, TaskStatus, TimeEntry, TeamMember, safeFormatDate } from '@/types/models'
+import {
+  Task,
+  TaskStatus,
+  TimeEntry,
+  TeamMember,
+  TaskAssignment,
+  safeFormatDate,
+} from '@/types/models'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -11,6 +18,8 @@ import {
 } from '@/components/ui/select'
 import { TaskDialog } from '@/components/task-dialog'
 import { MemberTimer } from '@/components/task-timer'
+import { DatePicker } from '@/components/date-picker'
+import { cn } from '@/lib/utils'
 
 const statusOptions: TaskStatus[] = ['Pendente', 'Em Andamento', 'Concluído']
 
@@ -23,6 +32,7 @@ const statusBadge: Record<TaskStatus, string> = {
 interface TaskListProps {
   tasks: Task[]
   timeEntries: TimeEntry[]
+  taskAssignments: TaskAssignment[]
   projectId: string
   teamMembers: TeamMember[]
   onEdit: (id: string, data: Partial<Task>) => Promise<void>
@@ -31,11 +41,18 @@ interface TaskListProps {
   onStartTimer: (taskId: string, memberId: string) => Promise<void>
   onStopTimer: (entryId: string) => Promise<void>
   onRemoveMember: (taskId: string, memberId: string) => Promise<void>
+  onSetAssignmentDate: (
+    taskId: string,
+    memberId: string,
+    field: 'start_date' | 'end_date',
+    value: string,
+  ) => Promise<void>
 }
 
 export function TaskList({
   tasks,
   timeEntries,
+  taskAssignments,
   projectId,
   teamMembers,
   onEdit,
@@ -44,6 +61,7 @@ export function TaskList({
   onStartTimer,
   onStopTimer,
   onRemoveMember,
+  onSetAssignmentDate,
 }: TaskListProps) {
   if (tasks.length === 0) {
     return (
@@ -56,7 +74,7 @@ export function TaskList({
   return (
     <div className="space-y-2">
       {tasks.map((task) => {
-        const taskMembers: TeamMember[] = (task.members || [])
+        const taskMembers = (task.members || [])
           .map((id) => teamMembers.find((m) => m.id === id))
           .filter(Boolean) as TeamMember[]
 
@@ -117,27 +135,57 @@ export function TaskList({
 
             {taskMembers.length > 0 ? (
               <div className="mt-2 space-y-1">
-                {taskMembers.map((member) => (
-                  <div key={member.id} className="flex items-center justify-between gap-2 py-0.5">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <Users className="h-3 w-3 text-slate-400 shrink-0" />
-                      <span className="text-xs text-slate-600 truncate">{member.name}</span>
-                      <button
-                        onClick={() => onRemoveMember(task.id, member.id)}
-                        className="rounded-full hover:bg-slate-200 p-0.5 shrink-0"
-                      >
-                        <X className="h-2.5 w-2.5 text-slate-400" />
-                      </button>
+                {taskMembers.map((member) => {
+                  const assignment = taskAssignments.find(
+                    (ta) => ta.task === task.id && ta.team_member === member.id,
+                  )
+                  const hasActiveTimer = timeEntries.some(
+                    (te) => te.task === task.id && te.team_member === member.id && !te.end_time,
+                  )
+                  return (
+                    <div
+                      key={member.id}
+                      className={cn(
+                        'py-1 px-2 rounded-md transition-colors',
+                        hasActiveTimer && 'bg-blue-50',
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Users className="h-3 w-3 text-slate-400 shrink-0" />
+                          <span className="text-xs text-slate-600 truncate">{member.name}</span>
+                          <button
+                            onClick={() => onRemoveMember(task.id, member.id)}
+                            className="rounded-full hover:bg-slate-200 p-0.5 shrink-0"
+                          >
+                            <X className="h-2.5 w-2.5 text-slate-400" />
+                          </button>
+                        </div>
+                        <MemberTimer
+                          taskId={task.id}
+                          memberId={member.id}
+                          timeEntries={timeEntries}
+                          onStart={onStartTimer}
+                          onStop={onStopTimer}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 ml-4">
+                        <DatePicker
+                          compact
+                          value={assignment?.start_date || ''}
+                          onChange={(v) => onSetAssignmentDate(task.id, member.id, 'start_date', v)}
+                          placeholder="Início"
+                        />
+                        <DatePicker
+                          compact
+                          value={assignment?.end_date || ''}
+                          onChange={(v) => onSetAssignmentDate(task.id, member.id, 'end_date', v)}
+                          placeholder="Término"
+                        />
+                      </div>
                     </div>
-                    <MemberTimer
-                      taskId={task.id}
-                      memberId={member.id}
-                      timeEntries={timeEntries}
-                      onStart={onStartTimer}
-                      onStop={onStopTimer}
-                    />
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <p className="text-xs text-slate-400 mt-2">Sem membros atribuídos</p>

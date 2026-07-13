@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { Project, Allocation, Task, TimeEntry } from '@/types/models'
+import { Project, Allocation, Task, TimeEntry, TaskAssignment } from '@/types/models'
 import {
   getProjects,
   createProject as svcCreate,
@@ -23,6 +23,13 @@ import {
   updateTimeEntry as svcUpdateTimeEntry,
   deleteTimeEntry as svcDeleteTimeEntry,
 } from '@/services/time-entries'
+import {
+  getTaskAssignments,
+  getTaskAssignmentsByTask,
+  createTaskAssignment as svcCreateTaskAssignment,
+  updateTaskAssignment as svcUpdateTaskAssignment,
+  deleteTaskAssignment as svcDeleteTaskAssignment,
+} from '@/services/task-assignments'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
@@ -32,6 +39,7 @@ interface AppStateContextType {
   allocations: Allocation[]
   tasks: Task[]
   timeEntries: TimeEntry[]
+  taskAssignments: TaskAssignment[]
   loading: boolean
   addProject: (data: Partial<Project>) => Promise<Project>
   editProject: (id: string, data: Partial<Project>) => Promise<void>
@@ -41,6 +49,9 @@ interface AppStateContextType {
   addTask: (data: Partial<Task>) => Promise<void>
   editTask: (id: string, data: Partial<Task>) => Promise<void>
   removeTask: (id: string) => Promise<void>
+  addTaskAssignment: (data: Partial<TaskAssignment>) => Promise<void>
+  editTaskAssignment: (id: string, data: Partial<TaskAssignment>) => Promise<void>
+  removeTaskAssignment: (id: string) => Promise<void>
   addTimeEntry: (data: Partial<TimeEntry>) => Promise<void>
   editTimeEntry: (id: string, data: Partial<TimeEntry>) => Promise<void>
   removeTimeEntry: (id: string) => Promise<void>
@@ -54,21 +65,24 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [allocations, setAllocations] = useState<Allocation[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([])
+  const [taskAssignments, setTaskAssignments] = useState<TaskAssignment[]>([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
   const loadData = useCallback(async () => {
     try {
-      const [p, a, t, te] = await Promise.all([
+      const [p, a, t, te, ta] = await Promise.all([
         getProjects(),
         getAllocations(),
         getTasks(),
         getTimeEntries(),
+        getTaskAssignments(),
       ])
       setProjects(p)
       setAllocations(a)
       setTasks(t)
       setTimeEntries(te)
+      setTaskAssignments(ta)
     } catch {
       /* silent */
     } finally {
@@ -84,38 +98,16 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setAllocations([])
       setTasks([])
       setTimeEntries([])
+      setTaskAssignments([])
       setLoading(false)
     }
   }, [isAuthenticated, loadData])
 
-  useRealtime(
-    'projects',
-    () => {
-      loadData()
-    },
-    isAuthenticated,
-  )
-  useRealtime(
-    'allocations',
-    () => {
-      loadData()
-    },
-    isAuthenticated,
-  )
-  useRealtime(
-    'tasks',
-    () => {
-      loadData()
-    },
-    isAuthenticated,
-  )
-  useRealtime(
-    'time_entries',
-    () => {
-      loadData()
-    },
-    isAuthenticated,
-  )
+  useRealtime('projects', () => loadData(), isAuthenticated)
+  useRealtime('allocations', () => loadData(), isAuthenticated)
+  useRealtime('tasks', () => loadData(), isAuthenticated)
+  useRealtime('time_entries', () => loadData(), isAuthenticated)
+  useRealtime('task_assignments', () => loadData(), isAuthenticated)
 
   const addProject = async (data: Partial<Project>) => {
     const project = await svcCreate(data)
@@ -138,15 +130,43 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Alocação removida.' })
   }
   const addTask = async (data: Partial<Task>) => {
-    await svcCreateTask(data)
+    const task = await svcCreateTask(data)
+    if (Array.isArray(data.members)) {
+      for (const memberId of data.members) {
+        await svcCreateTaskAssignment({ task: task.id, team_member: memberId })
+      }
+    }
     toast({ title: 'Tarefa criada com sucesso!' })
   }
   const editTask = async (id: string, data: Partial<Task>) => {
     await svcUpdateTask(id, data)
+    if (Array.isArray(data.members)) {
+      const existing = await getTaskAssignmentsByTask(id)
+      const existingIds = existing.map((ta) => ta.team_member)
+      for (const memberId of data.members) {
+        if (!existingIds.includes(memberId)) {
+          await svcCreateTaskAssignment({ task: id, team_member: memberId })
+        }
+      }
+      for (const ta of existing) {
+        if (!data.members.includes(ta.team_member)) {
+          await svcDeleteTaskAssignment(ta.id)
+        }
+      }
+    }
   }
   const removeTask = async (id: string) => {
     await svcDeleteTask(id)
     toast({ title: 'Tarefa removida.' })
+  }
+  const addTaskAssignment = async (data: Partial<TaskAssignment>) => {
+    await svcCreateTaskAssignment(data)
+  }
+  const editTaskAssignment = async (id: string, data: Partial<TaskAssignment>) => {
+    await svcUpdateTaskAssignment(id, data)
+  }
+  const removeTaskAssignment = async (id: string) => {
+    await svcDeleteTaskAssignment(id)
   }
   const addTimeEntry = async (data: Partial<TimeEntry>) => {
     await svcCreateTimeEntry(data)
@@ -165,6 +185,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         allocations,
         tasks,
         timeEntries,
+        taskAssignments,
         loading,
         addProject,
         editProject,
@@ -174,6 +195,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         addTask,
         editTask,
         removeTask,
+        addTaskAssignment,
+        editTaskAssignment,
+        removeTaskAssignment,
         addTimeEntry,
         editTimeEntry,
         removeTimeEntry,
