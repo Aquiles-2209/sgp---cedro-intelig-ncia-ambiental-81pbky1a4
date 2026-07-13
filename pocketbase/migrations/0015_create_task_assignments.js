@@ -50,6 +50,11 @@ migrate(
       var tdd = existingTasks[i].getString('due_date') || ''
       for (var j = 0; j < members.length; j++) {
         var memberId = members[j]
+        try {
+          app.findRecordById('team_members', memberId)
+        } catch (_) {
+          continue
+        }
         var existing = app.findRecordsByFilter(
           'task_assignments',
           'task = "' + taskId + '" && team_member = "' + memberId + '"',
@@ -63,7 +68,9 @@ migrate(
         taRecord.set('team_member', memberId)
         if (tsd) taRecord.set('start_date', tsd)
         if (tdd) taRecord.set('end_date', tdd)
-        app.save(taRecord)
+        try {
+          app.save(taRecord)
+        } catch (_) {}
       }
     }
   },

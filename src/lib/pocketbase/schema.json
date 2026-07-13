@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-13T18:12:45.460Z",
+  "generatedAt": "2026-07-13T18:19:20.769Z",
   "collections": [
     {
       "name": "users",
@@ -449,6 +449,63 @@
         }
       ],
       "indexes": ["CREATE INDEX idx_team_members_name ON team_members (name)"]
+    },
+    {
+      "name": "task_assignments",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "task",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "tasks"
+        },
+        {
+          "name": "team_member",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "team_members"
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_task_assignments_task ON task_assignments (task)",
+        "CREATE INDEX idx_task_assignments_team_member ON task_assignments (team_member)"
+      ]
     }
   ]
 }
