@@ -10,10 +10,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { createTeamMember, updateTeamMember, type TeamMember } from '@/services/team-members'
+
+const sectorOptions = ['Meio-Ambiente', 'Desenvolvimento Urbano', 'Administrativo']
 
 interface MemberDialogProps {
   onCreated?: () => void
@@ -28,13 +37,14 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
   const { toast } = useToast()
   const isEdit = !!member
 
-  const [form, setForm] = useState({ name: '', function: '' })
+  const [form, setForm] = useState({ name: '', function: '', setor: '' })
 
   useEffect(() => {
     if (open) {
       setForm({
         name: member?.name || '',
         function: member?.function || '',
+        setor: member?.setor || '',
       })
       setFieldErrors({})
     }
@@ -49,6 +59,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
     const errors: FieldErrors = {}
     if (!form.name.trim()) errors.name = 'O nome é obrigatório.'
     if (!form.function.trim()) errors.function = 'A função é obrigatória.'
+    if (!form.setor) errors.setor = 'O setor é obrigatório.'
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors)
       return
@@ -61,12 +72,14 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
         await updateTeamMember(member.id, {
           name: form.name.trim(),
           function: form.function.trim(),
+          setor: form.setor,
         })
         toast({ title: 'Membro atualizado com sucesso!' })
       } else {
         await createTeamMember({
           name: form.name.trim(),
           function: form.function.trim(),
+          setor: form.setor,
         })
         toast({ title: 'Membro cadastrado com sucesso!' })
       }
@@ -126,13 +139,31 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
             />
             {fieldErrors.function && <p className="text-xs text-red-500">{fieldErrors.function}</p>}
           </div>
+          <div className="space-y-2">
+            <Label>Setor</Label>
+            <Select value={form.setor} onValueChange={(v) => update('setor', v)}>
+              <SelectTrigger
+                className={cn(fieldErrors.setor && 'border-red-500 focus-visible:ring-red-500')}
+              >
+                <SelectValue placeholder="Selecione o setor" />
+              </SelectTrigger>
+              <SelectContent>
+                {sectorOptions.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {fieldErrors.setor && <p className="text-xs text-red-500">{fieldErrors.setor}</p>}
+          </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={saving || !form.name.trim() || !form.function.trim()}
+              disabled={saving || !form.name.trim() || !form.function.trim() || !form.setor}
             >
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

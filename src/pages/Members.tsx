@@ -87,6 +87,14 @@ export default function Members() {
                       <Briefcase className="h-3 w-3" />
                       {member.function}
                     </Badge>
+                    {member.setor && (
+                      <Badge
+                        variant="outline"
+                        className="mt-1 flex items-center gap-1.5 w-fit text-xs"
+                      >
+                        {member.setor}
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <MemberDialog member={member} onCreated={loadMembers} />

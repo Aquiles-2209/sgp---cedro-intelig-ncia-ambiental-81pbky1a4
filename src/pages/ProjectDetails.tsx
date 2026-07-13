@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -11,6 +12,8 @@ import {
   Download,
 } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
+import { useRealtime } from '@/hooks/use-realtime'
+import { getTeamMembers, type TeamMember } from '@/services/team-members'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -55,7 +58,23 @@ export default function ProjectDetails() {
     editTimeEntry,
   } = useAppState()
   const { toast } = useToast()
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const project = projects.find((p) => p.id === id)
+
+  const loadTeamMembers = useCallback(async () => {
+    try {
+      const data = await getTeamMembers()
+      setTeamMembers(data)
+    } catch {
+      /* silent */
+    }
+  }, [])
+
+  useEffect(() => {
+    loadTeamMembers()
+  }, [loadTeamMembers])
+
+  useRealtime('team_members', () => loadTeamMembers())
 
   if (!project) return <div className="p-8 text-center">Projeto não encontrado.</div>
 
@@ -109,6 +128,14 @@ export default function ProjectDetails() {
     const currentAllocs = Array.isArray(task.allocation) ? task.allocation : []
     const newAllocations = currentAllocs.filter((id) => id !== allocationId)
     await editTask(taskId, { allocation: newAllocations })
+  }
+
+  const handleRemoveMember = async (taskId: string, memberId: string) => {
+    const task = tasks.find((t) => t.id === taskId)
+    if (!task) return
+    const currentMembers = Array.isArray(task.members) ? task.members : []
+    const newMembers = currentMembers.filter((m) => m !== memberId)
+    await editTask(taskId, { members: newMembers })
   }
 
   return (
@@ -270,19 +297,26 @@ export default function ProjectDetails() {
             <h3 className="text-lg font-semibold flex items-center gap-2 text-slate-800">
               <CheckSquare className="h-5 w-5 text-slate-400" /> Tarefas do Projeto
             </h3>
-            <TaskDialog projectId={id!} allocations={projAllocs} onAdd={addTask} />
+            <TaskDialog
+              projectId={id!}
+              allocations={projAllocs}
+              teamMembers={teamMembers}
+              onAdd={addTask}
+            />
           </div>
           <TaskList
             tasks={projTasks}
             allocations={projAllocs}
             timeEntries={timeEntries}
             projectId={id!}
+            teamMembers={teamMembers}
             onEdit={editTask}
             onEditStatus={handleTaskStatusChange}
             onDelete={handleTaskDelete}
             onStartTimer={handleStartTimer}
             onStopTimer={handleStopTimer}
             onRemoveAllocation={handleRemoveAllocation}
+            onRemoveMember={handleRemoveMember}
           />
         </CardContent>
       </Card>

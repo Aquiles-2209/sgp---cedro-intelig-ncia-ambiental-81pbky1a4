@@ -1,6 +1,6 @@
 import { useState, useEffect, ReactNode } from 'react'
 import { Plus, Loader2, X } from 'lucide-react'
-import { Task, TaskStatus, Allocation } from '@/types/models'
+import { Task, TaskStatus, Allocation, TeamMember } from '@/types/models'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -30,6 +30,7 @@ const statusOptions: TaskStatus[] = ['Pendente', 'Em Andamento', 'Concluído']
 interface TaskDialogProps {
   projectId: string
   allocations: Allocation[]
+  teamMembers: TeamMember[]
   onAdd?: (data: Partial<Task>) => Promise<void>
   onEdit?: (id: string, data: Partial<Task>) => Promise<void>
   task?: Task
@@ -39,6 +40,7 @@ interface TaskDialogProps {
 export function TaskDialog({
   projectId,
   allocations,
+  teamMembers,
   onAdd,
   onEdit,
   task,
@@ -54,6 +56,7 @@ export function TaskDialog({
     title: '',
     description: '',
     allocations: [] as string[],
+    members: [] as string[],
     start_date: '',
     due_date: '',
     status: 'Pendente' as TaskStatus,
@@ -65,6 +68,7 @@ export function TaskDialog({
         title: task.title || '',
         description: task.description || '',
         allocations: Array.isArray(task.allocation) ? task.allocation : [],
+        members: Array.isArray(task.members) ? task.members : [],
         start_date: task.start_date || '',
         due_date: task.due_date || '',
         status: task.status || 'Pendente',
@@ -74,6 +78,7 @@ export function TaskDialog({
         title: '',
         description: '',
         allocations: [],
+        members: [],
         start_date: '',
         due_date: '',
         status: 'Pendente',
@@ -97,6 +102,16 @@ export function TaskDialog({
     setForm((p) => ({ ...p, allocations: p.allocations.filter((id) => id !== allocId) }))
   }
 
+  const addMember = (memberId: string) => {
+    if (!form.members.includes(memberId)) {
+      setForm((p) => ({ ...p, members: [...p.members, memberId] }))
+    }
+  }
+
+  const removeMember = (memberId: string) => {
+    setForm((p) => ({ ...p, members: p.members.filter((id) => id !== memberId) }))
+  }
+
   const handleSubmit = async () => {
     const errors: FieldErrors = {}
     if (!form.title.trim()) errors.title = 'O título é obrigatório.'
@@ -111,6 +126,7 @@ export function TaskDialog({
       const data = {
         project: projectId,
         allocation: form.allocations,
+        members: form.members,
         title: form.title,
         description: form.description,
         status: form.status,
@@ -146,11 +162,12 @@ export function TaskDialog({
   )
 
   const availableAllocations = allocations.filter((a) => !form.allocations.includes(a.id))
+  const availableMembers = teamMembers.filter((m) => !form.members.includes(m.id))
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Editar Tarefa' : 'Nova Tarefa'}</DialogTitle>
         </DialogHeader>
@@ -202,7 +219,7 @@ export function TaskDialog({
             {availableAllocations.length > 0 && (
               <Select value="" onValueChange={(v) => addAllocation(v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Adicionar membro" />
+                  <SelectValue placeholder="Adicionar membro alocado" />
                 </SelectTrigger>
                 <SelectContent>
                   {availableAllocations.map((a) => (
@@ -214,7 +231,52 @@ export function TaskDialog({
               </Select>
             )}
             {allocations.length === 0 && (
-              <p className="text-xs text-red-500">Nenhum membro alocado neste projeto.</p>
+              <p className="text-xs text-slate-400">Nenhum membro alocado neste projeto.</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label>Membros da Equipe</Label>
+            {form.members.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {form.members.map((memberId) => {
+                  const member = teamMembers.find((m) => m.id === memberId)
+                  return (
+                    <Badge
+                      key={memberId}
+                      variant="outline"
+                      className="flex items-center gap-1.5 pr-1.5"
+                    >
+                      {member?.name}
+                      <button
+                        type="button"
+                        onClick={() => removeMember(memberId)}
+                        className="rounded-full hover:bg-slate-300 p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )
+                })}
+              </div>
+            )}
+            {availableMembers.length > 0 && (
+              <Select value="" onValueChange={(v) => addMember(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Adicionar membro da equipe" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableMembers.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name} — {m.function}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {teamMembers.length === 0 && (
+              <p className="text-xs text-slate-400">
+                Nenhum membro cadastrado. Cadastre membros na aba Membros.
+              </p>
             )}
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -243,7 +305,6 @@ export function TaskDialog({
                 ))}
               </SelectContent>
             </Select>
-            {fieldErrors.status && <p className="text-xs text-red-500">{fieldErrors.status}</p>}
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setOpen(false)}>

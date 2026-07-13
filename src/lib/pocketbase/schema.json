@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-13T17:37:45.050Z",
+  "generatedAt": "2026-07-13T17:56:11.296Z",
   "collections": [
     {
       "name": "users",
@@ -254,6 +254,13 @@
           "required": false,
           "system": false,
           "collectionRef": "allocations"
+        },
+        {
+          "name": "members",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "team_members"
         }
       ],
       "indexes": [
@@ -424,6 +431,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "setor",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Meio-Ambiente", "Desenvolvimento Urbano", "Administrativo"]
         }
       ],
       "indexes": ["CREATE INDEX idx_team_members_name ON team_members (name)"]

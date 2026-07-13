@@ -1,5 +1,5 @@
 import pb from '@/lib/pocketbase/client'
-import { Task, Allocation } from '@/types/models'
+import { Task, Allocation, TeamMember } from '@/types/models'
 
 function normalizeTaskRecord(r: any): Task {
   const allocation: string[] = Array.isArray(r.allocation)
@@ -8,23 +8,34 @@ function normalizeTaskRecord(r: any): Task {
       ? [r.allocation]
       : []
 
+  const members: string[] = Array.isArray(r.members) ? r.members : r.members ? [r.members] : []
+
   let expandedAllocations: Allocation[] | undefined
   if (r.expand?.allocation) {
     const raw = r.expand.allocation
     expandedAllocations = Array.isArray(raw) ? raw : [raw]
   }
 
+  let expandedMembers: TeamMember[] | undefined
+  if (r.expand?.members) {
+    const raw = r.expand.members
+    expandedMembers = Array.isArray(raw) ? raw : [raw]
+  }
+
   return {
     ...r,
     allocation,
-    expand: r.expand ? { ...r.expand, allocation: expandedAllocations } : undefined,
+    members,
+    expand: r.expand
+      ? { ...r.expand, allocation: expandedAllocations, members: expandedMembers }
+      : undefined,
   } as Task
 }
 
 export const getTasks = async (): Promise<Task[]> => {
   const records = await pb
     .collection('tasks')
-    .getFullList({ sort: '-created', expand: 'project,allocation' })
+    .getFullList({ sort: '-created', expand: 'project,allocation,members' })
   return records.map(normalizeTaskRecord)
 }
 
@@ -32,7 +43,7 @@ export const getTasksByProject = async (projectId: string): Promise<Task[]> => {
   const records = await pb.collection('tasks').getFullList({
     filter: `project = "${projectId}"`,
     sort: 'due_date',
-    expand: 'allocation',
+    expand: 'allocation,members',
   })
   return records.map(normalizeTaskRecord)
 }

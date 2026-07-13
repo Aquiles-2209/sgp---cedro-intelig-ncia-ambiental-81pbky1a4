@@ -1,9 +1,10 @@
-import { Pencil, Trash2, X } from 'lucide-react'
+import { Pencil, Trash2, X, Users } from 'lucide-react'
 import {
   Task,
   TaskStatus,
   Allocation,
   TimeEntry,
+  TeamMember,
   safeFormatDate,
   formatDuration,
 } from '@/types/models'
@@ -32,12 +33,14 @@ interface TaskListProps {
   allocations: Allocation[]
   timeEntries: TimeEntry[]
   projectId: string
+  teamMembers: TeamMember[]
   onEdit: (id: string, data: Partial<Task>) => Promise<void>
   onEditStatus: (id: string, status: TaskStatus) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onStartTimer: (taskId: string, allocationId: string) => Promise<void>
   onStopTimer: (entryId: string) => Promise<void>
   onRemoveAllocation: (taskId: string, allocationId: string) => Promise<void>
+  onRemoveMember: (taskId: string, memberId: string) => Promise<void>
 }
 
 export function TaskList({
@@ -45,12 +48,14 @@ export function TaskList({
   allocations,
   timeEntries,
   projectId,
+  teamMembers,
   onEdit,
   onEditStatus,
   onDelete,
   onStartTimer,
   onStopTimer,
   onRemoveAllocation,
+  onRemoveMember,
 }: TaskListProps) {
   if (tasks.length === 0) {
     return (
@@ -68,6 +73,9 @@ export function TaskList({
           : task.expand?.allocation
             ? [task.expand.allocation]
             : []
+        const taskMembers: TeamMember[] = (task.members || [])
+          .map((id) => teamMembers.find((m) => m.id === id))
+          .filter(Boolean) as TeamMember[]
         const totalTime = timeEntries
           .filter((te) => te.task === task.id)
           .reduce((sum, te) => sum + (te.duration || 0), 0)
@@ -103,7 +111,23 @@ export function TaskList({
                     </button>
                   </Badge>
                 ))}
-                {taskAllocations.length === 0 && (
+                {taskMembers.map((member) => (
+                  <Badge
+                    key={member.id}
+                    variant="outline"
+                    className="flex items-center gap-1 pr-1 text-xs"
+                  >
+                    <Users className="h-2.5 w-2.5" />
+                    {member.name}
+                    <button
+                      onClick={() => onRemoveMember(task.id, member.id)}
+                      className="rounded-full hover:bg-slate-300 p-0.5"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </Badge>
+                ))}
+                {taskAllocations.length === 0 && taskMembers.length === 0 && (
                   <span className="text-xs text-slate-400">Sem membros atribuídos</span>
                 )}
               </div>
@@ -129,6 +153,7 @@ export function TaskList({
                 <TaskDialog
                   projectId={projectId}
                   allocations={allocations}
+                  teamMembers={teamMembers}
                   onEdit={onEdit}
                   task={task}
                   trigger={

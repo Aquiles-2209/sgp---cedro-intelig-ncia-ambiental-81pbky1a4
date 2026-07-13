@@ -57,10 +57,20 @@ export function getProgress(start: string, end: string): number {
 
 export type TaskStatus = 'Pendente' | 'Em Andamento' | 'Concluído'
 
+export interface TeamMember {
+  id: string
+  name: string
+  function: string
+  setor: string
+  created: string
+  updated: string
+}
+
 export interface Task {
   id: string
   project: string
   allocation: string[]
+  members: string[]
   title: string
   description: string
   start_date: string
@@ -68,7 +78,7 @@ export interface Task {
   due_date: string
   created: string
   updated: string
-  expand?: { project?: Project; allocation?: Allocation[] }
+  expand?: { project?: Project; allocation?: Allocation[]; members?: TeamMember[] }
 }
 
 export interface TimeEntry {
