@@ -1,4 +1,4 @@
-import { Project, Allocation, Task, normalizeDate } from '@/types/models'
+import { Project, Allocation, Task, TimeEntry, normalizeDate, formatDuration } from '@/types/models'
 
 function escapeCsv(value: string): string {
   if (!value) return ''
@@ -16,6 +16,7 @@ export function exportProjectReport(
   project: Project,
   allocations: Allocation[],
   tasks: Task[],
+  timeEntries: TimeEntry[],
 ): void {
   const lines: string[] = []
 
@@ -50,18 +51,37 @@ export function exportProjectReport(
   lines.push('')
 
   lines.push('Tarefas do Projeto')
-  lines.push('Titulo,Descricao,Membro,Status,Prazo')
+  lines.push('Titulo,Descricao,Membro,Status,Data de Inicio,Prazo,Tempo Trabalhado')
   for (const t of tasks) {
     const memberName = t.expand?.allocation?.member_name || ''
+    const totalSeconds = timeEntries
+      .filter((te) => te.task === t.id)
+      .reduce((sum, te) => sum + (te.duration || 0), 0)
     lines.push(
       [
         escapeCsv(t.title),
         escapeCsv(t.description),
         escapeCsv(memberName),
         escapeCsv(t.status),
+        formatDate(t.start_date),
         formatDate(t.due_date),
+        formatDuration(totalSeconds),
       ].join(','),
     )
+  }
+
+  lines.push('')
+  lines.push('Tempo Total por Membro')
+  const memberTimeMap = new Map<string, number>()
+  for (const te of timeEntries) {
+    const memberName = te.expand?.allocation?.member_name || ''
+    if (memberName) {
+      memberTimeMap.set(memberName, (memberTimeMap.get(memberName) || 0) + (te.duration || 0))
+    }
+  }
+  lines.push('Membro,Tempo Total')
+  for (const [member, seconds] of memberTimeMap) {
+    lines.push([escapeCsv(member), formatDuration(seconds)].join(','))
   }
 
   const csvContent = '\uFEFF' + lines.join('\n')

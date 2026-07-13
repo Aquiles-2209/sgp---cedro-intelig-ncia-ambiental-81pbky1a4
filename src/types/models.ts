@@ -52,11 +52,37 @@ export interface Task {
   allocation: string
   title: string
   description: string
+  start_date: string
   status: TaskStatus
   due_date: string
   created: string
   updated: string
   expand?: { project?: Project; allocation?: Allocation }
+}
+
+export interface TimeEntry {
+  id: string
+  task: string
+  allocation: string
+  start_time: string
+  end_time: string
+  duration: number
+  created: string
+  updated: string
+  expand?: { task?: Task; allocation?: Allocation }
+}
+
+export function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  return `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m`
+}
+
+export function formatLiveTimer(seconds: number): string {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = Math.floor(seconds % 60)
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
 import { differenceInDays } from 'date-fns'

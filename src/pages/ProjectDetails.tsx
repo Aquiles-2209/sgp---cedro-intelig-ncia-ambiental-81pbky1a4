@@ -22,9 +22,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { isDeadlineSoon, normalizeDate, TaskStatus } from '@/types/models'
+import { isDeadlineSoon, normalizeDate, TaskStatus, formatDuration } from '@/types/models'
 import { exportProjectReport } from '@/lib/export-report'
-import { TaskDialog, TaskList } from '@/components/task-dialog'
+import { TaskDialog } from '@/components/task-dialog'
+import { TaskList } from '@/components/task-list'
+import { useToast } from '@/hooks/use-toast'
 
 const statusColors: Record<string, string> = {
   'Em Andamento': 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -35,7 +37,18 @@ const statusColors: Record<string, string> = {
 export default function ProjectDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { projects, allocations, tasks, addTask, editTask, removeTask } = useAppState()
+  const {
+    projects,
+    allocations,
+    tasks,
+    timeEntries,
+    addTask,
+    editTask,
+    removeTask,
+    addTimeEntry,
+    editTimeEntry,
+  } = useAppState()
+  const { toast } = useToast()
   const project = projects.find((p) => p.id === id)
 
   if (!project) return <div className="p-8 text-center">Projeto não encontrado.</div>
@@ -44,7 +57,8 @@ export default function ProjectDetails() {
   const projTasks = tasks.filter((t) => t.project === id)
 
   const handleExport = () => {
-    exportProjectReport(project, projAllocs, projTasks)
+    const projTimeEntries = timeEntries.filter((te) => projTasks.some((t) => t.id === te.task))
+    exportProjectReport(project, projAllocs, projTasks, projTimeEntries)
   }
 
   const handleTaskStatusChange = async (taskId: string, status: TaskStatus) => {
@@ -53,6 +67,34 @@ export default function ProjectDetails() {
 
   const handleTaskDelete = async (taskId: string) => {
     await removeTask(taskId)
+  }
+
+  const handleStartTimer = async (taskId: string, allocationId: string) => {
+    const active = timeEntries.find((te) => te.allocation === allocationId && !te.end_time)
+    if (active) {
+      toast({ title: 'Já existe um timer ativo para este membro.', variant: 'destructive' })
+      return
+    }
+    await addTimeEntry({
+      task: taskId,
+      allocation: allocationId,
+      start_time: new Date().toISOString(),
+      duration: 0,
+    })
+    toast({ title: 'Timer iniciado!' })
+  }
+
+  const handleStopTimer = async (entryId: string) => {
+    const entry = timeEntries.find((te) => te.id === entryId)
+    if (!entry) return
+    const now = new Date()
+    const startTime = new Date(entry.start_time)
+    const duration = Math.floor((now.getTime() - startTime.getTime()) / 1000)
+    await editTimeEntry(entryId, {
+      end_time: now.toISOString(),
+      duration,
+    })
+    toast({ title: 'Timer pausado.' })
   }
 
   return (
@@ -150,6 +192,16 @@ export default function ProjectDetails() {
                   <span className="text-slate-500">Total de tarefas</span>
                   <span className="font-medium">{projTasks.length}</span>
                 </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Tempo total trabalhado</span>
+                  <span className="font-medium">
+                    {formatDuration(
+                      timeEntries
+                        .filter((te) => projTasks.some((t) => t.id === te.task))
+                        .reduce((sum, te) => sum + (te.duration || 0), 0),
+                    )}
+                  </span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -216,8 +268,14 @@ export default function ProjectDetails() {
           </div>
           <TaskList
             tasks={projTasks}
+            allocations={projAllocs}
+            timeEntries={timeEntries}
+            projectId={id!}
+            onEdit={editTask}
             onEditStatus={handleTaskStatusChange}
             onDelete={handleTaskDelete}
+            onStartTimer={handleStartTimer}
+            onStopTimer={handleStopTimer}
           />
         </CardContent>
       </Card>

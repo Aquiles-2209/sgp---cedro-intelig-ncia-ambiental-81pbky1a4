@@ -1,11 +1,10 @@
-import { useState } from 'react'
-import { Plus, Loader2, Trash2 } from 'lucide-react'
-import { Task, TaskStatus, Allocation, normalizeDate } from '@/types/models'
+import { useState, useEffect, ReactNode } from 'react'
+import { Plus, Loader2 } from 'lucide-react'
+import { Task, TaskStatus, Allocation } from '@/types/models'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -22,67 +21,100 @@ import {
 } from '@/components/ui/select'
 import { DatePicker } from '@/components/date-picker'
 
+const statusOptions: TaskStatus[] = ['Pendente', 'Em Andamento', 'Concluído']
+
 interface TaskDialogProps {
   projectId: string
   allocations: Allocation[]
-  onAdd: (data: Partial<Task>) => Promise<void>
+  onAdd?: (data: Partial<Task>) => Promise<void>
+  onEdit?: (id: string, data: Partial<Task>) => Promise<void>
+  task?: Task
+  trigger?: ReactNode
 }
 
-const statusOptions: TaskStatus[] = ['Pendente', 'Em Andamento', 'Concluído']
-
-const statusBadge: Record<TaskStatus, string> = {
-  Pendente: 'bg-amber-50 text-amber-700 border-amber-200',
-  'Em Andamento': 'bg-blue-50 text-blue-700 border-blue-200',
-  Concluído: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-}
-
-export function TaskDialog({ projectId, allocations, onAdd }: TaskDialogProps) {
+export function TaskDialog({
+  projectId,
+  allocations,
+  onAdd,
+  onEdit,
+  task,
+  trigger,
+}: TaskDialogProps) {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const isEdit = !!task
+
   const [form, setForm] = useState({
     title: '',
     description: '',
     allocation: '',
+    start_date: '',
     due_date: '',
     status: 'Pendente' as TaskStatus,
   })
 
-  const reset = () =>
-    setForm({ title: '', description: '', allocation: '', due_date: '', status: 'Pendente' })
+  useEffect(() => {
+    if (open && task) {
+      setForm({
+        title: task.title || '',
+        description: task.description || '',
+        allocation: task.allocation || '',
+        start_date: task.start_date || '',
+        due_date: task.due_date || '',
+        status: task.status || 'Pendente',
+      })
+    } else if (open && !task) {
+      setForm({
+        title: '',
+        description: '',
+        allocation: '',
+        start_date: '',
+        due_date: '',
+        status: 'Pendente',
+      })
+    }
+  }, [open, task])
 
-  const update = (field: string, value: string) => setForm((prev) => ({ ...prev, [field]: value }))
+  const update = (field: string, value: string) => setForm((p) => ({ ...p, [field]: value }))
 
   const handleSubmit = async () => {
     if (!form.title || !form.allocation) return
     setSaving(true)
     try {
-      await onAdd({
+      const data = {
         project: projectId,
         allocation: form.allocation,
         title: form.title,
         description: form.description,
         status: form.status,
+        start_date: form.start_date,
         due_date: form.due_date,
-      })
-      reset()
+      }
+      if (isEdit && onEdit) {
+        await onEdit(task!.id, data)
+      } else if (onAdd) {
+        await onAdd(data)
+      }
       setOpen(false)
     } catch {
-      /* handled by toast */
+      /* toast handles error */
     } finally {
       setSaving(false)
     }
   }
 
+  const defaultTrigger = (
+    <Button size="sm">
+      <Plus className="h-4 w-4 mr-2" /> Nova Tarefa
+    </Button>
+  )
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus className="h-4 w-4 mr-2" /> Nova Tarefa
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Nova Tarefa</DialogTitle>
+          <DialogTitle>{isEdit ? 'Editar Tarefa' : 'Nova Tarefa'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -122,113 +154,45 @@ export function TaskDialog({ projectId, allocations, onAdd }: TaskDialogProps) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Prazo</Label>
-              <DatePicker value={form.due_date} onChange={(v) => update('due_date', v)} />
+              <Label>Data de Início</Label>
+              <DatePicker value={form.start_date} onChange={(v) => update('start_date', v)} />
             </div>
             <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={form.status} onValueChange={(v) => update('status', v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Data de Finalização</Label>
+              <DatePicker value={form.due_date} onChange={(v) => update('due_date', v)} />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select value={form.status} onValueChange={(v) => update('status', v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleSubmit} disabled={saving || !form.title || !form.allocation}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Criar Tarefa'}
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isEdit ? (
+                'Salvar Alterações'
+              ) : (
+                'Criar Tarefa'
+              )}
             </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
-  )
-}
-
-interface TaskListProps {
-  tasks: Task[]
-  onEditStatus: (id: string, status: TaskStatus) => Promise<void>
-  onDelete: (id: string) => Promise<void>
-}
-
-export function TaskList({ tasks, onEditStatus, onDelete }: TaskListProps) {
-  if (tasks.length === 0) {
-    return (
-      <p className="text-sm text-slate-500 text-center py-8">
-        Nenhuma tarefa cadastrada para este projeto.
-      </p>
-    )
-  }
-
-  return (
-    <div className="space-y-2">
-      {tasks.map((task) => {
-        const memberName = task.expand?.allocation?.member_name || '—'
-        return (
-          <div
-            key={task.id}
-            className="flex items-start justify-between gap-3 p-3 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors"
-          >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-medium text-slate-900 text-sm">{task.title}</span>
-                <Badge variant="outline" className={statusBadge[task.status]}>
-                  {task.status}
-                </Badge>
-              </div>
-              {task.description && (
-                <p className="text-xs text-slate-500 mt-1 line-clamp-2">{task.description}</p>
-              )}
-              <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
-                <span>{memberName}</span>
-                {task.due_date && (
-                  <span>
-                    Prazo:{' '}
-                    {new Date(normalizeDate(task.due_date) + 'T00:00:00').toLocaleDateString(
-                      'pt-BR',
-                    )}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <Select
-                value={task.status}
-                onValueChange={(v) => onEditStatus(task.id, v as TaskStatus)}
-              >
-                <SelectTrigger className="h-8 w-[140px] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                onClick={() => onDelete(task.id)}
-              >
-                <Trash2 className="h-3.5 w-3.5 text-red-500" />
-              </Button>
-            </div>
-          </div>
-        )
-      })}
-    </div>
   )
 }

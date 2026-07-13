@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { Project, Allocation, Task } from '@/types/models'
+import { Project, Allocation, Task, TimeEntry } from '@/types/models'
 import {
   getProjects,
   createProject as svcCreate,
@@ -17,6 +17,12 @@ import {
   updateTask as svcUpdateTask,
   deleteTask as svcDeleteTask,
 } from '@/services/tasks'
+import {
+  getTimeEntries,
+  createTimeEntry as svcCreateTimeEntry,
+  updateTimeEntry as svcUpdateTimeEntry,
+  deleteTimeEntry as svcDeleteTimeEntry,
+} from '@/services/time-entries'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
@@ -25,6 +31,7 @@ interface AppStateContextType {
   projects: Project[]
   allocations: Allocation[]
   tasks: Task[]
+  timeEntries: TimeEntry[]
   loading: boolean
   addProject: (data: Partial<Project>) => Promise<Project>
   editProject: (id: string, data: Partial<Project>) => Promise<void>
@@ -34,6 +41,9 @@ interface AppStateContextType {
   addTask: (data: Partial<Task>) => Promise<void>
   editTask: (id: string, data: Partial<Task>) => Promise<void>
   removeTask: (id: string) => Promise<void>
+  addTimeEntry: (data: Partial<TimeEntry>) => Promise<void>
+  editTimeEntry: (id: string, data: Partial<TimeEntry>) => Promise<void>
+  removeTimeEntry: (id: string) => Promise<void>
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined)
@@ -43,15 +53,22 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([])
   const [allocations, setAllocations] = useState<Allocation[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
   const loadData = useCallback(async () => {
     try {
-      const [p, a, t] = await Promise.all([getProjects(), getAllocations(), getTasks()])
+      const [p, a, t, te] = await Promise.all([
+        getProjects(),
+        getAllocations(),
+        getTasks(),
+        getTimeEntries(),
+      ])
       setProjects(p)
       setAllocations(a)
       setTasks(t)
+      setTimeEntries(te)
     } catch {
       /* silent */
     } finally {
@@ -66,6 +83,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setProjects([])
       setAllocations([])
       setTasks([])
+      setTimeEntries([])
       setLoading(false)
     }
   }, [isAuthenticated, loadData])
@@ -86,6 +104,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   )
   useRealtime(
     'tasks',
+    () => {
+      loadData()
+    },
+    isAuthenticated,
+  )
+  useRealtime(
+    'time_entries',
     () => {
       loadData()
     },
@@ -123,6 +148,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     await svcDeleteTask(id)
     toast({ title: 'Tarefa removida.' })
   }
+  const addTimeEntry = async (data: Partial<TimeEntry>) => {
+    await svcCreateTimeEntry(data)
+  }
+  const editTimeEntry = async (id: string, data: Partial<TimeEntry>) => {
+    await svcUpdateTimeEntry(id, data)
+  }
+  const removeTimeEntry = async (id: string) => {
+    await svcDeleteTimeEntry(id)
+  }
 
   return (
     <AppStateContext.Provider
@@ -130,6 +164,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         projects,
         allocations,
         tasks,
+        timeEntries,
         loading,
         addProject,
         editProject,
@@ -139,6 +174,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         addTask,
         editTask,
         removeTask,
+        addTimeEntry,
+        editTimeEntry,
+        removeTimeEntry,
       }}
     >
       {children}
