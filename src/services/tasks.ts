@@ -49,14 +49,12 @@ export const getTasksByProject = async (projectId: string): Promise<Task[]> => {
 }
 
 export const createTask = async (data: Partial<Task>): Promise<Task> => {
-  const { members: _members, ...taskData } = data
-  const record = await pb.collection('tasks').create(taskData)
+  const record = await pb.collection('tasks').create(data)
   return normalizeTaskRecord(record)
 }
 
 export const updateTask = async (id: string, data: Partial<Task>): Promise<Task> => {
-  const { members: _members, ...taskData } = data
-  const record = await pb.collection('tasks').update(id, taskData)
+  const record = await pb.collection('tasks').update(id, data)
   return normalizeTaskRecord(record)
 }
 
