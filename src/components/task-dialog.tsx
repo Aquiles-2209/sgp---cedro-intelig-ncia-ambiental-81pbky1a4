@@ -183,7 +183,12 @@ export function TaskDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label>Membros da Equipe</Label>
+            <div>
+              <Label>Membros da Equipe</Label>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Cada membro terá controle individual de datas e tempo na tarefa.
+              </p>
+            </div>
             {form.members.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {form.members.map((memberId) => {

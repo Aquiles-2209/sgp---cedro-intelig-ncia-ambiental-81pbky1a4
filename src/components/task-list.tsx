@@ -136,7 +136,7 @@ export function TaskList({
             </div>
 
             {taskMembers.length > 0 ? (
-              <div className="mt-2 space-y-1">
+              <div className="mt-2 space-y-1.5">
                 {taskMembers.map((member) => {
                   const assignment = taskAssignments.find(
                     (ta) => ta.task === task.id && ta.team_member === member.id,
@@ -148,14 +148,30 @@ export function TaskList({
                     <div
                       key={member.id}
                       className={cn(
-                        'py-1 px-2 rounded-md transition-colors',
-                        hasActiveTimer && 'bg-blue-50',
+                        'py-1.5 px-2.5 rounded-md transition-colors border',
+                        hasActiveTimer
+                          ? 'bg-emerald-50 border-emerald-200'
+                          : 'bg-slate-50/50 border-transparent',
                       )}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <Users className="h-3 w-3 text-slate-400 shrink-0" />
-                          <span className="text-xs text-slate-600 truncate">{member.name}</span>
+                          {hasActiveTimer ? (
+                            <span className="relative flex h-2 w-2 shrink-0">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                            </span>
+                          ) : (
+                            <Users className="h-3 w-3 text-slate-400 shrink-0" />
+                          )}
+                          <span className="text-xs font-medium text-slate-700 truncate">
+                            {member.name}
+                          </span>
+                          {hasActiveTimer && (
+                            <span className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wide">
+                              Ativo
+                            </span>
+                          )}
                           <button
                             onClick={() => onRemoveMember(task.id, member.id)}
                             className="rounded-full hover:bg-slate-200 p-0.5 shrink-0"
@@ -171,19 +187,31 @@ export function TaskList({
                           onStop={onStopTimer}
                         />
                       </div>
-                      <div className="flex items-center gap-2 mt-1 ml-4">
-                        <DatePicker
-                          compact
-                          value={assignment?.start_date || ''}
-                          onChange={(v) => onSetAssignmentDate(task.id, member.id, 'start_date', v)}
-                          placeholder="Início"
-                        />
-                        <DatePicker
-                          compact
-                          value={assignment?.end_date || ''}
-                          onChange={(v) => onSetAssignmentDate(task.id, member.id, 'end_date', v)}
-                          placeholder="Término"
-                        />
+                      <div className="flex items-center gap-3 mt-1.5 ml-5">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
+                            Data de Início
+                          </span>
+                          <DatePicker
+                            compact
+                            value={assignment?.start_date || ''}
+                            onChange={(v) =>
+                              onSetAssignmentDate(task.id, member.id, 'start_date', v)
+                            }
+                            placeholder="—"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
+                            Data de Término
+                          </span>
+                          <DatePicker
+                            compact
+                            value={assignment?.end_date || ''}
+                            onChange={(v) => onSetAssignmentDate(task.id, member.id, 'end_date', v)}
+                            placeholder="—"
+                          />
+                        </div>
                       </div>
                     </div>
                   )

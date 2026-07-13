@@ -53,7 +53,12 @@ export function MemberTimer({ taskId, memberId, timeEntries, onStart, onStop }: 
   if (isActive) {
     return (
       <div className="flex items-center gap-2">
-        <Button size="sm" variant="destructive" className="h-7" onClick={handleStop}>
+        <Button
+          size="sm"
+          variant="destructive"
+          className="h-7 bg-emerald-600 hover:bg-emerald-700"
+          onClick={handleStop}
+        >
           <Pause className="h-3 w-3 mr-1" />
           <span className="font-mono text-xs">{formatLiveTimer(elapsed)}</span>
         </Button>
