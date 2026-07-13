@@ -20,6 +20,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DatePicker } from '@/components/date-picker'
+import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
+import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 
 const statusOptions: TaskStatus[] = ['Pendente', 'Em Andamento', 'Concluído']
 
@@ -42,6 +45,8 @@ export function TaskDialog({
 }: TaskDialogProps) {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const { toast } = useToast()
   const isEdit = !!task
 
   const [form, setForm] = useState({
@@ -73,13 +78,26 @@ export function TaskDialog({
         status: 'Pendente',
       })
     }
+    setFieldErrors({})
   }, [open, task])
 
-  const update = (field: string, value: string) => setForm((p) => ({ ...p, [field]: value }))
+  const update = (field: string, value: string) => {
+    setForm((p) => ({ ...p, [field]: value }))
+    setFieldErrors((p) => ({ ...p, [field]: '' }))
+  }
 
   const handleSubmit = async () => {
-    if (!form.title || !form.allocation) return
+    const errors: FieldErrors = {}
+    if (!form.title.trim()) errors.title = 'O título é obrigatório.'
+    if (!form.allocation) errors.allocation = 'Selecione um membro.'
+    if (!form.status) errors.status = 'O status é obrigatório.'
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      return
+    }
+
     setSaving(true)
+    setFieldErrors({})
     try {
       const data = {
         project: projectId,
@@ -96,8 +114,17 @@ export function TaskDialog({
         await onAdd(data)
       }
       setOpen(false)
-    } catch {
-      /* toast handles error */
+    } catch (err) {
+      const pbErrors = extractFieldErrors(err)
+      if (Object.keys(pbErrors).length > 0) {
+        setFieldErrors(pbErrors)
+      } else {
+        toast({
+          title: 'Erro ao salvar tarefa',
+          description: getErrorMessage(err),
+          variant: 'destructive',
+        })
+      }
     } finally {
       setSaving(false)
     }
@@ -123,7 +150,9 @@ export function TaskDialog({
               value={form.title}
               onChange={(e) => update('title', e.target.value)}
               placeholder="Título da tarefa"
+              className={cn(fieldErrors.title && 'border-red-500 focus-visible:ring-red-500')}
             />
+            {fieldErrors.title && <p className="text-xs text-red-500">{fieldErrors.title}</p>}
           </div>
           <div className="space-y-2">
             <Label>Descrição</Label>
@@ -137,7 +166,11 @@ export function TaskDialog({
           <div className="space-y-2">
             <Label>Membro Atribuído</Label>
             <Select value={form.allocation} onValueChange={(v) => update('allocation', v)}>
-              <SelectTrigger>
+              <SelectTrigger
+                className={cn(
+                  fieldErrors.allocation && 'border-red-500 focus-visible:ring-red-500',
+                )}
+              >
                 <SelectValue placeholder="Selecionar membro" />
               </SelectTrigger>
               <SelectContent>
@@ -148,6 +181,9 @@ export function TaskDialog({
                 ))}
               </SelectContent>
             </Select>
+            {fieldErrors.allocation && (
+              <p className="text-xs text-red-500">{fieldErrors.allocation}</p>
+            )}
             {allocations.length === 0 && (
               <p className="text-xs text-red-500">Nenhum membro alocado neste projeto.</p>
             )}
@@ -165,7 +201,9 @@ export function TaskDialog({
           <div className="space-y-2">
             <Label>Status</Label>
             <Select value={form.status} onValueChange={(v) => update('status', v)}>
-              <SelectTrigger>
+              <SelectTrigger
+                className={cn(fieldErrors.status && 'border-red-500 focus-visible:ring-red-500')}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -176,12 +214,16 @@ export function TaskDialog({
                 ))}
               </SelectContent>
             </Select>
+            {fieldErrors.status && <p className="text-xs text-red-500">{fieldErrors.status}</p>}
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} disabled={saving || !form.title || !form.allocation}>
+            <Button
+              onClick={handleSubmit}
+              disabled={saving || !form.title.trim() || !form.allocation}
+            >
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : isEdit ? (
