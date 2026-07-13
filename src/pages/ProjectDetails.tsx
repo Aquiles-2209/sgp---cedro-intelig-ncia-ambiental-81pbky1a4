@@ -94,15 +94,17 @@ export default function ProjectDetails() {
     await removeTask(taskId)
   }
 
-  const handleStartTimer = async (taskId: string, allocationId: string) => {
-    const active = timeEntries.find((te) => te.allocation === allocationId && !te.end_time)
+  const handleStartTimer = async (taskId: string, memberId: string) => {
+    const active = timeEntries.find(
+      (te) => te.task === taskId && te.team_member === memberId && !te.end_time,
+    )
     if (active) {
       toast({ title: 'Já existe um timer ativo para este membro.', variant: 'destructive' })
       return
     }
     await addTimeEntry({
       task: taskId,
-      allocation: allocationId,
+      team_member: memberId,
       start_time: new Date().toISOString(),
       duration: 0,
     })
@@ -120,14 +122,6 @@ export default function ProjectDetails() {
       duration,
     })
     toast({ title: 'Timer pausado.' })
-  }
-
-  const handleRemoveAllocation = async (taskId: string, allocationId: string) => {
-    const task = tasks.find((t) => t.id === taskId)
-    if (!task) return
-    const currentAllocs = Array.isArray(task.allocation) ? task.allocation : []
-    const newAllocations = currentAllocs.filter((id) => id !== allocationId)
-    await editTask(taskId, { allocation: newAllocations })
   }
 
   const handleRemoveMember = async (taskId: string, memberId: string) => {
@@ -297,16 +291,10 @@ export default function ProjectDetails() {
             <h3 className="text-lg font-semibold flex items-center gap-2 text-slate-800">
               <CheckSquare className="h-5 w-5 text-slate-400" /> Tarefas do Projeto
             </h3>
-            <TaskDialog
-              projectId={id!}
-              allocations={projAllocs}
-              teamMembers={teamMembers}
-              onAdd={addTask}
-            />
+            <TaskDialog projectId={id!} teamMembers={teamMembers} onAdd={addTask} />
           </div>
           <TaskList
             tasks={projTasks}
-            allocations={projAllocs}
             timeEntries={timeEntries}
             projectId={id!}
             teamMembers={teamMembers}
@@ -315,7 +303,6 @@ export default function ProjectDetails() {
             onDelete={handleTaskDelete}
             onStartTimer={handleStartTimer}
             onStopTimer={handleStopTimer}
-            onRemoveAllocation={handleRemoveAllocation}
             onRemoveMember={handleRemoveMember}
           />
         </CardContent>

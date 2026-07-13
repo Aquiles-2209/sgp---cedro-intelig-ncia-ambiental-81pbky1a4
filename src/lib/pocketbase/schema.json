@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-13T17:56:11.296Z",
+  "generatedAt": "2026-07-13T18:08:31.546Z",
   "collections": [
     {
       "name": "users",
@@ -289,7 +289,7 @@
         {
           "name": "allocation",
           "type": "relation",
-          "required": true,
+          "required": false,
           "system": false,
           "collectionRef": "allocations"
         },
@@ -324,12 +324,20 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "team_member",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "team_members"
         }
       ],
       "indexes": [
         "CREATE INDEX idx_time_entries_task ON time_entries (task)",
         "CREATE INDEX idx_time_entries_allocation ON time_entries (allocation)",
-        "CREATE INDEX idx_time_entries_end_time ON time_entries (end_time)"
+        "CREATE INDEX idx_time_entries_end_time ON time_entries (end_time)",
+        "CREATE INDEX `idx_time_entries_team_member` ON `time_entries` (team_member)"
       ]
     },
     {

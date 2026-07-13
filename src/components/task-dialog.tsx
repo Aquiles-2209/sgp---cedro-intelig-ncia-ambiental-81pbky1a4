@@ -1,6 +1,6 @@
 import { useState, useEffect, ReactNode } from 'react'
 import { Plus, Loader2, X } from 'lucide-react'
-import { Task, TaskStatus, Allocation, TeamMember } from '@/types/models'
+import { Task, TaskStatus, TeamMember } from '@/types/models'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -29,7 +29,6 @@ const statusOptions: TaskStatus[] = ['Pendente', 'Em Andamento', 'Concluído']
 
 interface TaskDialogProps {
   projectId: string
-  allocations: Allocation[]
   teamMembers: TeamMember[]
   onAdd?: (data: Partial<Task>) => Promise<void>
   onEdit?: (id: string, data: Partial<Task>) => Promise<void>
@@ -39,7 +38,6 @@ interface TaskDialogProps {
 
 export function TaskDialog({
   projectId,
-  allocations,
   teamMembers,
   onAdd,
   onEdit,
@@ -55,7 +53,6 @@ export function TaskDialog({
   const [form, setForm] = useState({
     title: '',
     description: '',
-    allocations: [] as string[],
     members: [] as string[],
     start_date: '',
     due_date: '',
@@ -67,7 +64,6 @@ export function TaskDialog({
       setForm({
         title: task.title || '',
         description: task.description || '',
-        allocations: Array.isArray(task.allocation) ? task.allocation : [],
         members: Array.isArray(task.members) ? task.members : [],
         start_date: task.start_date || '',
         due_date: task.due_date || '',
@@ -77,7 +73,6 @@ export function TaskDialog({
       setForm({
         title: '',
         description: '',
-        allocations: [],
         members: [],
         start_date: '',
         due_date: '',
@@ -90,16 +85,6 @@ export function TaskDialog({
   const update = (field: string, value: string) => {
     setForm((p) => ({ ...p, [field]: value }))
     setFieldErrors((p) => ({ ...p, [field]: '' }))
-  }
-
-  const addAllocation = (allocId: string) => {
-    if (!form.allocations.includes(allocId)) {
-      setForm((p) => ({ ...p, allocations: [...p.allocations, allocId] }))
-    }
-  }
-
-  const removeAllocation = (allocId: string) => {
-    setForm((p) => ({ ...p, allocations: p.allocations.filter((id) => id !== allocId) }))
   }
 
   const addMember = (memberId: string) => {
@@ -125,7 +110,6 @@ export function TaskDialog({
     try {
       const data = {
         project: projectId,
-        allocation: form.allocations,
         members: form.members,
         title: form.title,
         description: form.description,
@@ -161,7 +145,6 @@ export function TaskDialog({
     </Button>
   )
 
-  const availableAllocations = allocations.filter((a) => !form.allocations.includes(a.id))
   const availableMembers = teamMembers.filter((m) => !form.members.includes(m.id))
 
   return (
@@ -190,49 +173,6 @@ export function TaskDialog({
               rows={3}
               placeholder="Detalhes da tarefa"
             />
-          </div>
-          <div className="space-y-2">
-            <Label>Membros Atribuídos</Label>
-            {form.allocations.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {form.allocations.map((allocId) => {
-                  const alloc = allocations.find((a) => a.id === allocId)
-                  return (
-                    <Badge
-                      key={allocId}
-                      variant="secondary"
-                      className="flex items-center gap-1.5 pr-1.5"
-                    >
-                      {alloc?.member_name} — {alloc?.function}
-                      <button
-                        type="button"
-                        onClick={() => removeAllocation(allocId)}
-                        className="rounded-full hover:bg-slate-300 p-0.5"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )
-                })}
-              </div>
-            )}
-            {availableAllocations.length > 0 && (
-              <Select value="" onValueChange={(v) => addAllocation(v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Adicionar membro alocado" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableAllocations.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.member_name} — {a.function}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {allocations.length === 0 && (
-              <p className="text-xs text-slate-400">Nenhum membro alocado neste projeto.</p>
-            )}
           </div>
           <div className="space-y-2">
             <Label>Membros da Equipe</Label>

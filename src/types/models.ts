@@ -85,12 +85,13 @@ export interface TimeEntry {
   id: string
   task: string
   allocation: string
+  team_member: string
   start_time: string
   end_time: string
   duration: number
   created: string
   updated: string
-  expand?: { task?: Task; allocation?: Allocation }
+  expand?: { task?: Task; allocation?: Allocation; team_member?: TeamMember }
 }
 
 export function formatDuration(seconds: number): string {
