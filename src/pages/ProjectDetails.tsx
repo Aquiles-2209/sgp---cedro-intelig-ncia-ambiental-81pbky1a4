@@ -103,6 +103,14 @@ export default function ProjectDetails() {
     toast({ title: 'Timer pausado.' })
   }
 
+  const handleRemoveAllocation = async (taskId: string, allocationId: string) => {
+    const task = tasks.find((t) => t.id === taskId)
+    if (!task) return
+    const currentAllocs = Array.isArray(task.allocation) ? task.allocation : []
+    const newAllocations = currentAllocs.filter((id) => id !== allocationId)
+    await editTask(taskId, { allocation: newAllocations })
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-fade-in-up">
       <div className="flex items-start justify-between flex-wrap gap-4">
@@ -274,6 +282,7 @@ export default function ProjectDetails() {
             onDelete={handleTaskDelete}
             onStartTimer={handleStartTimer}
             onStopTimer={handleStopTimer}
+            onRemoveAllocation={handleRemoveAllocation}
           />
         </CardContent>
       </Card>

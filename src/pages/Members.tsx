@@ -1,22 +1,22 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Users2, Mail, Search } from 'lucide-react'
+import { Users2, Briefcase, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { getUsers, type SimpleUser } from '@/services/users'
+import { Badge } from '@/components/ui/badge'
+import { getTeamMembers, type TeamMember } from '@/services/team-members'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/hooks/use-auth'
 import { MemberDialog } from '@/components/member-dialog'
 
 export default function Members() {
   const { isAuthenticated } = useAuth()
-  const [members, setMembers] = useState<SimpleUser[]>([])
+  const [members, setMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
   const loadMembers = useCallback(async () => {
     try {
-      const data = await getUsers()
+      const data = await getTeamMembers()
       setMembers(data)
     } catch {
       /* silent */
@@ -26,23 +26,15 @@ export default function Members() {
   }, [])
 
   useEffect(() => {
-    if (isAuthenticated) {
-      loadMembers()
-    }
+    if (isAuthenticated) loadMembers()
   }, [isAuthenticated, loadMembers])
 
-  useRealtime(
-    'users',
-    () => {
-      loadMembers()
-    },
-    isAuthenticated,
-  )
+  useRealtime('team_members', () => loadMembers(), isAuthenticated)
 
   const filtered = members.filter(
     (m) =>
       m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.email.toLowerCase().includes(search.toLowerCase()),
+      m.function.toLowerCase().includes(search.toLowerCase()),
   )
 
   return (
@@ -58,7 +50,7 @@ export default function Members() {
       <div className="relative max-w-md">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
         <Input
-          placeholder="Buscar por nome ou email..."
+          placeholder="Buscar por nome ou função..."
           className="pl-9 h-10 bg-white"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -72,18 +64,15 @@ export default function Members() {
             className="hover:shadow-md transition-all duration-300 hover:-translate-y-1"
           >
             <CardContent className="p-6 flex items-center gap-4">
-              <Avatar className="h-12 w-12 border border-slate-200 shadow-sm">
-                <AvatarImage src={member.avatar} alt={member.name} />
-                <AvatarFallback className="bg-primary text-white font-medium">
-                  {member.name?.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white font-medium shrink-0">
+                {member.name?.charAt(0).toUpperCase()}
+              </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-slate-900 truncate">{member.name}</h3>
-                <p className="text-sm text-slate-500 flex items-center gap-1.5 truncate">
-                  <Mail className="h-3.5 w-3.5 shrink-0" />
-                  {member.email}
-                </p>
+                <Badge variant="secondary" className="mt-1 flex items-center gap-1.5 w-fit">
+                  <Briefcase className="h-3 w-3" />
+                  {member.function}
+                </Badge>
               </div>
             </CardContent>
           </Card>

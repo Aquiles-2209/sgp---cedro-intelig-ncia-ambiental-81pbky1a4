@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-13T16:46:08.371Z",
+  "generatedAt": "2026-07-13T17:00:59.651Z",
   "collections": [
     {
       "name": "users",
@@ -387,6 +387,46 @@
         "CREATE INDEX idx_notifications_user ON notifications (user)",
         "CREATE INDEX idx_notifications_is_read ON notifications (is_read)"
       ]
+    },
+    {
+      "name": "team_members",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "function",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_team_members_name ON team_members (name)"]
     }
   ]
 }

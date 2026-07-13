@@ -13,7 +13,7 @@ import {
 import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
-import { createUser } from '@/services/users'
+import { createTeamMember } from '@/services/team-members'
 
 interface MemberDialogProps {
   onCreated?: () => void
@@ -26,15 +26,11 @@ export function MemberDialog({ onCreated, trigger }: MemberDialogProps) {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const { toast } = useToast()
 
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-  })
+  const [form, setForm] = useState({ name: '', function: '' })
 
   useEffect(() => {
     if (open) {
-      setForm({ name: '', email: '', password: '' })
+      setForm({ name: '', function: '' })
       setFieldErrors({})
     }
   }, [open])
@@ -47,11 +43,7 @@ export function MemberDialog({ onCreated, trigger }: MemberDialogProps) {
   const handleSubmit = async () => {
     const errors: FieldErrors = {}
     if (!form.name.trim()) errors.name = 'O nome é obrigatório.'
-    if (!form.email.trim()) errors.email = 'O email é obrigatório.'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-      errors.email = 'Formato de email inválido.'
-    if (!form.password) errors.password = 'A senha é obrigatória.'
-    else if (form.password.length < 8) errors.password = 'A senha deve ter no mínimo 8 caracteres.'
+    if (!form.function.trim()) errors.function = 'A função é obrigatória.'
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors)
       return
@@ -60,10 +52,9 @@ export function MemberDialog({ onCreated, trigger }: MemberDialogProps) {
     setSaving(true)
     setFieldErrors({})
     try {
-      await createUser({
+      await createTeamMember({
         name: form.name.trim(),
-        email: form.email.trim(),
-        password: form.password,
+        function: form.function.trim(),
       })
       toast({ title: 'Membro cadastrado com sucesso!' })
       setOpen(false)
@@ -109,26 +100,14 @@ export function MemberDialog({ onCreated, trigger }: MemberDialogProps) {
             {fieldErrors.name && <p className="text-xs text-red-500">{fieldErrors.name}</p>}
           </div>
           <div className="space-y-2">
-            <Label>Email</Label>
+            <Label>Função</Label>
             <Input
-              type="email"
-              value={form.email}
-              onChange={(e) => update('email', e.target.value)}
-              placeholder="email@exemplo.com"
-              className={cn(fieldErrors.email && 'border-red-500 focus-visible:ring-red-500')}
+              value={form.function}
+              onChange={(e) => update('function', e.target.value)}
+              placeholder="Ex: Desenvolvedor, Designer, Gerente"
+              className={cn(fieldErrors.function && 'border-red-500 focus-visible:ring-red-500')}
             />
-            {fieldErrors.email && <p className="text-xs text-red-500">{fieldErrors.email}</p>}
-          </div>
-          <div className="space-y-2">
-            <Label>Senha</Label>
-            <Input
-              type="password"
-              value={form.password}
-              onChange={(e) => update('password', e.target.value)}
-              placeholder="Mínimo de 8 caracteres"
-              className={cn(fieldErrors.password && 'border-red-500 focus-visible:ring-red-500')}
-            />
-            {fieldErrors.password && <p className="text-xs text-red-500">{fieldErrors.password}</p>}
+            {fieldErrors.function && <p className="text-xs text-red-500">{fieldErrors.function}</p>}
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setOpen(false)}>
@@ -136,7 +115,7 @@ export function MemberDialog({ onCreated, trigger }: MemberDialogProps) {
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={saving || !form.name.trim() || !form.email.trim() || !form.password}
+              disabled={saving || !form.name.trim() || !form.function.trim()}
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Cadastrar Membro'}
             </Button>

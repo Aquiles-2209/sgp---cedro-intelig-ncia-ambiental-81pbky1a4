@@ -60,7 +60,7 @@ export type TaskStatus = 'Pendente' | 'Em Andamento' | 'Concluído'
 export interface Task {
   id: string
   project: string
-  allocation: string
+  allocation: string[]
   title: string
   description: string
   start_date: string
@@ -68,7 +68,7 @@ export interface Task {
   due_date: string
   created: string
   updated: string
-  expand?: { project?: Project; allocation?: Allocation }
+  expand?: { project?: Project; allocation?: Allocation[] }
 }
 
 export interface TimeEntry {

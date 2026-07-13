@@ -1,10 +1,11 @@
 import { useState, useEffect, ReactNode } from 'react'
-import { Plus, Loader2 } from 'lucide-react'
+import { Plus, Loader2, X } from 'lucide-react'
 import { Task, TaskStatus, Allocation } from '@/types/models'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -52,7 +53,7 @@ export function TaskDialog({
   const [form, setForm] = useState({
     title: '',
     description: '',
-    allocation: '',
+    allocations: [] as string[],
     start_date: '',
     due_date: '',
     status: 'Pendente' as TaskStatus,
@@ -63,7 +64,7 @@ export function TaskDialog({
       setForm({
         title: task.title || '',
         description: task.description || '',
-        allocation: task.allocation || '',
+        allocations: Array.isArray(task.allocation) ? task.allocation : [],
         start_date: task.start_date || '',
         due_date: task.due_date || '',
         status: task.status || 'Pendente',
@@ -72,7 +73,7 @@ export function TaskDialog({
       setForm({
         title: '',
         description: '',
-        allocation: '',
+        allocations: [],
         start_date: '',
         due_date: '',
         status: 'Pendente',
@@ -86,11 +87,19 @@ export function TaskDialog({
     setFieldErrors((p) => ({ ...p, [field]: '' }))
   }
 
+  const addAllocation = (allocId: string) => {
+    if (!form.allocations.includes(allocId)) {
+      setForm((p) => ({ ...p, allocations: [...p.allocations, allocId] }))
+    }
+  }
+
+  const removeAllocation = (allocId: string) => {
+    setForm((p) => ({ ...p, allocations: p.allocations.filter((id) => id !== allocId) }))
+  }
+
   const handleSubmit = async () => {
     const errors: FieldErrors = {}
     if (!form.title.trim()) errors.title = 'O título é obrigatório.'
-    if (!form.allocation) errors.allocation = 'Selecione um membro.'
-    if (!form.status) errors.status = 'O status é obrigatório.'
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors)
       return
@@ -101,7 +110,7 @@ export function TaskDialog({
     try {
       const data = {
         project: projectId,
-        allocation: form.allocation,
+        allocation: form.allocations,
         title: form.title,
         description: form.description,
         status: form.status,
@@ -136,6 +145,8 @@ export function TaskDialog({
     </Button>
   )
 
+  const availableAllocations = allocations.filter((a) => !form.allocations.includes(a.id))
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
@@ -164,25 +175,43 @@ export function TaskDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label>Membro Atribuído</Label>
-            <Select value={form.allocation} onValueChange={(v) => update('allocation', v)}>
-              <SelectTrigger
-                className={cn(
-                  fieldErrors.allocation && 'border-red-500 focus-visible:ring-red-500',
-                )}
-              >
-                <SelectValue placeholder="Selecionar membro" />
-              </SelectTrigger>
-              <SelectContent>
-                {allocations.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    {a.member_name} — {a.function}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {fieldErrors.allocation && (
-              <p className="text-xs text-red-500">{fieldErrors.allocation}</p>
+            <Label>Membros Atribuídos</Label>
+            {form.allocations.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {form.allocations.map((allocId) => {
+                  const alloc = allocations.find((a) => a.id === allocId)
+                  return (
+                    <Badge
+                      key={allocId}
+                      variant="secondary"
+                      className="flex items-center gap-1.5 pr-1.5"
+                    >
+                      {alloc?.member_name} — {alloc?.function}
+                      <button
+                        type="button"
+                        onClick={() => removeAllocation(allocId)}
+                        className="rounded-full hover:bg-slate-300 p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )
+                })}
+              </div>
+            )}
+            {availableAllocations.length > 0 && (
+              <Select value="" onValueChange={(v) => addAllocation(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Adicionar membro" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableAllocations.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.member_name} — {a.function}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
             {allocations.length === 0 && (
               <p className="text-xs text-red-500">Nenhum membro alocado neste projeto.</p>
@@ -220,10 +249,7 @@ export function TaskDialog({
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={saving || !form.title.trim() || !form.allocation}
-            >
+            <Button onClick={handleSubmit} disabled={saving || !form.title.trim()}>
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : isEdit ? (

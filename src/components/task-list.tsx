@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, X } from 'lucide-react'
 import {
   Task,
   TaskStatus,
@@ -37,6 +37,7 @@ interface TaskListProps {
   onDelete: (id: string) => Promise<void>
   onStartTimer: (taskId: string, allocationId: string) => Promise<void>
   onStopTimer: (entryId: string) => Promise<void>
+  onRemoveAllocation: (taskId: string, allocationId: string) => Promise<void>
 }
 
 export function TaskList({
@@ -49,6 +50,7 @@ export function TaskList({
   onDelete,
   onStartTimer,
   onStopTimer,
+  onRemoveAllocation,
 }: TaskListProps) {
   if (tasks.length === 0) {
     return (
@@ -61,7 +63,11 @@ export function TaskList({
   return (
     <div className="space-y-2">
       {tasks.map((task) => {
-        const memberName = task.expand?.allocation?.member_name || '—'
+        const taskAllocations: Allocation[] = Array.isArray(task.expand?.allocation)
+          ? task.expand.allocation
+          : task.expand?.allocation
+            ? [task.expand.allocation]
+            : []
         const totalTime = timeEntries
           .filter((te) => te.task === task.id)
           .reduce((sum, te) => sum + (te.duration || 0), 0)
@@ -81,8 +87,27 @@ export function TaskList({
               {task.description && (
                 <p className="text-xs text-slate-500 mt-1 line-clamp-2">{task.description}</p>
               )}
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                {taskAllocations.map((alloc) => (
+                  <Badge
+                    key={alloc.id}
+                    variant="secondary"
+                    className="flex items-center gap-1 pr-1 text-xs"
+                  >
+                    {alloc.member_name}
+                    <button
+                      onClick={() => onRemoveAllocation(task.id, alloc.id)}
+                      className="rounded-full hover:bg-slate-300 p-0.5"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </Badge>
+                ))}
+                {taskAllocations.length === 0 && (
+                  <span className="text-xs text-slate-400">Sem membros atribuídos</span>
+                )}
+              </div>
               <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400 flex-wrap">
-                <span>{memberName}</span>
                 {task.start_date && <span>Início: {safeFormatDate(task.start_date)}</span>}
                 {task.due_date && <span>Prazo: {safeFormatDate(task.due_date)}</span>}
                 {totalTime > 0 && (
@@ -95,7 +120,7 @@ export function TaskList({
             <div className="flex flex-col items-end gap-1.5 shrink-0">
               <TaskTimer
                 taskId={task.id}
-                allocationId={task.allocation}
+                allocationIds={task.allocation || []}
                 timeEntries={timeEntries}
                 onStart={onStartTimer}
                 onStop={onStopTimer}
