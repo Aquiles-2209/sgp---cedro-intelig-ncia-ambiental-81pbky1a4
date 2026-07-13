@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-13T16:32:24.573Z",
+  "generatedAt": "2026-07-13T16:43:47.741Z",
   "collections": [
     {
       "name": "users",
       "type": "auth",
       "apiRules": {
-        "list": "id = @request.auth.id",
-        "view": "id = @request.auth.id",
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
         "create": "",
         "update": "id = @request.auth.id",
         "delete": "id = @request.auth.id"
@@ -170,6 +170,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
         }
       ],
       "indexes": [
@@ -195,13 +202,6 @@
           "required": true,
           "system": false,
           "collectionRef": "projects"
-        },
-        {
-          "name": "allocation",
-          "type": "relation",
-          "required": true,
-          "system": false,
-          "collectionRef": "allocations"
         },
         {
           "name": "title",
@@ -247,6 +247,13 @@
           "type": "date",
           "required": false,
           "system": false
+        },
+        {
+          "name": "allocation",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "allocations"
         }
       ],
       "indexes": [
@@ -316,6 +323,69 @@
         "CREATE INDEX idx_time_entries_task ON time_entries (task)",
         "CREATE INDEX idx_time_entries_allocation ON time_entries (allocation)",
         "CREATE INDEX idx_time_entries_end_time ON time_entries (end_time)"
+      ]
+    },
+    {
+      "name": "notifications",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user = @request.auth.id",
+        "view": "@request.auth.id != '' && user = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user = @request.auth.id",
+        "delete": "@request.auth.id != '' && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_read",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Info", "Alert"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_notifications_user ON notifications (user)",
+        "CREATE INDEX idx_notifications_is_read ON notifications (is_read)"
       ]
     }
   ]

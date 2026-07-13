@@ -29,9 +29,8 @@ migrate(
     app.save(usersCol)
 
     var tasksCol = app.findCollectionByNameOrId('tasks')
-    var oldField = tasksCol.fields.getByName('allocation')
-    if (oldField) {
-      tasksCol.fields.remove(oldField)
+    if (tasksCol.fields.getByName('allocation')) {
+      tasksCol.fields.removeByName('allocation')
     }
     tasksCol.fields.add(
       new RelationField({
@@ -56,9 +55,8 @@ migrate(
   },
   (app) => {
     var allocCol = app.findCollectionByNameOrId('allocations')
-    var userField = allocCol.fields.getByName('user')
-    if (userField) {
-      allocCol.fields.remove(userField)
+    if (allocCol.fields.getByName('user')) {
+      allocCol.fields.removeByName('user')
     }
     app.save(allocCol)
 
@@ -68,9 +66,8 @@ migrate(
     app.save(usersCol)
 
     var tasksCol = app.findCollectionByNameOrId('tasks')
-    var multiField = tasksCol.fields.getByName('allocation')
-    if (multiField) {
-      tasksCol.fields.remove(multiField)
+    if (tasksCol.fields.getByName('allocation')) {
+      tasksCol.fields.removeByName('allocation')
     }
     tasksCol.fields.add(
       new RelationField({
