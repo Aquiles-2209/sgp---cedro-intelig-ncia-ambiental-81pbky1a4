@@ -1,5 +1,5 @@
 import { useState, useEffect, ReactNode } from 'react'
-import { UserPlus, Loader2 } from 'lucide-react'
+import { UserPlus, Loader2, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,27 +13,32 @@ import {
 import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
-import { createTeamMember } from '@/services/team-members'
+import { createTeamMember, updateTeamMember, type TeamMember } from '@/services/team-members'
 
 interface MemberDialogProps {
   onCreated?: () => void
   trigger?: ReactNode
+  member?: TeamMember
 }
 
-export function MemberDialog({ onCreated, trigger }: MemberDialogProps) {
+export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const { toast } = useToast()
+  const isEdit = !!member
 
   const [form, setForm] = useState({ name: '', function: '' })
 
   useEffect(() => {
     if (open) {
-      setForm({ name: '', function: '' })
+      setForm({
+        name: member?.name || '',
+        function: member?.function || '',
+      })
       setFieldErrors({})
     }
-  }, [open])
+  }, [open, member])
 
   const update = (field: string, value: string) => {
     setForm((p) => ({ ...p, [field]: value }))
@@ -52,11 +57,19 @@ export function MemberDialog({ onCreated, trigger }: MemberDialogProps) {
     setSaving(true)
     setFieldErrors({})
     try {
-      await createTeamMember({
-        name: form.name.trim(),
-        function: form.function.trim(),
-      })
-      toast({ title: 'Membro cadastrado com sucesso!' })
+      if (isEdit && member) {
+        await updateTeamMember(member.id, {
+          name: form.name.trim(),
+          function: form.function.trim(),
+        })
+        toast({ title: 'Membro atualizado com sucesso!' })
+      } else {
+        await createTeamMember({
+          name: form.name.trim(),
+          function: form.function.trim(),
+        })
+        toast({ title: 'Membro cadastrado com sucesso!' })
+      }
       setOpen(false)
       onCreated?.()
     } catch (err) {
@@ -65,7 +78,7 @@ export function MemberDialog({ onCreated, trigger }: MemberDialogProps) {
         setFieldErrors(pbErrors)
       } else {
         toast({
-          title: 'Erro ao cadastrar membro',
+          title: isEdit ? 'Erro ao atualizar membro' : 'Erro ao cadastrar membro',
           description: getErrorMessage(err),
           variant: 'destructive',
         })
@@ -75,7 +88,11 @@ export function MemberDialog({ onCreated, trigger }: MemberDialogProps) {
     }
   }
 
-  const defaultTrigger = (
+  const defaultTrigger = isEdit ? (
+    <Button variant="ghost" size="icon" className="h-8 w-8">
+      <Pencil className="h-3.5 w-3.5" />
+    </Button>
+  ) : (
     <Button size="sm">
       <UserPlus className="h-4 w-4 mr-2" /> Cadastrar Novo Membro
     </Button>
@@ -86,7 +103,7 @@ export function MemberDialog({ onCreated, trigger }: MemberDialogProps) {
       <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Cadastrar Novo Membro</DialogTitle>
+          <DialogTitle>{isEdit ? 'Editar Membro' : 'Cadastrar Novo Membro'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -117,7 +134,13 @@ export function MemberDialog({ onCreated, trigger }: MemberDialogProps) {
               onClick={handleSubmit}
               disabled={saving || !form.name.trim() || !form.function.trim()}
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Cadastrar Membro'}
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isEdit ? (
+                'Salvar Alterações'
+              ) : (
+                'Cadastrar Membro'
+              )}
             </Button>
           </div>
         </div>

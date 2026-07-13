@@ -3,10 +3,12 @@ import { Users2, Briefcase, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { getTeamMembers, type TeamMember } from '@/services/team-members'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/hooks/use-auth'
 import { MemberDialog } from '@/components/member-dialog'
+import { MemberDeleteDialog } from '@/components/member-delete-dialog'
 
 export default function Members() {
   const { isAuthenticated } = useAuth()
@@ -58,25 +60,41 @@ export default function Members() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {filtered.map((member) => (
-          <Card
-            key={member.id}
-            className="hover:shadow-md transition-all duration-300 hover:-translate-y-1"
-          >
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white font-medium shrink-0">
-                {member.name?.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-slate-900 truncate">{member.name}</h3>
-                <Badge variant="secondary" className="mt-1 flex items-center gap-1.5 w-fit">
-                  <Briefcase className="h-3 w-3" />
-                  {member.function}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        {loading
+          ? Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i} className="border-slate-200">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-5 w-24" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          : filtered.map((member) => (
+              <Card
+                key={member.id}
+                className="hover:shadow-md transition-all duration-300 hover:-translate-y-1 group"
+              >
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white font-medium shrink-0">
+                    {member.name?.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-slate-900 truncate">{member.name}</h3>
+                    <Badge variant="secondary" className="mt-1 flex items-center gap-1.5 w-fit">
+                      <Briefcase className="h-3 w-3" />
+                      {member.function}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <MemberDialog member={member} onCreated={loadMembers} />
+                    <MemberDeleteDialog member={member} onDeleted={loadMembers} />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
         {filtered.length === 0 && !loading && (
           <div className="col-span-full flex flex-col items-center justify-center p-12 text-slate-500 bg-white rounded-xl border border-dashed border-slate-200">
             <Users2 className="h-10 w-10 text-slate-300 mb-3" />
