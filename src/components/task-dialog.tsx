@@ -1,6 +1,6 @@
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect, useRef, ReactNode } from 'react'
 import { Plus, Loader2, X } from 'lucide-react'
-import { Task, TaskStatus, TeamMember } from '@/types/models'
+import { Task, TaskStatus, TeamMember, TaskAssignment } from '@/types/models'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,6 +33,7 @@ interface TaskDialogProps {
   onAdd?: (data: Partial<Task>) => Promise<void>
   onEdit?: (id: string, data: Partial<Task>) => Promise<void>
   task?: Task
+  taskAssignments?: TaskAssignment[]
   trigger?: ReactNode
 }
 
@@ -42,6 +43,7 @@ export function TaskDialog({
   onAdd,
   onEdit,
   task,
+  taskAssignments,
   trigger,
 }: TaskDialogProps) {
   const [open, setOpen] = useState(false)
@@ -59,12 +61,18 @@ export function TaskDialog({
     status: 'Pendente' as TaskStatus,
   })
 
+  const taskAssignmentsRef = useRef(taskAssignments)
+  taskAssignmentsRef.current = taskAssignments
+
   useEffect(() => {
     if (open && task) {
+      const assignedMemberIds = (taskAssignmentsRef.current || [])
+        .filter((ta) => ta.task === task.id)
+        .map((ta) => ta.team_member)
       setForm({
         title: task.title || '',
         description: task.description || '',
-        members: Array.isArray(task.members) ? task.members : [],
+        members: assignedMemberIds,
         start_date: task.start_date || '',
         due_date: task.due_date || '',
         status: task.status || 'Pendente',

@@ -74,8 +74,9 @@ export function TaskList({
   return (
     <div className="space-y-2">
       {tasks.map((task) => {
-        const taskMembers = (task.members || [])
-          .map((id) => teamMembers.find((m) => m.id === id))
+        const taskAssignmentsForTask = taskAssignments.filter((ta) => ta.task === task.id)
+        const taskMembers = taskAssignmentsForTask
+          .map((ta) => teamMembers.find((m) => m.id === ta.team_member))
           .filter(Boolean) as TeamMember[]
 
         return (
@@ -101,6 +102,7 @@ export function TaskList({
                   teamMembers={teamMembers}
                   onEdit={onEdit}
                   task={task}
+                  taskAssignments={taskAssignmentsForTask}
                   trigger={
                     <Button variant="ghost" size="icon" className="h-8 w-8">
                       <Pencil className="h-3.5 w-3.5" />

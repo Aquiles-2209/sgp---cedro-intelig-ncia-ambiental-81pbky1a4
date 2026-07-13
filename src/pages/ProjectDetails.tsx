@@ -59,6 +59,7 @@ export default function ProjectDetails() {
     editTimeEntry,
     addTaskAssignment,
     editTaskAssignment,
+    removeTaskAssignment,
   } = useAppState()
   const { toast } = useToast()
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
@@ -128,11 +129,13 @@ export default function ProjectDetails() {
   }
 
   const handleRemoveMember = async (taskId: string, memberId: string) => {
-    const task = tasks.find((t) => t.id === taskId)
-    if (!task) return
-    const currentMembers = Array.isArray(task.members) ? task.members : []
-    const newMembers = currentMembers.filter((m) => m !== memberId)
-    await editTask(taskId, { members: newMembers })
+    const assignment = taskAssignments.find(
+      (ta) => ta.task === taskId && ta.team_member === memberId,
+    )
+    if (assignment) {
+      await removeTaskAssignment(assignment.id)
+      toast({ title: 'Membro removido da tarefa.' })
+    }
   }
 
   const handleSetAssignmentDate = async (
@@ -144,6 +147,22 @@ export default function ProjectDetails() {
     const assignment = taskAssignments.find(
       (ta) => ta.task === taskId && ta.team_member === memberId,
     )
+    const currentStart = normalizeDate(assignment?.start_date)
+    const currentEnd = normalizeDate(assignment?.end_date)
+    if (field === 'start_date' && currentEnd && value > currentEnd) {
+      toast({
+        title: 'A data de início não pode ser posterior à data de término.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (field === 'end_date' && currentStart && value < currentStart) {
+      toast({
+        title: 'A data de término não pode ser anterior à data de início.',
+        variant: 'destructive',
+      })
+      return
+    }
     if (assignment) {
       await editTaskAssignment(assignment.id, { [field]: value })
     } else {
