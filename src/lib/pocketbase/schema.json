@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-13T19:11:40.712Z",
+  "generatedAt": "2026-07-14T12:54:03.509Z",
   "collections": [
     {
       "name": "users",
@@ -111,6 +111,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "setor",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Mineração", "Geração de Energia", "Infraestrutura"]
         }
       ],
       "indexes": ["CREATE INDEX idx_projects_status ON projects (status)"]

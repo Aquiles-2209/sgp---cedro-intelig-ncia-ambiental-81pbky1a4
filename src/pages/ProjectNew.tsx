@@ -2,12 +2,19 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
-import { ProjectStatus } from '@/types/models'
+import { ProjectStatus, ProjectSetor } from '@/types/models'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export default function ProjectNew() {
   const navigate = useNavigate()
@@ -21,6 +28,7 @@ export default function ProjectNew() {
     start_date: '',
     end_date: '',
     status: 'Planejado' as ProjectStatus,
+    setor: 'Infraestrutura' as ProjectSetor,
   })
 
   const update = (field: string, value: string) => setForm((prev) => ({ ...prev, [field]: value }))
@@ -79,15 +87,29 @@ export default function ProjectNew() {
             </div>
             <div className="space-y-2">
               <Label>Status</Label>
-              <select
-                value={form.status}
-                onChange={(e) => update('status', e.target.value)}
-                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              >
-                <option value="Planejado">Planejado</option>
-                <option value="Em Andamento">Em Andamento</option>
-                <option value="Concluído">Concluído</option>
-              </select>
+              <Select value={form.status} onValueChange={(val) => update('status', val)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Planejado">Planejado</SelectItem>
+                  <SelectItem value="Em Andamento">Em Andamento</SelectItem>
+                  <SelectItem value="Concluído">Concluído</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Setor</Label>
+              <Select value={form.setor} onValueChange={(val) => update('setor', val)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione o setor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Mineração">Mineração</SelectItem>
+                  <SelectItem value="Geração de Energia">Geração de Energia</SelectItem>
+                  <SelectItem value="Infraestrutura">Infraestrutura</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Data de Início</Label>

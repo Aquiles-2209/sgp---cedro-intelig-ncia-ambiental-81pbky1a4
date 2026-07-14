@@ -1,5 +1,7 @@
 export type ProjectStatus = 'Em Andamento' | 'Concluído' | 'Planejado'
 
+export type ProjectSetor = 'Mineração' | 'Geração de Energia' | 'Infraestrutura'
+
 export interface Project {
   id: string
   name: string
@@ -9,6 +11,7 @@ export interface Project {
   start_date: string
   end_date: string
   status: ProjectStatus
+  setor: ProjectSetor
   created: string
   updated: string
 }
