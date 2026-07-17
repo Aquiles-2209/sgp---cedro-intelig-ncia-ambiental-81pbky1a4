@@ -177,7 +177,7 @@ export default function ReportPage() {
                 ) : (
                   <Download className="h-4 w-4 mr-2" />
                 )}
-                Exportar CSV
+                Exportar Excel
               </Button>
             </div>
             <p className="text-sm text-slate-500">

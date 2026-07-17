@@ -47,6 +47,22 @@ export async function fetchReportData(
   const results = await Promise.all(batches)
   const timeEntries = results.flat()
 
+  const latestTimeByTaskMember = new Map<string, string>()
+
+  for (const te of timeEntries) {
+    const expand = te.expand as any
+    const task = expand?.task
+    const teamMember = expand?.team_member
+    const taskMemberKey = `${task?.id || ''}|${teamMember?.id || ''}`
+    const endTime = normalizeDate(te.end_time || '')
+    if (endTime) {
+      const existing = latestTimeByTaskMember.get(taskMemberKey)
+      if (!existing || endTime > existing) {
+        latestTimeByTaskMember.set(taskMemberKey, endTime)
+      }
+    }
+  }
+
   const grouped = new Map<string, { row: ReportRow; sortDate: string }>()
 
   for (const te of timeEntries) {
@@ -54,8 +70,11 @@ export async function fetchReportData(
     const task = expand?.task
     const project = task?.expand?.project
     const teamMember = expand?.team_member
+    const taskMemberKey = `${task?.id || ''}|${teamMember?.id || ''}`
     const dueDate = normalizeDate(task?.due_date || '')
-    const key = `${project?.id || ''}|${teamMember?.id || ''}|${dueDate}`
+    const latestTimeEntryDate = latestTimeByTaskMember.get(taskMemberKey) || ''
+    const completionDateRaw = dueDate || latestTimeEntryDate
+    const key = `${project?.id || ''}|${teamMember?.id || ''}|${completionDateRaw}`
     const hours = (te.duration || 0) / 3600
 
     const existing = grouped.get(key)
@@ -68,10 +87,10 @@ export async function fetchReportData(
           projectName: project?.name || '—',
           memberSector: teamMember?.setor || '—',
           memberName: teamMember?.name || '—',
-          completionDate: formatDateBR(task?.due_date || ''),
+          completionDate: formatDateBR(completionDateRaw),
           hoursWorked: hours,
         },
-        sortDate: dueDate,
+        sortDate: completionDateRaw,
       })
     }
   }
