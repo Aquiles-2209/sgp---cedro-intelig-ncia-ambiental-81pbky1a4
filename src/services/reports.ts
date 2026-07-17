@@ -20,21 +20,11 @@ export async function fetchReportData(
 
   const timeEntries = await pb.collection('time_entries').getFullList({
     filter: `start_time >= "${startDate}" && start_time <= "${endDate}"`,
-    sort: 'start_time',
+    sort: 'created',
     expand: 'team_member,task',
   })
 
-  const grouped = new Map<
-    string,
-    {
-      client: string
-      projectName: string
-      memberSector: string
-      memberName: string
-      activityLaunchDate: string
-      hours: number
-    }
-  >()
+  const rows: ReportRow[] = []
 
   for (const te of timeEntries as any[]) {
     const task = te.expand?.task
@@ -48,34 +38,18 @@ export async function fetchReportData(
     const teamMember = te.expand?.team_member
     const memberName = teamMember?.name || '—'
     const memberSector = teamMember?.setor || '—'
-
-    const activityDate = normalizeDate(te.start_time)
-    const key = `${projectId}|${memberName}|${activityDate}`
+    const activityDate = normalizeDate(te.created)
     const hours = (te.duration || 0) / 3600
 
-    const existing = grouped.get(key)
-    if (existing) {
-      existing.hours += hours
-    } else {
-      grouped.set(key, {
-        client: project.client || '—',
-        projectName: project.name,
-        memberSector,
-        memberName,
-        activityLaunchDate: activityDate,
-        hours,
-      })
-    }
+    rows.push({
+      client: project.client || '—',
+      projectName: project.name,
+      memberSector,
+      memberName,
+      activityLaunchDate: activityDate,
+      hoursWorked: hours,
+    })
   }
 
-  return Array.from(grouped.values())
-    .sort((a, b) => a.activityLaunchDate.localeCompare(b.activityLaunchDate))
-    .map((g) => ({
-      client: g.client,
-      projectName: g.projectName,
-      memberSector: g.memberSector,
-      memberName: g.memberName,
-      activityLaunchDate: g.activityLaunchDate,
-      hoursWorked: g.hours,
-    }))
+  return rows.sort((a, b) => a.activityLaunchDate.localeCompare(b.activityLaunchDate))
 }
