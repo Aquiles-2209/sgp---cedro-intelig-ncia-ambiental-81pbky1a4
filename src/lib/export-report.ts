@@ -1,4 +1,4 @@
-import { Project, Allocation, Task, TimeEntry, normalizeDate, formatDuration } from '@/types/models'
+import { Project, Allocation, Task, TimeEntry, normalizeDate } from '@/types/models'
 
 function escapeCsv(value: string): string {
   if (!value) return ''
@@ -7,81 +7,67 @@ function escapeCsv(value: string): string {
   return needsQuotes ? `"${escaped}"` : escaped
 }
 
-function formatDate(dateStr: string): string {
-  if (!dateStr) return ''
-  return new Date(normalizeDate(dateStr) + 'T00:00:00').toLocaleDateString('pt-BR')
+function formatDateBR(dateStr: string): string {
+  const normalized = normalizeDate(dateStr)
+  if (!normalized) return ''
+  const [year, month, day] = normalized.split('-')
+  return `${day}/${month}/${year}`
 }
 
 export function exportProjectReport(
   project: Project,
-  allocations: Allocation[],
+  _allocations: Allocation[],
   tasks: Task[],
   timeEntries: TimeEntry[],
 ): void {
-  const lines: string[] = []
+  const headers = [
+    'Nome do Cliente',
+    'Nome do Projeto',
+    'Setor do membro',
+    'Nome do membro da equipe',
+    'Data de finalização da atividade',
+    'Total de horas trabalhadas no período selecionado',
+  ]
 
-  lines.push('RELATORIO DE PROJETO')
-  lines.push('')
-  lines.push('Dados do Projeto')
-  lines.push('Nome,Cliente,Contrato,Status,Data de Inicio,Data de Termino')
-  lines.push(
-    [
-      escapeCsv(project.name),
-      escapeCsv(project.client),
-      escapeCsv(project.contract_id),
-      escapeCsv(project.status),
-      formatDate(project.start_date),
-      formatDate(project.end_date),
-    ].join(','),
-  )
-  lines.push('')
+  const lines: string[] = [headers.map(escapeCsv).join(',')]
 
-  lines.push('Membros Alocados')
-  lines.push('Nome,Funcao,Data de Inicio,Data de Termino')
-  for (const a of allocations) {
-    lines.push(
-      [
-        escapeCsv(a.member_name),
-        escapeCsv(a.function),
-        formatDate(a.start_date),
-        formatDate(a.end_date),
-      ].join(','),
-    )
-  }
-  lines.push('')
+  const grouped = new Map<
+    string,
+    { memberName: string; memberSector: string; dueDate: string; hours: number }
+  >()
 
-  lines.push('Tarefas do Projeto')
-  lines.push('Titulo,Descricao,Membro,Status,Data de Inicio,Prazo,Tempo Trabalhado')
-  for (const t of tasks) {
-    const memberName = t.expand?.allocation?.member_name || ''
-    const totalSeconds = timeEntries
-      .filter((te) => te.task === t.id)
-      .reduce((sum, te) => sum + (te.duration || 0), 0)
-    lines.push(
-      [
-        escapeCsv(t.title),
-        escapeCsv(t.description),
-        escapeCsv(memberName),
-        escapeCsv(t.status),
-        formatDate(t.start_date),
-        formatDate(t.due_date),
-        formatDuration(totalSeconds),
-      ].join(','),
-    )
-  }
-
-  lines.push('')
-  lines.push('Tempo Total por Membro')
-  const memberTimeMap = new Map<string, number>()
   for (const te of timeEntries) {
-    const memberName = te.expand?.allocation?.member_name || ''
-    if (memberName) {
-      memberTimeMap.set(memberName, (memberTimeMap.get(memberName) || 0) + (te.duration || 0))
+    const task = tasks.find((t) => t.id === te.task)
+    if (!task) continue
+
+    const teamMember = te.expand?.team_member
+    const memberName = teamMember?.name || '—'
+    const memberSector = teamMember?.setor || '—'
+    const dueDate = normalizeDate(task.due_date || '')
+    const key = `${memberName}|${dueDate}`
+    const hours = (te.duration || 0) / 3600
+
+    const existing = grouped.get(key)
+    if (existing) {
+      existing.hours += hours
+    } else {
+      grouped.set(key, { memberName, memberSector, dueDate, hours })
     }
   }
-  lines.push('Membro,Tempo Total')
-  for (const [member, seconds] of memberTimeMap) {
-    lines.push([escapeCsv(member), formatDuration(seconds)].join(','))
+
+  const sorted = Array.from(grouped.values()).sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+
+  for (const g of sorted) {
+    lines.push(
+      [
+        escapeCsv(project.client || '—'),
+        escapeCsv(project.name),
+        escapeCsv(g.memberSector),
+        escapeCsv(g.memberName),
+        escapeCsv(formatDateBR(g.dueDate)),
+        g.hours.toFixed(2),
+      ].join(','),
+    )
   }
 
   const csvContent = '\uFEFF' + lines.join('\n')

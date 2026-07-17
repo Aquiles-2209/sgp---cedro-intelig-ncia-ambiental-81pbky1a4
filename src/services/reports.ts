@@ -51,10 +51,11 @@ export async function fetchReportData(
 
   for (const te of timeEntries) {
     const expand = te.expand as any
-    const project = expand?.task?.expand?.project
+    const task = expand?.task
+    const project = task?.expand?.project
     const teamMember = expand?.team_member
-    const dateStr = normalizeDate(te.end_time)
-    const key = `${project?.id || ''}|${teamMember?.id || ''}|${dateStr}`
+    const dueDate = normalizeDate(task?.due_date || '')
+    const key = `${project?.id || ''}|${teamMember?.id || ''}|${dueDate}`
     const hours = (te.duration || 0) / 3600
 
     const existing = grouped.get(key)
@@ -67,10 +68,10 @@ export async function fetchReportData(
           projectName: project?.name || '—',
           memberSector: teamMember?.setor || '—',
           memberName: teamMember?.name || '—',
-          completionDate: formatDateBR(te.end_time),
+          completionDate: formatDateBR(task?.due_date || ''),
           hoursWorked: hours,
         },
-        sortDate: dateStr,
+        sortDate: dueDate,
       })
     }
   }

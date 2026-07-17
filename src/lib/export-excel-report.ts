@@ -9,12 +9,12 @@ function escapeCsv(value: string): string {
 
 export function exportExcelReport(rows: ReportRow[]): void {
   const headers = [
-    'Cliente',
-    'Projeto',
-    'Setor do Membro',
-    'Nome do Membro',
-    'Data de Conclusão',
-    'Horas Trabalhadas',
+    'Nome do Cliente',
+    'Nome do Projeto',
+    'Setor do membro',
+    'Nome do membro da equipe',
+    'Data de finalização da atividade',
+    'Total de horas trabalhadas no período selecionado',
   ]
 
   const lines: string[] = [headers.map(escapeCsv).join(',')]

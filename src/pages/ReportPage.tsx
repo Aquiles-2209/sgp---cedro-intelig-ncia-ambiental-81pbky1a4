@@ -190,12 +190,12 @@ export default function ReportPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50">
-                    <TableHead className="font-semibold">Cliente</TableHead>
-                    <TableHead className="font-semibold">Projeto</TableHead>
-                    <TableHead className="font-semibold">Setor</TableHead>
-                    <TableHead className="font-semibold">Membro</TableHead>
-                    <TableHead className="font-semibold">Data</TableHead>
-                    <TableHead className="font-semibold text-right">Horas</TableHead>
+                    <TableHead className="font-semibold">Nome do Cliente</TableHead>
+                    <TableHead className="font-semibold">Nome do Projeto</TableHead>
+                    <TableHead className="font-semibold">Setor do membro</TableHead>
+                    <TableHead className="font-semibold">Nome do membro da equipe</TableHead>
+                    <TableHead className="font-semibold">Data de finalização</TableHead>
+                    <TableHead className="font-semibold text-right">Total de horas</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
