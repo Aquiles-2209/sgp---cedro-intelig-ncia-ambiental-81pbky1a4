@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Download, Loader2 } from 'lucide-react'
+import { FileSpreadsheet, FileText, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -7,12 +7,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from '@/components/ui/dialog'
-import { DatePicker } from '@/components/date-picker'
-import { fetchReportData } from '@/services/reports'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useToast } from '@/hooks/use-toast'
+import { fetchReportData, type ReportRow } from '@/services/reports'
 import { exportExcelReport } from '@/lib/export-excel-report'
-import { toast } from 'sonner'
+import pb from '@/lib/pocketbase/client'
+import type { Project, TimeEntry, Task, Allocation } from '@/types/models'
+import { exportProjectReport } from '@/lib/export-report'
 
 interface ExportDialogProps {
   projectId: string
@@ -20,35 +23,66 @@ interface ExportDialogProps {
 }
 
 export function ExportDialog({ projectId, projectName }: ExportDialogProps) {
+  const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [exporting, setExporting] = useState(false)
+  const [loading, setLoading] = useState<'excel' | 'csv' | null>(null)
 
-  const handleExport = async () => {
+  const handleExportExcel = async () => {
     if (!startDate || !endDate) {
-      toast.error('Selecione o período (data de início e fim).')
+      toast({ title: 'Selecione o período inicial e final.', variant: 'destructive' })
       return
     }
-    if (startDate > endDate) {
-      toast.error('A data de início deve ser anterior à data de fim.')
-      return
-    }
-
-    setExporting(true)
+    setLoading('excel')
     try {
-      const rows = await fetchReportData([projectId], startDate, endDate)
+      const rows: ReportRow[] = await fetchReportData([projectId], startDate, endDate)
       if (rows.length === 0) {
-        toast.warning('Nenhum registro encontrado para o período selecionado.')
+        toast({ title: 'Nenhum dado encontrado para o período selecionado.' })
         return
       }
       exportExcelReport(rows)
-      toast.success('Relatório exportado com sucesso!')
+      toast({ title: 'Relatório Excel exportado com sucesso!' })
       setOpen(false)
     } catch {
-      toast.error('Erro ao exportar o relatório.')
+      toast({ title: 'Erro ao exportar relatório.', variant: 'destructive' })
     } finally {
-      setExporting(false)
+      setLoading(null)
+    }
+  }
+
+  const handleExportCsv = async () => {
+    if (!startDate || !endDate) {
+      toast({ title: 'Selecione o período inicial e final.', variant: 'destructive' })
+      return
+    }
+    setLoading('csv')
+    try {
+      const projectData = await pb.collection('projects').getOne<Project>(projectId)
+
+      const taskList = await pb.collection('tasks').getFullList<Task>({
+        filter: `project = "${projectId}"`,
+      })
+
+      const taskIds = taskList.map((t) => t.id)
+      if (taskIds.length === 0) {
+        toast({ title: 'Nenhuma tarefa encontrada para este projeto.' })
+        return
+      }
+
+      const filterParts = taskIds.map((id) => `task = "${id}"`)
+      const timeEntryList = await pb.collection('time_entries').getFullList<TimeEntry>({
+        filter: `(${filterParts.join(' || ')}) && start_time >= "${startDate}" && start_time <= "${endDate}"`,
+        expand: 'team_member,task',
+      })
+
+      exportProjectReport(projectData, [] as Allocation[], taskList, timeEntryList)
+      toast({ title: 'Relatório CSV exportado com sucesso!' })
+      setOpen(false)
+    } catch {
+      toast({ title: 'Erro ao exportar relatório.', variant: 'destructive' })
+    } finally {
+      setLoading(null)
     }
   }
 
@@ -56,47 +90,58 @@ export function ExportDialog({ projectId, projectName }: ExportDialogProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="bg-white">
-          <Download className="h-4 w-4 mr-2" /> Exportar Relatório
+          <FileSpreadsheet className="h-4 w-4 mr-2" /> Exportar
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Exportar Relatório Excel</DialogTitle>
+          <DialogTitle>Exportar Relatório — {projectName}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <p className="text-sm text-slate-500">
-            Selecione o período para o relatório do projeto{' '}
-            <strong className="text-slate-700">{projectName}</strong>.
-          </p>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Data de Início</label>
-              <DatePicker value={startDate} onChange={setStartDate} placeholder="DD/MM/AAAA" />
+              <Label htmlFor="start-date">Data Inicial</Label>
+              <Input
+                id="start-date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Data de Fim</label>
-              <DatePicker value={endDate} onChange={setEndDate} placeholder="DD/MM/AAAA" />
+              <Label htmlFor="end-date">Data Final</Label>
+              <Input
+                id="end-date"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
             </div>
           </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={handleExport} disabled={exporting}>
-            {exporting ? (
-              <>
+          <div className="flex gap-3 pt-2">
+            <Button onClick={handleExportExcel} disabled={loading !== null} className="flex-1">
+              {loading === 'excel' ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Exportando...
-              </>
-            ) : (
-              <>
-                <Download className="h-4 w-4 mr-2" />
-                Exportar Excel
-              </>
-            )}
-          </Button>
-        </DialogFooter>
+              ) : (
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+              )}
+              Exportar Excel
+            </Button>
+            <Button
+              onClick={handleExportCsv}
+              disabled={loading !== null}
+              variant="outline"
+              className="flex-1"
+            >
+              {loading === 'csv' ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <FileText className="h-4 w-4 mr-2" />
+              )}
+              Exportar CSV
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   )

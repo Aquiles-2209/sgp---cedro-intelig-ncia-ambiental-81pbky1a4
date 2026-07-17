@@ -25,7 +25,7 @@ export function exportProjectReport(
     'Nome do Projeto',
     'Setor do membro',
     'Nome do membro da equipe',
-    'Data de finalização da atividade',
+    'Data de Lançamento da Atividade',
     'Total de horas trabalhadas no período selecionado',
   ]
 
@@ -33,7 +33,7 @@ export function exportProjectReport(
 
   const grouped = new Map<
     string,
-    { memberName: string; memberSector: string; dueDate: string; hours: number }
+    { memberName: string; memberSector: string; activityDate: string; hours: number }
   >()
 
   for (const te of timeEntries) {
@@ -43,19 +43,21 @@ export function exportProjectReport(
     const teamMember = te.expand?.team_member
     const memberName = teamMember?.name || '—'
     const memberSector = teamMember?.setor || '—'
-    const dueDate = normalizeDate(task.due_date || '')
-    const key = `${memberName}|${dueDate}`
+    const activityDate = normalizeDate(te.start_time || '')
+    const key = `${memberName}|${activityDate}`
     const hours = (te.duration || 0) / 3600
 
     const existing = grouped.get(key)
     if (existing) {
       existing.hours += hours
     } else {
-      grouped.set(key, { memberName, memberSector, dueDate, hours })
+      grouped.set(key, { memberName, memberSector, activityDate, hours })
     }
   }
 
-  const sorted = Array.from(grouped.values()).sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+  const sorted = Array.from(grouped.values()).sort((a, b) =>
+    a.activityDate.localeCompare(b.activityDate),
+  )
 
   for (const g of sorted) {
     lines.push(
@@ -64,7 +66,7 @@ export function exportProjectReport(
         escapeCsv(project.name),
         escapeCsv(g.memberSector),
         escapeCsv(g.memberName),
-        escapeCsv(formatDateBR(g.dueDate)),
+        escapeCsv(formatDateBR(g.activityDate)),
         g.hours.toFixed(2),
       ].join(','),
     )

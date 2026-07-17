@@ -6,15 +6,8 @@ export interface ReportRow {
   projectName: string
   memberSector: string
   memberName: string
-  completionDate: string
+  activityLaunchDate: string
   hoursWorked: number
-}
-
-function formatDateBR(dateStr: string): string {
-  const normalized = normalizeDate(dateStr)
-  if (!normalized) return ''
-  const [year, month, day] = normalized.split('-')
-  return `${day}/${month}/${year}`
 }
 
 export async function fetchReportData(
@@ -22,80 +15,67 @@ export async function fetchReportData(
   startDate: string,
   endDate: string,
 ): Promise<ReportRow[]> {
-  const projectFilter = projectIds.map((id) => `project = "${id}"`).join(' || ')
-  const tasks = await pb.collection('tasks').getFullList({ filter: projectFilter })
-  const taskIds = tasks.map((t) => t.id)
+  const projects = await pb.collection('projects').getFullList()
+  const projectMap = new Map<string, any>(projects.map((p: any) => [p.id, p]))
 
-  if (taskIds.length === 0) return []
+  const timeEntries = await pb.collection('time_entries').getFullList({
+    filter: `start_time >= "${startDate}" && start_time <= "${endDate}"`,
+    sort: 'start_time',
+    expand: 'team_member,task',
+  })
 
-  const BATCH_SIZE = 20
-  const batches: Promise<any[]>[] = []
-
-  for (let i = 0; i < taskIds.length; i += BATCH_SIZE) {
-    const batch = taskIds.slice(i, i + BATCH_SIZE)
-    const taskFilter = batch.map((id) => `task = "${id}"`).join(' || ')
-    const filter = `(${taskFilter}) && end_time >= "${startDate}" && end_time <= "${endDate} 23:59:59"`
-    batches.push(
-      pb.collection('time_entries').getFullList({
-        filter,
-        expand: 'task.project,team_member',
-        sort: 'end_time',
-      }),
-    )
-  }
-
-  const results = await Promise.all(batches)
-  const timeEntries = results.flat()
-
-  const latestTimeByTaskMember = new Map<string, string>()
-
-  for (const te of timeEntries) {
-    const expand = te.expand as any
-    const task = expand?.task
-    const teamMember = expand?.team_member
-    const taskMemberKey = `${task?.id || ''}|${teamMember?.id || ''}`
-    const endTime = normalizeDate(te.end_time || '')
-    if (endTime) {
-      const existing = latestTimeByTaskMember.get(taskMemberKey)
-      if (!existing || endTime > existing) {
-        latestTimeByTaskMember.set(taskMemberKey, endTime)
-      }
+  const grouped = new Map<
+    string,
+    {
+      client: string
+      projectName: string
+      memberSector: string
+      memberName: string
+      activityLaunchDate: string
+      hours: number
     }
-  }
+  >()
 
-  const grouped = new Map<string, { row: ReportRow; sortDate: string }>()
+  for (const te of timeEntries as any[]) {
+    const task = te.expand?.task
+    if (!task) continue
+    const projectId = task.project
+    if (!projectIds.includes(projectId)) continue
 
-  for (const te of timeEntries) {
-    const expand = te.expand as any
-    const task = expand?.task
-    const project = task?.expand?.project
-    const teamMember = expand?.team_member
-    const taskMemberKey = `${task?.id || ''}|${teamMember?.id || ''}`
-    const dueDate = normalizeDate(task?.due_date || '')
-    const latestTimeEntryDate = latestTimeByTaskMember.get(taskMemberKey) || ''
-    const completionDateRaw = dueDate || latestTimeEntryDate
-    const key = `${project?.id || ''}|${teamMember?.id || ''}|${completionDateRaw}`
+    const project = projectMap.get(projectId)
+    if (!project) continue
+
+    const teamMember = te.expand?.team_member
+    const memberName = teamMember?.name || '—'
+    const memberSector = teamMember?.setor || '—'
+
+    const activityDate = normalizeDate(te.start_time)
+    const key = `${projectId}|${memberName}|${activityDate}`
     const hours = (te.duration || 0) / 3600
 
     const existing = grouped.get(key)
     if (existing) {
-      existing.row.hoursWorked += hours
+      existing.hours += hours
     } else {
       grouped.set(key, {
-        row: {
-          client: project?.client || '—',
-          projectName: project?.name || '—',
-          memberSector: teamMember?.setor || '—',
-          memberName: teamMember?.name || '—',
-          completionDate: formatDateBR(completionDateRaw),
-          hoursWorked: hours,
-        },
-        sortDate: completionDateRaw,
+        client: project.client || '—',
+        projectName: project.name,
+        memberSector,
+        memberName,
+        activityLaunchDate: activityDate,
+        hours,
       })
     }
   }
 
   return Array.from(grouped.values())
-    .sort((a, b) => a.sortDate.localeCompare(b.sortDate))
-    .map((g) => g.row)
+    .sort((a, b) => a.activityLaunchDate.localeCompare(b.activityLaunchDate))
+    .map((g) => ({
+      client: g.client,
+      projectName: g.projectName,
+      memberSector: g.memberSector,
+      memberName: g.memberName,
+      activityLaunchDate: g.activityLaunchDate,
+      hoursWorked: g.hours,
+    }))
 }

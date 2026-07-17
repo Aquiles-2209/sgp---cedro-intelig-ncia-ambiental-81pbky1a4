@@ -1,4 +1,5 @@
 import type { ReportRow } from '@/services/reports'
+import { normalizeDate } from '@/types/models'
 
 function escapeXml(value: string): string {
   if (!value) return ''
@@ -10,13 +11,20 @@ function escapeXml(value: string): string {
     .replace(/'/g, '&apos;')
 }
 
+function formatDateBR(dateStr: string): string {
+  const normalized = normalizeDate(dateStr)
+  if (!normalized) return ''
+  const [year, month, day] = normalized.split('-')
+  return `${day}/${month}/${year}`
+}
+
 export function exportExcelReport(rows: ReportRow[]): void {
   const headers = [
     'Nome do Cliente',
     'Nome do Projeto',
     'Setor do membro',
     'Nome do membro da equipe',
-    'Data de finalização da atividade',
+    'Data de Lançamento da Atividade',
     'Total de horas trabalhadas no período selecionado',
   ]
 
@@ -57,7 +65,9 @@ export function exportExcelReport(rows: ReportRow[]): void {
     xmlParts.push(`<Cell><Data ss:Type="String">${escapeXml(row.projectName)}</Data></Cell>`)
     xmlParts.push(`<Cell><Data ss:Type="String">${escapeXml(row.memberSector)}</Data></Cell>`)
     xmlParts.push(`<Cell><Data ss:Type="String">${escapeXml(row.memberName)}</Data></Cell>`)
-    xmlParts.push(`<Cell><Data ss:Type="String">${escapeXml(row.completionDate)}</Data></Cell>`)
+    xmlParts.push(
+      `<Cell><Data ss:Type="String">${escapeXml(formatDateBR(row.activityLaunchDate))}</Data></Cell>`,
+    )
     xmlParts.push(
       `<Cell ss:StyleID="Number"><Data ss:Type="Number">${row.hoursWorked.toFixed(2)}</Data></Cell>`,
     )
