@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   Clock,
   CheckSquare,
-  Download,
 } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -34,7 +33,7 @@ import {
   TaskStatus,
   formatDuration,
 } from '@/types/models'
-import { exportProjectReport } from '@/lib/export-report'
+import { ExportDialog } from '@/components/export-dialog'
 import { TaskDialog } from '@/components/task-dialog'
 import { TaskList } from '@/components/task-list'
 import { useToast } from '@/hooks/use-toast'
@@ -98,11 +97,6 @@ export default function ProjectDetails() {
 
   const projAllocs = allocations.filter((a) => a.project === id)
   const projTasks = tasks.filter((t) => t.project === id)
-
-  const handleExport = () => {
-    const projTimeEntries = timeEntries.filter((te) => projTasks.some((t) => t.id === te.task))
-    exportProjectReport(project, projAllocs, projTasks, projTimeEntries)
-  }
 
   const handleTaskStatusChange = async (taskId: string, status: TaskStatus) => {
     await editTask(taskId, { status })
@@ -220,9 +214,7 @@ export default function ProjectDetails() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="bg-white" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" /> Exportar Relatório
-          </Button>
+          <ExportDialog projectId={id!} projectName={project.name} />
           <Button
             variant="outline"
             className="bg-white"
