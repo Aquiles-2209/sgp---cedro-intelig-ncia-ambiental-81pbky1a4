@@ -16,6 +16,7 @@ export function exportExcelReport(rows: ReportRow[]): void {
     'Setor do membro',
     'Nome do membro da equipe',
     'Data de Lançamento da Atividade',
+    'Total da Hora Prevista',
     'Total de horas trabalhadas no período selecionado',
   ]
 
@@ -25,6 +26,7 @@ export function exportExcelReport(rows: ReportRow[]): void {
     { type: 'string' as const, value: row.memberSector },
     { type: 'string' as const, value: row.memberName },
     { type: 'string' as const, value: formatDateBR(row.activityLaunchDate) },
+    { type: 'number' as const, value: Number(row.plannedHours.toFixed(2)) },
     { type: 'number' as const, value: Number(row.hoursWorked.toFixed(2)) },
   ])
 

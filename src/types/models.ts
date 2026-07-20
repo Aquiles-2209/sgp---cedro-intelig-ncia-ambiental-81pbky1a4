@@ -79,6 +79,7 @@ export interface Task {
   start_date: string
   status: TaskStatus
   due_date: string
+  planned_hours: number
   created: string
   updated: string
   expand?: { project?: Project; allocation?: Allocation[]; members?: TeamMember[] }

@@ -59,6 +59,7 @@ export function TaskDialog({
     start_date: '',
     due_date: '',
     status: 'Pendente' as TaskStatus,
+    planned_hours: '',
   })
 
   const taskAssignmentsRef = useRef(taskAssignments)
@@ -76,6 +77,7 @@ export function TaskDialog({
         start_date: task.start_date || '',
         due_date: task.due_date || '',
         status: task.status || 'Pendente',
+        planned_hours: task.planned_hours ? String(task.planned_hours) : '',
       })
     } else if (open && !task) {
       setForm({
@@ -85,6 +87,7 @@ export function TaskDialog({
         start_date: '',
         due_date: '',
         status: 'Pendente',
+        planned_hours: '',
       })
     }
     setFieldErrors({})
@@ -124,6 +127,7 @@ export function TaskDialog({
         status: form.status,
         start_date: form.start_date,
         due_date: form.due_date,
+        planned_hours: form.planned_hours ? Number(form.planned_hours) : 0,
       }
       if (isEdit && onEdit) {
         await onEdit(task!.id, data)
@@ -241,6 +245,17 @@ export function TaskDialog({
               <Label>Data de Finalização</Label>
               <DatePicker value={form.due_date} onChange={(v) => update('due_date', v)} />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Horas Previstas</Label>
+            <Input
+              type="number"
+              min="0"
+              step="0.5"
+              value={form.planned_hours}
+              onChange={(e) => update('planned_hours', e.target.value)}
+              placeholder="0"
+            />
           </div>
           <div className="space-y-2">
             <Label>Status</Label>

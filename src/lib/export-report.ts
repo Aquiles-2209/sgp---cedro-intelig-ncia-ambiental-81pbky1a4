@@ -26,6 +26,7 @@ export function exportProjectReport(
     'Setor do membro',
     'Nome do membro da equipe',
     'Data de Lançamento da Atividade',
+    'Total da Hora Prevista',
     'Total de horas trabalhadas no período selecionado',
   ]
 
@@ -33,7 +34,14 @@ export function exportProjectReport(
 
   const grouped = new Map<
     string,
-    { memberName: string; memberSector: string; activityDate: string; hours: number }
+    {
+      memberName: string
+      memberSector: string
+      activityDate: string
+      hours: number
+      plannedHours: number
+      taskIds: Set<string>
+    }
   >()
 
   for (const te of timeEntries) {
@@ -46,12 +54,24 @@ export function exportProjectReport(
     const activityDate = normalizeDate(te.start_time || '')
     const key = `${memberName}|${activityDate}`
     const hours = (te.duration || 0) / 3600
+    const taskPlannedHours = task.planned_hours || 0
 
     const existing = grouped.get(key)
     if (existing) {
       existing.hours += hours
+      if (!existing.taskIds.has(task.id)) {
+        existing.taskIds.add(task.id)
+        existing.plannedHours += taskPlannedHours
+      }
     } else {
-      grouped.set(key, { memberName, memberSector, activityDate, hours })
+      grouped.set(key, {
+        memberName,
+        memberSector,
+        activityDate,
+        hours,
+        plannedHours: taskPlannedHours,
+        taskIds: new Set([task.id]),
+      })
     }
   }
 
@@ -67,6 +87,7 @@ export function exportProjectReport(
         escapeCsv(g.memberSector),
         escapeCsv(g.memberName),
         escapeCsv(formatDateBR(g.activityDate)),
+        g.plannedHours.toFixed(2),
         g.hours.toFixed(2),
       ].join(','),
     )

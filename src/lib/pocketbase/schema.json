@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-17T19:23:01.744Z",
+  "generatedAt": "2026-07-20T19:44:03.658Z",
   "collections": [
     {
       "name": "users",
@@ -268,6 +268,12 @@
           "required": false,
           "system": false,
           "collectionRef": "team_members"
+        },
+        {
+          "name": "planned_hours",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

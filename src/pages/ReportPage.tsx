@@ -150,6 +150,7 @@ export default function ReportPage() {
                   <TableHead>Setor do membro</TableHead>
                   <TableHead>Nome do membro da equipe</TableHead>
                   <TableHead>Data de Lançamento da Atividade</TableHead>
+                  <TableHead className="text-right">Total da Hora Prevista</TableHead>
                   <TableHead className="text-right">Total de horas</TableHead>
                 </TableRow>
               </TableHeader>
@@ -161,6 +162,7 @@ export default function ReportPage() {
                     <TableCell>{row.memberSector}</TableCell>
                     <TableCell>{row.memberName}</TableCell>
                     <TableCell>{row.activityLaunchDate}</TableCell>
+                    <TableCell className="text-right">{row.plannedHours.toFixed(2)}</TableCell>
                     <TableCell className="text-right">{row.hoursWorked.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
