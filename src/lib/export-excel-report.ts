@@ -11,14 +11,14 @@ function formatDateBR(dateStr: string): string {
 
 export function exportExcelReport(rows: ReportRow[]): void {
   const headers = [
-    'Nome do Cliente',
-    'Nome do Projeto',
-    'Setor do membro',
-    'Nome do membro da equipe',
-    'Nome da Atividade',
-    'Data de Lançamento da Atividade',
-    'Total da Hora Prevista',
-    'Total de horas trabalhadas no período selecionado',
+    'Cliente',
+    'Projeto',
+    'Setor',
+    'Nome Equipe',
+    'Tarefa',
+    'Data',
+    'Horas Previstas',
+    'Horas Trabalhadas',
   ]
 
   const xlsxRows = rows.map((row) => [
