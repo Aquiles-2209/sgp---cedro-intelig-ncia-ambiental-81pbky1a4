@@ -105,9 +105,23 @@ function colLetter(col: number): string {
 }
 
 export type XlsxCellType = 'string' | 'number'
+export type XlsxCellStyle = 'normal' | 'positive' | 'negative'
+
 export interface XlsxCell {
   type: XlsxCellType
   value: string | number
+  style?: XlsxCellStyle
+}
+
+function styleToIndex(style?: XlsxCellStyle): number {
+  switch (style) {
+    case 'positive':
+      return 2
+    case 'negative':
+      return 3
+    default:
+      return 0
+  }
 }
 
 export function generateXlsx(headers: string[], rows: XlsxCell[][]): Blob {
@@ -139,7 +153,7 @@ export function generateXlsx(headers: string[], rows: XlsxCell[][]): Blob {
     {
       name: 'xl/styles.xml',
       data: strToBytes(
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE0E7FF"/></patternFill></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="1" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf></cellXfs></styleSheet>',
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE0E7FF"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD1FAE5"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFEE2E2"/></patternFill></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="1" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="2" borderId="0" xfId="0" applyFill="1"/><xf numFmtId="0" fontId="0" fillId="3" borderId="0" xfId="0" applyFill="1"/></cellXfs></styleSheet>',
       ),
     },
   ]
@@ -159,10 +173,12 @@ export function generateXlsx(headers: string[], rows: XlsxCell[][]): Blob {
     sheetXml += `<row r="${r}">`
     row.forEach((cell, colIdx) => {
       const ref = colLetter(colIdx + 1) + r
+      const sIdx = styleToIndex(cell.style)
+      const sAttr = sIdx > 0 ? ` s="${sIdx}"` : ''
       if (cell.type === 'number') {
-        sheetXml += `<c r="${ref}"><v>${cell.value}</v></c>`
+        sheetXml += `<c r="${ref}"${sAttr}><v>${cell.value}</v></c>`
       } else {
-        sheetXml += `<c r="${ref}" t="inlineStr"><is><t>${escapeXml(String(cell.value))}</t></is></c>`
+        sheetXml += `<c r="${ref}" t="inlineStr"${sAttr}><is><t>${escapeXml(String(cell.value))}</t></is></c>`
       }
     })
     sheetXml += '</row>'

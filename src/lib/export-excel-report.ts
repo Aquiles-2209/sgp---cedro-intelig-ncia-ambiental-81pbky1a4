@@ -19,18 +19,27 @@ export function exportExcelReport(rows: ReportRow[]): void {
     'Data',
     'Horas Previstas',
     'Horas Trabalhadas',
+    'Saldo Horas',
   ]
 
-  const xlsxRows = rows.map((row) => [
-    { type: 'string' as const, value: row.client },
-    { type: 'string' as const, value: row.projectName },
-    { type: 'string' as const, value: row.memberSector },
-    { type: 'string' as const, value: row.memberName },
-    { type: 'string' as const, value: row.activityTitle },
-    { type: 'string' as const, value: formatDateBR(row.activityLaunchDate) },
-    { type: 'number' as const, value: Number(row.plannedHours.toFixed(2)) },
-    { type: 'number' as const, value: Number(row.hoursWorked.toFixed(2)) },
-  ])
+  const xlsxRows = rows.map((row) => {
+    const balance = Number((row.plannedHours - row.hoursWorked).toFixed(2))
+    return [
+      { type: 'string' as const, value: row.client },
+      { type: 'string' as const, value: row.projectName },
+      { type: 'string' as const, value: row.memberSector },
+      { type: 'string' as const, value: row.memberName },
+      { type: 'string' as const, value: row.activityTitle },
+      { type: 'string' as const, value: formatDateBR(row.activityLaunchDate) },
+      { type: 'number' as const, value: Number(row.plannedHours.toFixed(2)) },
+      { type: 'number' as const, value: Number(row.hoursWorked.toFixed(2)) },
+      {
+        type: 'number' as const,
+        value: balance,
+        style: balance > 0 ? 'positive' : balance < 0 ? 'negative' : 'normal',
+      },
+    ]
+  })
 
   const blob = generateXlsx(headers, xlsxRows)
   const url = URL.createObjectURL(blob)
