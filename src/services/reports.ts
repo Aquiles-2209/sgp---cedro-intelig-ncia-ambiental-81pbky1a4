@@ -6,6 +6,7 @@ export interface ReportRow {
   projectName: string
   memberSector: string
   memberName: string
+  activityTitle: string
   activityLaunchDate: string
   plannedHours: number
   hoursWorked: number
@@ -47,6 +48,7 @@ export async function fetchReportData(
       projectName: project.name,
       memberSector,
       memberName,
+      activityTitle: task.title || '—',
       activityLaunchDate: activityDate,
       plannedHours: task.planned_hours || 0,
       hoursWorked: hours,

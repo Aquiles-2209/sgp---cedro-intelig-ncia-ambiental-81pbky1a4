@@ -25,6 +25,7 @@ export function exportProjectReport(
     'Nome do Projeto',
     'Setor do membro',
     'Nome do membro da equipe',
+    'Nome da Atividade',
     'Data de Lançamento da Atividade',
     'Total da Hora Prevista',
     'Total de horas trabalhadas no período selecionado',
@@ -59,6 +60,7 @@ export function exportProjectReport(
     const existing = grouped.get(key)
     if (existing) {
       existing.hours += hours
+      existing.activityTitle = existing.activityTitle + '; ' + (task.title || '—')
       if (!existing.taskIds.has(task.id)) {
         existing.taskIds.add(task.id)
         existing.plannedHours += taskPlannedHours
@@ -67,6 +69,7 @@ export function exportProjectReport(
       grouped.set(key, {
         memberName,
         memberSector,
+        activityTitle: task.title || '—',
         activityDate,
         hours,
         plannedHours: taskPlannedHours,
@@ -86,6 +89,7 @@ export function exportProjectReport(
         escapeCsv(project.name),
         escapeCsv(g.memberSector),
         escapeCsv(g.memberName),
+        escapeCsv(g.activityTitle),
         escapeCsv(formatDateBR(g.activityDate)),
         g.plannedHours.toFixed(2),
         g.hours.toFixed(2),
