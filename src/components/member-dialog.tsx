@@ -24,6 +24,8 @@ import { createTeamMember, updateTeamMember, type TeamMember } from '@/services/
 
 const sectorOptions = ['Meio-Ambiente', 'Desenvolvimento Urbano', 'Administrativo']
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 interface MemberDialogProps {
   onCreated?: () => void
   trigger?: ReactNode
@@ -37,7 +39,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
   const { toast } = useToast()
   const isEdit = !!member
 
-  const [form, setForm] = useState({ name: '', function: '', setor: '' })
+  const [form, setForm] = useState({ name: '', function: '', setor: '', email: '' })
 
   useEffect(() => {
     if (open) {
@@ -45,6 +47,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
         name: member?.name || '',
         function: member?.function || '',
         setor: member?.setor || '',
+        email: member?.email || '',
       })
       setFieldErrors({})
     }
@@ -60,6 +63,11 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
     if (!form.name.trim()) errors.name = 'O nome é obrigatório.'
     if (!form.function.trim()) errors.function = 'A função é obrigatória.'
     if (!form.setor) errors.setor = 'O setor é obrigatório.'
+    if (!form.email.trim()) {
+      errors.email = 'O email é obrigatório.'
+    } else if (!emailRegex.test(form.email.trim())) {
+      errors.email = 'Informe um email válido (ex: nome@exemplo.com).'
+    }
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors)
       return
@@ -73,6 +81,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
           name: form.name.trim(),
           function: form.function.trim(),
           setor: form.setor,
+          email: form.email.trim(),
         })
         toast({ title: 'Membro atualizado com sucesso!' })
       } else {
@@ -80,6 +89,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
           name: form.name.trim(),
           function: form.function.trim(),
           setor: form.setor,
+          email: form.email.trim(),
         })
         toast({ title: 'Membro cadastrado com sucesso!' })
       }
@@ -100,6 +110,13 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
       setSaving(false)
     }
   }
+
+  const isFormValid =
+    form.name.trim() &&
+    form.function.trim() &&
+    form.setor &&
+    form.email.trim() &&
+    emailRegex.test(form.email.trim())
 
   const defaultTrigger = isEdit ? (
     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -128,6 +145,17 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
               className={cn(fieldErrors.name && 'border-red-500 focus-visible:ring-red-500')}
             />
             {fieldErrors.name && <p className="text-xs text-red-500">{fieldErrors.name}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) => update('email', e.target.value)}
+              placeholder="nome@exemplo.com"
+              className={cn(fieldErrors.email && 'border-red-500 focus-visible:ring-red-500')}
+            />
+            {fieldErrors.email && <p className="text-xs text-red-500">{fieldErrors.email}</p>}
           </div>
           <div className="space-y-2">
             <Label>Função</Label>
@@ -161,10 +189,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={saving || !form.name.trim() || !form.function.trim() || !form.setor}
-            >
+            <Button onClick={handleSubmit} disabled={saving || !isFormValid}>
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : isEdit ? (

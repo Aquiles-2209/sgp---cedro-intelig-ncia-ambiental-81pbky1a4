@@ -10,11 +10,12 @@ export const createTeamMember = async (data: {
   name: string
   function: string
   setor: string
+  email: string
 }): Promise<TeamMember> => pb.collection('team_members').create(data)
 
 export const updateTeamMember = async (
   id: string,
-  data: { name?: string; function?: string; setor?: string },
+  data: { name?: string; function?: string; setor?: string; email?: string },
 ): Promise<TeamMember> => pb.collection('team_members').update(id, data)
 
 export const deleteTeamMember = async (id: string): Promise<void> =>

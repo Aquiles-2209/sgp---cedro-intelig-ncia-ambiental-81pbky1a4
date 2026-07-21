@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-21T17:39:29.167Z",
+  "generatedAt": "2026-07-21T17:42:51.407Z",
   "collections": [
     {
       "name": "users",
@@ -466,6 +466,12 @@
           "required": true,
           "system": false,
           "selectValues": ["Meio-Ambiente", "Desenvolvimento Urbano", "Administrativo"]
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_team_members_name ON team_members (name)"]

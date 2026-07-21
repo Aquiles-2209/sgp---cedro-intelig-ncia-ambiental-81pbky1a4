@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Users2, Briefcase, Search } from 'lucide-react'
+import { Users2, Briefcase, Search, Mail } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -88,6 +88,12 @@ export default function Members() {
                       <Briefcase className="h-3 w-3" />
                       {member.function}
                     </Badge>
+                    {member.email && (
+                      <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500 truncate">
+                        <Mail className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{member.email}</span>
+                      </p>
+                    )}
                     {member.setor && (
                       <Badge
                         variant="outline"
