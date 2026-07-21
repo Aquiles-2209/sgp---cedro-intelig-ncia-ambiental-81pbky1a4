@@ -1,18 +1,31 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Settings as SettingsIcon, Users2, ShieldCheck, Mail } from 'lucide-react'
+import { Settings as SettingsIcon, Users2, ShieldCheck, Mail, Loader2, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useAuth } from '@/hooks/use-auth'
-import { getUsers, type SimpleUser } from '@/services/users'
+import { getUsers, updateUserRole, type SimpleUser } from '@/services/users'
 import { InviteUserDialog } from '@/components/invite-user-dialog'
+import { UserDeleteDialog } from '@/components/user-delete-dialog'
+import { useRealtime } from '@/hooks/use-realtime'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { useToast } from '@/hooks/use-toast'
 
 export default function Settings() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
   const [users, setUsers] = useState<SimpleUser[]>([])
   const [loading, setLoading] = useState(true)
+  const [updatingRole, setUpdatingRole] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const loadUsers = useCallback(async () => {
     try {
@@ -28,6 +41,27 @@ export default function Settings() {
   useEffect(() => {
     loadUsers()
   }, [loadUsers])
+
+  useRealtime('users', () => {
+    loadUsers()
+  })
+
+  const handleRoleChange = async (userId: string, newRole: 'admin' | 'user') => {
+    setUpdatingRole(userId)
+    try {
+      await updateUserRole(userId, newRole)
+      toast({ title: 'Função atualizada com sucesso!' })
+      await loadUsers()
+    } catch (err) {
+      toast({
+        title: 'Erro ao atualizar função',
+        description: getErrorMessage(err),
+        variant: 'destructive',
+      })
+    } finally {
+      setUpdatingRole(null)
+    }
+  }
 
   return (
     <div className="space-y-6 animate-fade-in-up max-w-4xl">
@@ -60,9 +94,10 @@ export default function Settings() {
                   <Skeleton key={i} className="h-14 w-full" />
                 ))}
               </div>
-            ) : (
-              <div className="space-y-2">
-                {users.map((u) => (
+            <div className="space-y-2">
+              {users.map((u) => {
+                const isSelf = u.id === user?.id
+                return (
                   <div
                     key={u.id}
                     className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors"
@@ -74,26 +109,61 @@ export default function Settings() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-slate-900 truncate">{u.name}</p>
+                      <p className="font-medium text-sm text-slate-900 truncate">
+                        {u.name}
+                        {isSelf && (
+                          <Badge variant="secondary" className="text-xs ml-2">
+                            Você
+                          </Badge>
+                        )}
+                      </p>
                       <p className="text-xs text-slate-500 flex items-center gap-1">
                         <Mail className="h-3 w-3" /> {u.email}
                       </p>
                     </div>
-                    {u.id === user?.id && (
-                      <Badge variant="secondary" className="text-xs">
-                        Você
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={u.role}
+                        onValueChange={(v) => handleRoleChange(u.id, v as 'admin' | 'user')}
+                        disabled={isSelf || updatingRole === u.id}
+                      >
+                        <SelectTrigger className="w-[130px] h-8 text-xs">
+                          {updatingRole === u.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <SelectValue />
+                          )}
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Administrador</SelectItem>
+                          <SelectItem value="user">Usuário</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <UserDeleteDialog
+                        user={u}
+                        onDeleted={loadUsers}
+                        trigger={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            disabled={isSelf}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                          </Button>
+                        }
+                      />
+                    </div>
                   </div>
-                ))}
-                {users.length === 0 && (
-                  <p className="text-sm text-slate-500 text-center py-6">
-                    Nenhum usuário cadastrado.
-                  </p>
-                )}
-              </div>
-            )}
-          </CardContent>
+                )
+              })}
+              {users.length === 0 && (
+                <p className="text-sm text-slate-500 text-center py-6">
+                  Nenhum usuário cadastrado.
+                </p>
+              )}
+            </div>
+          )}          </CardContent>
         </Card>
       )}
 

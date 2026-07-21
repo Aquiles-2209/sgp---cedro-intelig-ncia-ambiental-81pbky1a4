@@ -5,6 +5,7 @@ export interface SimpleUser {
   name: string
   email: string
   avatar: string
+  role: 'admin' | 'user'
 }
 
 export const getUsers = async (): Promise<SimpleUser[]> => {
@@ -16,6 +17,7 @@ export const getUsers = async (): Promise<SimpleUser[]> => {
     avatar: r.avatar
       ? `${import.meta.env.VITE_POCKETBASE_URL}/api/files/users/${r.id}/${r.avatar}`
       : '',
+    role: (r.role as 'admin' | 'user') || 'user',
   }))
 }
 
@@ -35,5 +37,14 @@ export const createUser = async (data: {
     name: record.name || record.email || 'Usuário',
     email: record.email || '',
     avatar: '',
+    role: 'user',
   }
+}
+
+export const updateUserRole = async (id: string, role: 'admin' | 'user'): Promise<void> => {
+  await pb.collection('users').update(id, { role })
+}
+
+export const deleteUser = async (id: string): Promise<void> => {
+  await pb.collection('users').delete(id)
 }
