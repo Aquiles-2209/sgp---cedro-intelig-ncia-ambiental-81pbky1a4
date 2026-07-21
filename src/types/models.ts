@@ -67,6 +67,7 @@ export interface TeamMember {
   function: string
   setor: string
   email: string
+  avatar: string
   created: string
   updated: string
 }

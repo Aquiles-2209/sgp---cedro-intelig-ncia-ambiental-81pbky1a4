@@ -1,8 +1,9 @@
 import { useState, useEffect, ReactNode } from 'react'
-import { UserPlus, Loader2, Pencil } from 'lucide-react'
+import { UserPlus, Loader2, Pencil, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Dialog,
   DialogContent,
@@ -23,7 +24,6 @@ import { cn } from '@/lib/utils'
 import { createTeamMember, updateTeamMember, type TeamMember } from '@/services/team-members'
 
 const sectorOptions = ['Meio-Ambiente', 'Desenvolvimento Urbano', 'Administrativo']
-
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 interface MemberDialogProps {
@@ -38,8 +38,9 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const { toast } = useToast()
   const isEdit = !!member
-
   const [form, setForm] = useState({ name: '', function: '', setor: '', email: '' })
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState('')
 
   useEffect(() => {
     if (open) {
@@ -49,6 +50,8 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
         setor: member?.setor || '',
         email: member?.email || '',
       })
+      setAvatarPreview(member?.avatar || '')
+      setAvatarFile(null)
       setFieldErrors({})
     }
   }, [open, member])
@@ -58,39 +61,40 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
     setFieldErrors((p) => ({ ...p, [field]: '' }))
   }
 
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setAvatarFile(file)
+      setAvatarPreview(URL.createObjectURL(file))
+    }
+  }
+
   const handleSubmit = async () => {
     const errors: FieldErrors = {}
     if (!form.name.trim()) errors.name = 'O nome é obrigatório.'
     if (!form.function.trim()) errors.function = 'A função é obrigatória.'
     if (!form.setor) errors.setor = 'O setor é obrigatório.'
-    if (!form.email.trim()) {
-      errors.email = 'O email é obrigatório.'
-    } else if (!emailRegex.test(form.email.trim())) {
-      errors.email = 'Informe um email válido (ex: nome@exemplo.com).'
-    }
+    if (!form.email.trim()) errors.email = 'O email é obrigatório.'
+    else if (!emailRegex.test(form.email.trim())) errors.email = 'Informe um email válido.'
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors)
       return
     }
-
     setSaving(true)
     setFieldErrors({})
     try {
+      const payload = {
+        name: form.name.trim(),
+        function: form.function.trim(),
+        setor: form.setor,
+        email: form.email.trim(),
+        avatar: avatarFile,
+      }
       if (isEdit && member) {
-        await updateTeamMember(member.id, {
-          name: form.name.trim(),
-          function: form.function.trim(),
-          setor: form.setor,
-          email: form.email.trim(),
-        })
+        await updateTeamMember(member.id, payload)
         toast({ title: 'Membro atualizado com sucesso!' })
       } else {
-        await createTeamMember({
-          name: form.name.trim(),
-          function: form.function.trim(),
-          setor: form.setor,
-          email: form.email.trim(),
-        })
+        await createTeamMember(payload)
         toast({ title: 'Membro cadastrado com sucesso!' })
       }
       setOpen(false)
@@ -136,6 +140,27 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
           <DialogTitle>{isEdit ? 'Editar Membro' : 'Cadastrar Novo Membro'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <div className="flex flex-col items-center gap-2">
+            <Avatar className="h-20 w-20 border-2 border-slate-200">
+              <AvatarImage src={avatarPreview} alt="Avatar" />
+              <AvatarFallback className="bg-slate-100 text-slate-400 text-2xl">
+                {form.name?.charAt(0).toUpperCase() || <Upload className="h-6 w-6" />}
+              </AvatarFallback>
+            </Avatar>
+            <Label
+              htmlFor="avatar-upload"
+              className="cursor-pointer text-sm text-primary hover:underline"
+            >
+              {avatarPreview ? 'Alterar foto' : 'Adicionar foto'}
+            </Label>
+            <Input
+              id="avatar-upload"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+          </div>
           <div className="space-y-2">
             <Label>Nome</Label>
             <Input

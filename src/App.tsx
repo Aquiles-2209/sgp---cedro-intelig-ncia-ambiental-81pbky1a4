@@ -19,6 +19,7 @@ import AllocationMap from './pages/AllocationMap'
 import Members from './pages/Members'
 import ReportPage from './pages/ReportPage'
 import AuditLogs from './pages/AuditLogs'
+import TotalHours from './pages/TotalHours'
 import Settings from './pages/Settings'
 
 const App = () => (
@@ -71,6 +72,14 @@ const App = () => (
                 element={
                   <AdminRoute>
                     <AuditLogs />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/total-horas"
+                element={
+                  <AdminRoute>
+                    <TotalHours />
                   </AdminRoute>
                 }
               />

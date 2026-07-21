@@ -3,6 +3,7 @@ import { Users2, Briefcase, Search, Mail } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getTeamMembers, type TeamMember } from '@/services/team-members'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -37,7 +38,8 @@ export default function Members() {
   const filtered = members.filter(
     (m) =>
       m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.function.toLowerCase().includes(search.toLowerCase()),
+      m.function.toLowerCase().includes(search.toLowerCase()) ||
+      (m.email || '').toLowerCase().includes(search.toLowerCase()),
   )
 
   return (
@@ -79,9 +81,12 @@ export default function Members() {
                 className="hover:shadow-md transition-all duration-300 hover:-translate-y-1 group"
               >
                 <CardContent className="p-6 flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white font-medium shrink-0">
-                    {member.name?.charAt(0).toUpperCase()}
-                  </div>
+                  <Avatar className="h-12 w-12 border border-slate-200 shrink-0">
+                    <AvatarImage src={member.avatar} alt={member.name} />
+                    <AvatarFallback className="bg-primary text-white font-medium">
+                      {member.name?.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-slate-900 truncate">{member.name}</h3>
                     <Badge variant="secondary" className="mt-1 flex items-center gap-1.5 w-fit">

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-21T17:42:51.407Z",
+  "generatedAt": "2026-07-21T17:49:49.601Z",
   "collections": [
     {
       "name": "users",
@@ -472,9 +472,18 @@
           "type": "email",
           "required": false,
           "system": false
+        },
+        {
+          "name": "avatar",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
-      "indexes": ["CREATE INDEX idx_team_members_name ON team_members (name)"]
+      "indexes": [
+        "CREATE INDEX idx_team_members_name ON team_members (name)",
+        "CREATE UNIQUE INDEX `idx_team_members_email_unique` ON `team_members` (email) WHERE email != ''"
+      ]
     },
     {
       "name": "task_assignments",

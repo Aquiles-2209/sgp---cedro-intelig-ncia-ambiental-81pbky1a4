@@ -8,6 +8,7 @@ import {
   Users2,
   FileBarChart,
   ScrollText,
+  Clock,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -28,6 +29,7 @@ const adminNavigation = [
   { name: 'Membros', href: '/membros', icon: Users2 },
   { name: 'Mapa de Alocação', href: '/allocation-map', icon: CalendarRange },
   { name: 'Relatórios', href: '/relatorios', icon: FileBarChart },
+  { name: 'Total de Horas', href: '/total-horas', icon: Clock },
   { name: 'Logs', href: '/logs', icon: ScrollText },
   { name: 'Configurações', href: '/configuracoes', icon: Settings },
 ]

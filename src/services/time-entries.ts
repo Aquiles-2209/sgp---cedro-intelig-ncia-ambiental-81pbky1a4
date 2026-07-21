@@ -47,3 +47,31 @@ export const updateTimeEntry = async (id: string, data: Partial<TimeEntry>): Pro
 
 export const deleteTimeEntry = async (id: string): Promise<void> =>
   pb.collection('time_entries').delete(id)
+
+export const getTotalHoursByProject = async (): Promise<
+  Array<{ projectId: string; projectName: string; totalHours: number; entryCount: number }>
+> => {
+  const [timeEntries, projects] = await Promise.all([
+    pb.collection('time_entries').getFullList({ expand: 'task' }),
+    pb.collection('projects').getFullList(),
+  ])
+  const projectMap = new Map<string, any>(projects.map((p: any) => [p.id, p]))
+  const projectHours = new Map<string, { hours: number; count: number }>()
+  for (const te of timeEntries as any[]) {
+    const task = te.expand?.task
+    if (!task?.project) continue
+    const pid = task.project
+    if (!projectHours.has(pid)) projectHours.set(pid, { hours: 0, count: 0 })
+    const entry = projectHours.get(pid)!
+    entry.hours += (te.duration || 0) / 3600
+    entry.count += 1
+  }
+  return Array.from(projectHours.entries())
+    .map(([projectId, data]) => ({
+      projectId,
+      projectName: projectMap.get(projectId)?.name || 'Desconhecido',
+      totalHours: data.hours,
+      entryCount: data.count,
+    }))
+    .sort((a, b) => b.totalHours - a.totalHours)
+}

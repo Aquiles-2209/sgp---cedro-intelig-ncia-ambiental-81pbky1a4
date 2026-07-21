@@ -48,3 +48,20 @@ export const updateUserRole = async (id: string, role: 'admin' | 'user'): Promis
 export const deleteUser = async (id: string): Promise<void> => {
   await pb.collection('users').delete(id)
 }
+
+export const getUserLastActivity = async (): Promise<Record<string, string>> => {
+  const timeEntries = await pb.collection('time_entries').getFullList({
+    sort: '-end_time',
+    expand: 'allocation',
+  })
+  const result: Record<string, string> = {}
+  for (const te of timeEntries as any[]) {
+    if (!te.end_time) continue
+    const alloc = te.expand?.allocation
+    if (!alloc?.user) continue
+    if (!result[alloc.user]) {
+      result[alloc.user] = te.end_time
+    }
+  }
+  return result
+}
