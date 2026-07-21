@@ -117,9 +117,11 @@ export default function ProjectDetails() {
       toast({ title: 'Já existe um timer ativo para este membro.', variant: 'destructive' })
       return
     }
+    const userAlloc = projAllocs.find((a) => a.user === user?.id)
     await addTimeEntry({
       task: taskId,
       team_member: memberId,
+      allocation: userAlloc?.id ?? '',
       start_time: new Date().toISOString(),
       duration: 0,
     })

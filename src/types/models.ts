@@ -23,6 +23,7 @@ export interface Allocation {
   function: string
   start_date: string
   end_date: string
+  user: string
   created: string
   updated: string
   expand?: { project?: Project }
