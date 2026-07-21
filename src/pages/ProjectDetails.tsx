@@ -37,6 +37,7 @@ import { ExportDialog } from '@/components/export-dialog'
 import { TaskDialog } from '@/components/task-dialog'
 import { TaskList } from '@/components/task-list'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/hooks/use-auth'
 
 const statusColors: Record<string, string> = {
   'Em Andamento': 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -62,6 +63,8 @@ export default function ProjectDetails() {
     removeTaskAssignment,
   } = useAppState()
   const { toast } = useToast()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [localTaskAssignments, setLocalTaskAssignments] = useState<TaskAssignment[]>([])
   const [savingAssignmentKey, setSavingAssignmentKey] = useState<string>('')
@@ -214,14 +217,16 @@ export default function ProjectDetails() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <ExportDialog projectId={id!} projectName={project.name} />
-          <Button
-            variant="outline"
-            className="bg-white"
-            onClick={() => navigate(`/projetos/${id}/editar`)}
-          >
-            <Edit className="h-4 w-4 mr-2" /> Editar Projeto
-          </Button>
+          {isAdmin && <ExportDialog projectId={id!} projectName={project.name} />}
+          {isAdmin && (
+            <Button
+              variant="outline"
+              className="bg-white"
+              onClick={() => navigate(`/projetos/${id}/editar`)}
+            >
+              <Edit className="h-4 w-4 mr-2" /> Editar Projeto
+            </Button>
+          )}
         </div>
       </div>
       <div className="grid md:grid-cols-3 gap-6">
@@ -346,7 +351,7 @@ export default function ProjectDetails() {
             <h3 className="text-lg font-semibold flex items-center gap-2 text-slate-800">
               <CheckSquare className="h-5 w-5 text-slate-400" /> Tarefas do Projeto
             </h3>
-            <TaskDialog projectId={id!} teamMembers={teamMembers} onAdd={addTask} />
+            {isAdmin && <TaskDialog projectId={id!} teamMembers={teamMembers} onAdd={addTask} />}
           </div>
           <TaskList
             tasks={projTasks}
@@ -356,6 +361,7 @@ export default function ProjectDetails() {
             )}
             projectId={id!}
             teamMembers={teamMembers}
+            isAdmin={isAdmin}
             onEdit={editTask}
             onEditStatus={handleTaskStatusChange}
             onDelete={handleTaskDelete}

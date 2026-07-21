@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Search, Calendar, Users2, Briefcase, Pencil, Download } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
+import { useAuth } from '@/hooks/use-auth'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -17,6 +18,8 @@ const statusColors: Record<ProjectStatus, string> = {
 
 export default function Projects() {
   const { projects, allocations, tasks } = useAppState()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('todos')
 
@@ -35,11 +38,13 @@ export default function Projects() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Projetos</h1>
           <p className="text-slate-500 mt-1">Gerencie todos os contratos e alocações.</p>
         </div>
-        <Button asChild className="shrink-0">
-          <Link to="/projetos/novo">
-            <Plus className="h-4 w-4 mr-2" /> Novo Projeto
-          </Link>
-        </Button>
+        {isAdmin && (
+          <Button asChild className="shrink-0">
+            <Link to="/projetos/novo">
+              <Plus className="h-4 w-4 mr-2" /> Novo Projeto
+            </Link>
+          </Button>
+        )}
       </div>
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1 max-w-md">
@@ -82,20 +87,24 @@ export default function Projects() {
                     <span className="text-xs font-mono text-slate-400 bg-slate-50 px-2 py-1 rounded">
                       {project.contract_id}
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={handleExport}
-                      title="Exportar relatório"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button asChild variant="ghost" size="icon" className="h-7 w-7">
-                      <Link to={`/projetos/${project.id}/editar`}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Link>
-                    </Button>
+                    {isAdmin && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={handleExport}
+                          title="Exportar relatório"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button asChild variant="ghost" size="icon" className="h-7 w-7">
+                          <Link to={`/projetos/${project.id}/editar`}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Link>
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div>

@@ -7,6 +7,7 @@ import { AppStateProvider } from '@/hooks/use-app-state'
 
 import Layout from './components/Layout'
 import { AuthGuard } from './components/auth-guard'
+import { AdminRoute } from './components/admin-route'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 import Dashboard from './pages/Index'
@@ -36,12 +37,33 @@ const App = () => (
             >
               <Route path="/" element={<Dashboard />} />
               <Route path="/projetos" element={<Projects />} />
-              <Route path="/projetos/novo" element={<ProjectNew />} />
+              <Route
+                path="/projetos/novo"
+                element={
+                  <AdminRoute>
+                    <ProjectNew />
+                  </AdminRoute>
+                }
+              />
               <Route path="/projetos/:id" element={<ProjectDetails />} />
-              <Route path="/projetos/:id/editar" element={<ProjectEdit />} />
+              <Route
+                path="/projetos/:id/editar"
+                element={
+                  <AdminRoute>
+                    <ProjectEdit />
+                  </AdminRoute>
+                }
+              />
               <Route path="/allocation-map" element={<AllocationMap />} />
               <Route path="/membros" element={<Members />} />
-              <Route path="/relatorios" element={<ReportPage />} />
+              <Route
+                path="/relatorios"
+                element={
+                  <AdminRoute>
+                    <ReportPage />
+                  </AdminRoute>
+                }
+              />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

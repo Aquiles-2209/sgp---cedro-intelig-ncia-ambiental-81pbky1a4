@@ -11,7 +11,8 @@ import { MemberDialog } from '@/components/member-dialog'
 import { MemberDeleteDialog } from '@/components/member-delete-dialog'
 
 export default function Members() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const [members, setMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -46,7 +47,7 @@ export default function Members() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Membros</h1>
           <p className="text-slate-500 mt-1">Gerencie os membros da equipe.</p>
         </div>
-        <MemberDialog onCreated={loadMembers} />
+        {isAdmin && <MemberDialog onCreated={loadMembers} />}
       </div>
 
       <div className="relative max-w-md">
@@ -96,10 +97,12 @@ export default function Members() {
                       </Badge>
                     )}
                   </div>
-                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <MemberDialog member={member} onCreated={loadMembers} />
-                    <MemberDeleteDialog member={member} onDeleted={loadMembers} />
-                  </div>
+                  {isAdmin && (
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <MemberDialog member={member} onCreated={loadMembers} />
+                      <MemberDeleteDialog member={member} onDeleted={loadMembers} />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}

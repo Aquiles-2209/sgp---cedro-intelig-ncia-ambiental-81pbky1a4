@@ -35,6 +35,7 @@ interface TaskListProps {
   taskAssignments: TaskAssignment[]
   projectId: string
   teamMembers: TeamMember[]
+  isAdmin: boolean
   onEdit: (id: string, data: Partial<Task>) => Promise<void>
   onEditStatus: (id: string, status: TaskStatus) => Promise<void>
   onDelete: (id: string) => Promise<void>
@@ -56,6 +57,7 @@ export function TaskList({
   taskAssignments,
   projectId,
   teamMembers,
+  isAdmin,
   onEdit,
   onEditStatus,
   onDelete,
@@ -98,43 +100,45 @@ export function TaskList({
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2">{task.description}</p>
                 )}
               </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <TaskDialog
-                  projectId={projectId}
-                  teamMembers={teamMembers}
-                  onEdit={onEdit}
-                  task={task}
-                  taskAssignments={taskAssignmentsForTask}
-                  trigger={
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                  }
-                />
-                <Select
-                  value={task.status}
-                  onValueChange={(v) => onEditStatus(task.id, v as TaskStatus)}
-                >
-                  <SelectTrigger className="h-8 w-[130px] text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={() => onDelete(task.id)}
-                >
-                  <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                </Button>
-              </div>
+              {isAdmin && (
+                <div className="flex items-center gap-1 shrink-0">
+                  <TaskDialog
+                    projectId={projectId}
+                    teamMembers={teamMembers}
+                    onEdit={onEdit}
+                    task={task}
+                    taskAssignments={taskAssignmentsForTask}
+                    trigger={
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    }
+                  />
+                  <Select
+                    value={task.status}
+                    onValueChange={(v) => onEditStatus(task.id, v as TaskStatus)}
+                  >
+                    <SelectTrigger className="h-8 w-[130px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => onDelete(task.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                  </Button>
+                </div>
+              )}
             </div>
 
             {taskMembers.length > 0 ? (
@@ -174,12 +178,14 @@ export function TaskList({
                               Ativo
                             </span>
                           )}
-                          <button
-                            onClick={() => onRemoveMember(task.id, member.id)}
-                            className="rounded-full hover:bg-slate-200 p-0.5 shrink-0"
-                          >
-                            <X className="h-2.5 w-2.5 text-slate-400" />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => onRemoveMember(task.id, member.id)}
+                              className="rounded-full hover:bg-slate-200 p-0.5 shrink-0"
+                            >
+                              <X className="h-2.5 w-2.5 text-slate-400" />
+                            </button>
+                          )}
                         </div>
                         <MemberTimer
                           taskId={task.id}
@@ -204,15 +210,17 @@ export function TaskList({
                               ? safeFormatDate(assignment.start_date)
                               : 'Não definida'}
                           </span>
-                          <DatePicker
-                            compact
-                            value={assignment?.start_date || ''}
-                            onChange={(v) =>
-                              onSetAssignmentDate(task.id, member.id, 'start_date', v)
-                            }
-                            placeholder="—"
-                            loading={savingAssignmentKey === `${task.id}-${member.id}-start_date`}
-                          />
+                          {isAdmin && (
+                            <DatePicker
+                              compact
+                              value={assignment?.start_date || ''}
+                              onChange={(v) =>
+                                onSetAssignmentDate(task.id, member.id, 'start_date', v)
+                              }
+                              placeholder="—"
+                              loading={savingAssignmentKey === `${task.id}-${member.id}-start_date`}
+                            />
+                          )}
                         </div>
                         <div className="flex items-center gap-1.5">
                           <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide whitespace-nowrap">
@@ -228,13 +236,17 @@ export function TaskList({
                               ? safeFormatDate(assignment.end_date)
                               : 'Não definida'}
                           </span>
-                          <DatePicker
-                            compact
-                            value={assignment?.end_date || ''}
-                            onChange={(v) => onSetAssignmentDate(task.id, member.id, 'end_date', v)}
-                            placeholder="—"
-                            loading={savingAssignmentKey === `${task.id}-${member.id}-end_date`}
-                          />
+                          {isAdmin && (
+                            <DatePicker
+                              compact
+                              value={assignment?.end_date || ''}
+                              onChange={(v) =>
+                                onSetAssignmentDate(task.id, member.id, 'end_date', v)
+                              }
+                              placeholder="—"
+                              loading={savingAssignmentKey === `${task.id}-${member.id}-end_date`}
+                            />
+                          )}
                         </div>
                       </div>
                     </div>

@@ -32,7 +32,13 @@ const navigation = [
 
 export function AppSidebar() {
   const location = useLocation()
-  const { signOut } = useAuth()
+  const { signOut, user } = useAuth()
+  const isAdmin = user?.role === 'admin'
+
+  const visibleNavigation = navigation.filter((item) => {
+    if (item.name === 'Relatórios') return isAdmin
+    return true
+  })
 
   return (
     <Sidebar className="border-r border-slate-200 bg-white">
@@ -48,7 +54,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1 px-2">
-              {navigation.map((item) => {
+              {visibleNavigation.map((item) => {
                 const isActive =
                   location.pathname === item.href ||
                   (item.href !== '/' && location.pathname.startsWith(item.href))

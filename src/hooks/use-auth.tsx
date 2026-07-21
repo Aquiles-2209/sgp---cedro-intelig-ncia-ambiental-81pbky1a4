@@ -6,6 +6,7 @@ interface AuthUser {
   name: string
   email: string
   avatar: string
+  role: 'admin' | 'user'
 }
 
 interface AuthContextType {
@@ -30,7 +31,13 @@ function mapUser(record: any): AuthUser | null {
   const avatar = record.avatar
     ? `${import.meta.env.VITE_POCKETBASE_URL}/api/files/users/${record.id}/${record.avatar}`
     : ''
-  return { id: record.id, name: record.name || '', email: record.email || '', avatar }
+  return {
+    id: record.id,
+    name: record.name || '',
+    email: record.email || '',
+    avatar,
+    role: (record.role as 'admin' | 'user') || 'user',
+  }
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -61,7 +68,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await pb
         .collection('users')
-        .create({ email, password, passwordConfirm: password, name: email.split('@')[0] })
+        .create({
+          email,
+          password,
+          passwordConfirm: password,
+          name: email.split('@')[0],
+          role: 'user',
+        })
       await pb.collection('users').authWithPassword(email, password)
       return { error: null }
     } catch (error) {
