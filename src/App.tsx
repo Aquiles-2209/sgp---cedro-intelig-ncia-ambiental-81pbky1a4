@@ -10,7 +10,7 @@ import { AuthGuard } from './components/auth-guard'
 import { AdminRoute } from './components/admin-route'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
-import Dashboard from './pages/Index'
+import Home from './pages/Home'
 import Projects from './pages/Projects'
 import ProjectNew from './pages/ProjectNew'
 import ProjectDetails from './pages/ProjectDetails'
@@ -18,6 +18,8 @@ import ProjectEdit from './pages/ProjectEdit'
 import AllocationMap from './pages/AllocationMap'
 import Members from './pages/Members'
 import ReportPage from './pages/ReportPage'
+import AuditLogs from './pages/AuditLogs'
+import Settings from './pages/Settings'
 
 const App = () => (
   <AuthProvider>
@@ -35,7 +37,7 @@ const App = () => (
                 </AuthGuard>
               }
             >
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<Home />} />
               <Route path="/projetos" element={<Projects />} />
               <Route
                 path="/projetos/novo"
@@ -64,6 +66,15 @@ const App = () => (
                   </AdminRoute>
                 }
               />
+              <Route
+                path="/logs"
+                element={
+                  <AdminRoute>
+                    <AuditLogs />
+                  </AdminRoute>
+                }
+              />
+              <Route path="/configuracoes" element={<Settings />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

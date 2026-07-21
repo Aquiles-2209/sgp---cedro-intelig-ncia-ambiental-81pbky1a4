@@ -7,6 +7,7 @@ import {
   LogOut,
   Users2,
   FileBarChart,
+  ScrollText,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -21,24 +22,28 @@ import {
 } from '@/components/ui/sidebar'
 import { useAuth } from '@/hooks/use-auth'
 
-const navigation = [
+const adminNavigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Projetos', href: '/projetos', icon: Briefcase },
   { name: 'Membros', href: '/membros', icon: Users2 },
   { name: 'Mapa de Alocação', href: '/allocation-map', icon: CalendarRange },
   { name: 'Relatórios', href: '/relatorios', icon: FileBarChart },
-  { name: 'Configurações', href: '#', icon: Settings },
+  { name: 'Logs', href: '/logs', icon: ScrollText },
+  { name: 'Configurações', href: '/configuracoes', icon: Settings },
+]
+
+const userNavigation = [
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Meus Projetos', href: '/projetos', icon: Briefcase },
+  { name: 'Mapa de Alocação', href: '/allocation-map', icon: CalendarRange },
+  { name: 'Configurações', href: '/configuracoes', icon: Settings },
 ]
 
 export function AppSidebar() {
   const location = useLocation()
   const { signOut, user } = useAuth()
   const isAdmin = user?.role === 'admin'
-
-  const visibleNavigation = navigation.filter((item) => {
-    if (item.name === 'Relatórios') return isAdmin
-    return true
-  })
+  const navigation = isAdmin ? adminNavigation : userNavigation
 
   return (
     <Sidebar className="border-r border-slate-200 bg-white">
@@ -54,7 +59,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1 px-2">
-              {visibleNavigation.map((item) => {
+              {navigation.map((item) => {
                 const isActive =
                   location.pathname === item.href ||
                   (item.href !== '/' && location.pathname.startsWith(item.href))
