@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Settings as SettingsIcon, Users2, ShieldCheck, Mail, Loader2, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -94,76 +95,78 @@ export default function Settings() {
                   <Skeleton key={i} className="h-14 w-full" />
                 ))}
               </div>
-            <div className="space-y-2">
-              {users.map((u) => {
-                const isSelf = u.id === user?.id
-                return (
-                  <div
-                    key={u.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors"
-                  >
-                    <Avatar className="h-9 w-9 border border-slate-200">
-                      <AvatarImage src={u.avatar} alt={u.name} />
-                      <AvatarFallback className="bg-primary text-white text-sm">
-                        {u.name?.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-slate-900 truncate">
-                        {u.name}
-                        {isSelf && (
-                          <Badge variant="secondary" className="text-xs ml-2">
-                            Você
-                          </Badge>
-                        )}
-                      </p>
-                      <p className="text-xs text-slate-500 flex items-center gap-1">
-                        <Mail className="h-3 w-3" /> {u.email}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Select
-                        value={u.role}
-                        onValueChange={(v) => handleRoleChange(u.id, v as 'admin' | 'user')}
-                        disabled={isSelf || updatingRole === u.id}
-                      >
-                        <SelectTrigger className="w-[130px] h-8 text-xs">
-                          {updatingRole === u.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <SelectValue />
+            ) : (
+              <div className="space-y-2">
+                {users.map((u) => {
+                  const isSelf = u.id === user?.id
+                  return (
+                    <div
+                      key={u.id}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors"
+                    >
+                      <Avatar className="h-9 w-9 border border-slate-200">
+                        <AvatarImage src={u.avatar} alt={u.name} />
+                        <AvatarFallback className="bg-primary text-white text-sm">
+                          {u.name?.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-slate-900 truncate">
+                          {u.name}
+                          {isSelf && (
+                            <Badge variant="secondary" className="text-xs ml-2">
+                              Você
+                            </Badge>
                           )}
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Administrador</SelectItem>
-                          <SelectItem value="user">Usuário</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <UserDeleteDialog
-                        user={u}
-                        onDeleted={loadUsers}
-                        trigger={
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            disabled={isSelf}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                          </Button>
-                        }
-                      />
+                        </p>
+                        <p className="text-xs text-slate-500 flex items-center gap-1">
+                          <Mail className="h-3 w-3" /> {u.email}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={u.role}
+                          onValueChange={(v) => handleRoleChange(u.id, v as 'admin' | 'user')}
+                          disabled={isSelf || updatingRole === u.id}
+                        >
+                          <SelectTrigger className="w-[130px] h-8 text-xs">
+                            {updatingRole === u.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <SelectValue />
+                            )}
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Administrador</SelectItem>
+                            <SelectItem value="user">Usuário</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <UserDeleteDialog
+                          user={u}
+                          onDeleted={loadUsers}
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              disabled={isSelf}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                            </Button>
+                          }
+                        />
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
-              {users.length === 0 && (
-                <p className="text-sm text-slate-500 text-center py-6">
-                  Nenhum usuário cadastrado.
-                </p>
-              )}
-            </div>
-          )}          </CardContent>
+                  )
+                })}
+                {users.length === 0 && (
+                  <p className="text-sm text-slate-500 text-center py-6">
+                    Nenhum usuário cadastrado.
+                  </p>
+                )}
+              </div>
+            )}
+          </CardContent>
         </Card>
       )}
 
