@@ -68,6 +68,7 @@ export interface TeamMember {
   setor: string
   email: string
   avatar: string
+  role: string
   created: string
   updated: string
 }

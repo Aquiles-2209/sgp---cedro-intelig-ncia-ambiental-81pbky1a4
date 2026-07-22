@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Users2, Briefcase, Search, Mail } from 'lucide-react'
+import { Users2, Briefcase, Search, Mail, ShieldCheck, UserRound } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -105,6 +105,19 @@ export default function Members() {
                         className="mt-1 flex items-center gap-1.5 w-fit text-xs"
                       >
                         {member.setor}
+                      </Badge>
+                    )}
+                    {member.role && (
+                      <Badge
+                        variant={member.role === 'admin' ? 'default' : 'secondary'}
+                        className="mt-1 flex items-center gap-1.5 w-fit text-xs"
+                      >
+                        {member.role === 'admin' ? (
+                          <ShieldCheck className="h-3 w-3" />
+                        ) : (
+                          <UserRound className="h-3 w-3" />
+                        )}
+                        {member.role === 'admin' ? 'Administrador' : 'Usuário'}
                       </Badge>
                     )}
                   </div>

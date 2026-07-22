@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-21T17:49:49.601Z",
+  "generatedAt": "2026-07-22T17:04:58.576Z",
   "collections": [
     {
       "name": "users",
@@ -478,6 +478,13 @@
           "type": "file",
           "required": false,
           "system": false
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["admin", "user"]
         }
       ],
       "indexes": [

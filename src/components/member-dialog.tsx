@@ -25,6 +25,10 @@ import { createTeamMember, updateTeamMember, type TeamMember } from '@/services/
 
 const sectorOptions = ['Meio-Ambiente', 'Desenvolvimento Urbano', 'Administrativo']
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const roleOptions = [
+  { value: 'user', label: 'Usuário' },
+  { value: 'admin', label: 'Administrador' },
+]
 
 interface MemberDialogProps {
   onCreated?: () => void
@@ -38,7 +42,13 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const { toast } = useToast()
   const isEdit = !!member
-  const [form, setForm] = useState({ name: '', function: '', setor: '', email: '' })
+  const [form, setForm] = useState({
+    name: '',
+    function: '',
+    setor: '',
+    email: '',
+    role: 'user',
+  })
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState('')
 
@@ -49,6 +59,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
         function: member?.function || '',
         setor: member?.setor || '',
         email: member?.email || '',
+        role: member?.role || 'user',
       })
       setAvatarPreview(member?.avatar || '')
       setAvatarFile(null)
@@ -76,6 +87,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
     if (!form.setor) errors.setor = 'O setor é obrigatório.'
     if (!form.email.trim()) errors.email = 'O email é obrigatório.'
     else if (!emailRegex.test(form.email.trim())) errors.email = 'Informe um email válido.'
+    if (!form.role) errors.role = 'O tipo de usuário é obrigatório.'
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors)
       return
@@ -88,6 +100,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
         function: form.function.trim(),
         setor: form.setor,
         email: form.email.trim(),
+        role: form.role,
         avatar: avatarFile,
       }
       if (isEdit && member) {
@@ -95,7 +108,10 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
         toast({ title: 'Membro atualizado com sucesso!' })
       } else {
         await createTeamMember(payload)
-        toast({ title: 'Membro cadastrado com sucesso!' })
+        toast({
+          title: 'Membro cadastrado com sucesso!',
+          description: 'Um email de convite foi enviado para o novo membro.',
+        })
       }
       setOpen(false)
       onCreated?.()
@@ -120,7 +136,8 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
     form.function.trim() &&
     form.setor &&
     form.email.trim() &&
-    emailRegex.test(form.email.trim())
+    emailRegex.test(form.email.trim()) &&
+    form.role
 
   const defaultTrigger = isEdit ? (
     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -209,6 +226,24 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
               </SelectContent>
             </Select>
             {fieldErrors.setor && <p className="text-xs text-red-500">{fieldErrors.setor}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label>Usuário</Label>
+            <Select value={form.role} onValueChange={(v) => update('role', v)}>
+              <SelectTrigger
+                className={cn(fieldErrors.role && 'border-red-500 focus-visible:ring-red-500')}
+              >
+                <SelectValue placeholder="Selecione o tipo de usuário" />
+              </SelectTrigger>
+              <SelectContent>
+                {roleOptions.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {fieldErrors.role && <p className="text-xs text-red-500">{fieldErrors.role}</p>}
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setOpen(false)}>
