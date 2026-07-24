@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   Briefcase,
@@ -43,6 +43,7 @@ const userNavigation = [
 
 export function AppSidebar() {
   const location = useLocation()
+  const navigate = useNavigate()
   const { signOut, user } = useAuth()
   const isAdmin = user?.role === 'admin'
   const navigation = isAdmin ? adminNavigation : userNavigation
@@ -89,11 +90,14 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              onClick={signOut}
+              onClick={() => {
+                signOut()
+                navigate('/login')
+              }}
               className="text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"
             >
               <LogOut className="h-5 w-5" />
-              <span>Sair da conta</span>
+              <span>Sair</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
