@@ -58,5 +58,14 @@ export const updateTeamMember = async (
   return normalizeMember(record)
 }
 
+export interface TeamMemberCredentials {
+  email: string
+  tempPassword: string
+  accessUrl: string
+}
+
+export const getTeamMemberCredentials = async (id: string): Promise<TeamMemberCredentials> =>
+  pb.send(`/backend/v1/team-members/${id}/credentials`, { method: 'POST' })
+
 export const deleteTeamMember = async (id: string): Promise<void> =>
   pb.collection('team_members').delete(id)

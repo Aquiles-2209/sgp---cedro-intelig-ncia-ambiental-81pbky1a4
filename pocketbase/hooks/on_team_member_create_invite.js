@@ -25,31 +25,6 @@ onRecordAfterCreateSuccess((e) => {
     record.set('name', name)
     record.set('role', role)
     $app.save(record)
-
-    var pbUrl = $secrets.get('PB_INSTANCE_URL') || ''
-    if (pbUrl && pbUrl.indexOf('://') !== -1) {
-      if (pbUrl.charAt(pbUrl.length - 1) === '/') {
-        pbUrl = pbUrl.slice(0, -1)
-      }
-      try {
-        var res = $http.send({
-          url: pbUrl + '/api/collections/users/request-password-reset',
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email }),
-          timeout: 15,
-        })
-        if (res.statusCode !== 200) {
-          $app
-            .logger()
-            .warn('invitation email may have failed', 'email', email, 'statusCode', res.statusCode)
-        }
-      } catch (mailErr) {
-        $app
-          .logger()
-          .error('failed to send invitation email', 'email', email, 'error', mailErr.message)
-      }
-    }
   } catch (err) {
     $app
       .logger()
