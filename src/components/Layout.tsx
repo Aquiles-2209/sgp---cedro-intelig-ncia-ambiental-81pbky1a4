@@ -34,7 +34,9 @@ export default function Layout() {
               <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
                 <div className="hidden flex-col items-end text-sm md:flex">
                   <span className="font-medium text-slate-900">{user?.name}</span>
-                  <span className="text-xs text-slate-500">Administrador</span>
+                  <span className="text-xs text-slate-500">
+                    {user?.role === 'admin' ? 'Administrador' : 'Usuário CEDRO'}
+                  </span>
                 </div>
                 <Avatar className="h-9 w-9 border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
                   <AvatarImage src={user?.avatar} alt={user?.name} />
