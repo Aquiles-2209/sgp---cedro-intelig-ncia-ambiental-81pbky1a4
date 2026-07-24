@@ -112,7 +112,7 @@ export default function Settings() {
                   <Users2 className="h-5 w-5 text-slate-500" /> Gerenciamento de Usuários
                 </CardTitle>
                 <CardDescription>
-                  Convide novos usuários e visualize membros cadastrados.
+                  Convide novos usuários e visualize Usuários CEDRO cadastrados.
                 </CardDescription>
               </div>
               <InviteUserDialog onInvited={loadData} />

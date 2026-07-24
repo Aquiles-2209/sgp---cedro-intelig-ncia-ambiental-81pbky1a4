@@ -188,9 +188,9 @@ export function TaskDialog({
           </div>
           <div className="space-y-2">
             <div>
-              <Label>Membros da Equipe</Label>
+              <Label>Usuários CEDRO da Equipe</Label>
               <p className="text-xs text-slate-400 mt-0.5">
-                Cada membro terá controle individual de datas e tempo na tarefa.
+                Cada Usuário CEDRO terá controle individual de datas e tempo na tarefa.
               </p>
             </div>
             {form.members.length > 0 && (
@@ -219,7 +219,7 @@ export function TaskDialog({
             {availableMembers.length > 0 && (
               <Select value="" onValueChange={(v) => addMember(v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Adicionar membro da equipe" />
+                  <SelectValue placeholder="Adicionar Usuário CEDRO da equipe" />
                 </SelectTrigger>
                 <SelectContent>
                   {availableMembers.map((m) => (
@@ -232,7 +232,7 @@ export function TaskDialog({
             )}
             {teamMembers.length === 0 && (
               <p className="text-xs text-slate-400">
-                Nenhum membro cadastrado. Cadastre membros na aba Membros.
+                Nenhum Usuário CEDRO cadastrado. Cadastre Usuários CEDRO na aba Usuários CEDRO.
               </p>
             )}
           </div>

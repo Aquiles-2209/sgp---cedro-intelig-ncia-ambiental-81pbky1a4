@@ -270,7 +270,7 @@ export default function ProjectDetails() {
               <h3 className="text-lg font-semibold mb-4 text-slate-800">Resumo de Alocação</h3>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Total de membros</span>
+                  <span className="text-slate-500">Total de Usuários CEDRO</span>
                   <span className="font-medium">{projAllocs.length}</span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -304,12 +304,12 @@ export default function ProjectDetails() {
         <Card className="border-slate-200 shadow-sm">
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold flex items-center gap-2 mb-4 text-slate-800">
-              <Clock className="h-5 w-5 text-slate-400" /> Alocação de Membros e Períodos
-            </h3>
+              <Clock className="h-5 w-5 text-slate-400" /> Alocação de Usuários CEDRO e Períodos
+            </h3>{' '}
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Membro</TableHead>
+                  <TableHead>Usuário CEDRO</TableHead>
                   <TableHead>Função</TableHead>
                   <TableHead>Início</TableHead>
                   <TableHead>Término</TableHead>

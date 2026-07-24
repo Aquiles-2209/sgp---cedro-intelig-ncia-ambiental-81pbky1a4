@@ -16,7 +16,7 @@ import ProjectNew from './pages/ProjectNew'
 import ProjectDetails from './pages/ProjectDetails'
 import ProjectEdit from './pages/ProjectEdit'
 import AllocationMap from './pages/AllocationMap'
-import Members from './pages/Members'
+import UsuariosCedro from './pages/UsuariosCedro'
 import ReportPage from './pages/ReportPage'
 import AuditLogs from './pages/AuditLogs'
 import TotalHours from './pages/TotalHours'
@@ -58,7 +58,7 @@ const App = () => (
                 }
               />
               <Route path="/allocation-map" element={<AllocationMap />} />
-              <Route path="/membros" element={<Members />} />
+              <Route path="/usuarios-cedro" element={<UsuariosCedro />} />
               <Route
                 path="/relatorios"
                 element={

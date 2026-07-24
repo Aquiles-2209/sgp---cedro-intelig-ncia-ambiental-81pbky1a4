@@ -23,8 +23,8 @@ export function exportProjectReport(
   const headers = [
     'Nome do Cliente',
     'Nome do Projeto',
-    'Setor do membro',
-    'Nome do membro da equipe',
+    'Setor do Usuário CEDRO',
+    'Nome do Usuário CEDRO da equipe',
     'Nome da Atividade',
     'Data de Lançamento da Atividade',
     'Total da Hora Prevista',

@@ -147,8 +147,8 @@ export default function ReportPage() {
                 <TableRow>
                   <TableHead>Nome do Cliente</TableHead>
                   <TableHead>Nome do Projeto</TableHead>
-                  <TableHead>Setor do membro</TableHead>
-                  <TableHead>Nome do membro da equipe</TableHead>
+                  <TableHead>Setor do Usuário CEDRO</TableHead>
+                  <TableHead>Nome do Usuário CEDRO da equipe</TableHead>
                   <TableHead>Nome da Atividade</TableHead>
                   <TableHead>Data de Lançamento da Atividade</TableHead>
                   <TableHead className="text-right">Total da Hora Prevista</TableHead>
@@ -162,6 +162,16 @@ export default function ReportPage() {
                     <TableCell>{row.projectName}</TableCell>
                     <TableCell>{row.memberSector}</TableCell>
                     <TableCell>{row.memberName}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
                     <TableCell>{row.activityTitle}</TableCell>
                     <TableCell>{row.activityLaunchDate}</TableCell>
                     <TableCell className="text-right">{row.plannedHours.toFixed(2)}</TableCell>

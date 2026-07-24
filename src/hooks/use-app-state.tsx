@@ -120,7 +120,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }
   const addAllocation = async (data: Partial<Allocation>) => {
     await svcCreateAlloc(data)
-    toast({ title: 'Membro alocado com sucesso!' })
+    toast({ title: 'Usuário CEDRO alocado com sucesso!' })
   }
   const editAllocation = async (id: string, data: Partial<Allocation>) => {
     await svcUpdateAlloc(id, data)

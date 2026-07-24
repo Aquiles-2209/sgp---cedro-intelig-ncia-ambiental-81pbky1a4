@@ -26,7 +26,7 @@ import { useAuth } from '@/hooks/use-auth'
 const adminNavigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Projetos', href: '/projetos', icon: Briefcase },
-  { name: 'Membros', href: '/membros', icon: Users2 },
+  { name: 'Usuários CEDRO', href: '/usuarios-cedro', icon: Users2 },
   { name: 'Mapa de Alocação', href: '/allocation-map', icon: CalendarRange },
   { name: 'Relatórios', href: '/relatorios', icon: FileBarChart },
   { name: 'Total de Horas', href: '/total-horas', icon: Clock },
@@ -37,7 +37,7 @@ const adminNavigation = [
 const userNavigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Meus Projetos', href: '/projetos', icon: Briefcase },
-  { name: 'Mapa de Alocação', href: '/allocation-map', icon: CalendarRange },
+  { name: 'Usuários CEDRO', href: '/usuarios-cedro', icon: CalendarRange },
   { name: 'Configurações', href: '/configuracoes', icon: Settings },
 ]
 

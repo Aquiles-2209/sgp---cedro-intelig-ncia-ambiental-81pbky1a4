@@ -117,8 +117,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
       }
       if (isEdit && member) {
         await updateTeamMember(member.id, payload)
-        toast({ title: 'Membro atualizado com sucesso!' })
-        setOpen(false)
+        toast({ title: 'Usuário CEDRO atualizado com sucesso!' })        setOpen(false)
       } else {
         const result = await createTeamMember(payload)
         try {
@@ -130,8 +129,8 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
           })
         } catch {
           toast({
-            title: 'Membro cadastrado, mas houve erro ao gerar credenciais',
-            description: 'O membro foi criado, mas as credenciais não puderam ser obtidas.',
+            title: 'Usuário CEDRO cadastrado, mas houve erro ao gerar credenciais',
+            description: 'O Usuário CEDRO foi criado, mas as credenciais não puderam ser obtidas.',
             variant: 'destructive',
           })
           setOpen(false)
@@ -144,8 +143,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
         setFieldErrors(pbErrors)
       } else {
         toast({
-          title: isEdit ? 'Erro ao atualizar membro' : 'Erro ao cadastrar membro',
-          description: getErrorMessage(err),
+        title: isEdit ? 'Erro ao atualizar Usuário CEDRO' : 'Erro ao cadastrar Usuário CEDRO',          description: getErrorMessage(err),
           variant: 'destructive',
         })
       }
@@ -168,9 +166,8 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
     </Button>
   ) : (
     <Button size="sm">
-      <UserPlus className="h-4 w-4 mr-2" /> Cadastrar Novo Membro
-    </Button>
-  )
+    <UserPlus className="h-4 w-4 mr-2" /> Cadastrar Novo Usuário CEDRO
+  </Button>  )
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -179,10 +176,10 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
         <DialogHeader>
           <DialogTitle>
             {credentials
-              ? 'Credenciais do Novo Membro'
+              ? 'Credenciais do Novo Usuário CEDRO'
               : isEdit
-                ? 'Editar Membro'
-                : 'Cadastrar Novo Membro'}
+                ? 'Editar Usuário CEDRO'
+                : 'Cadastrar Novo Usuário CEDRO'}
           </DialogTitle>
         </DialogHeader>
         {credentials ? (
@@ -297,7 +294,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
                 ) : isEdit ? (
                   'Salvar Alterações'
                 ) : (
-                  'Cadastrar Membro'
+                  'Cadastrar Usuário CEDRO'
                 )}
               </Button>
             </div>

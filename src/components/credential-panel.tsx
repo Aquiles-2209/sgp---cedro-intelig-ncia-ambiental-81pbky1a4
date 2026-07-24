@@ -35,7 +35,8 @@ export function CredentialPanel({ email, tempPassword, accessUrl, onClose }: Cre
   return (
     <div className="space-y-4">
       <div className="rounded-lg bg-green-50 p-3 text-sm text-green-700">
-        Membro cadastrado com sucesso! Compartilhe as credenciais abaixo com o novo membro.
+        Usuário CEDRO cadastrado com sucesso! Compartilhe as credenciais abaixo com o novo Usuário
+        CEDRO.
       </div>
       <CopyField label="Login" value={email} />
       <CopyField label="Senha Temporária" value={tempPassword} />
