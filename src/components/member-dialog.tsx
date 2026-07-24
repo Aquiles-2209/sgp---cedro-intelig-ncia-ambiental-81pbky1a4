@@ -117,7 +117,8 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
       }
       if (isEdit && member) {
         await updateTeamMember(member.id, payload)
-        toast({ title: 'Usuário CEDRO atualizado com sucesso!' })        setOpen(false)
+        toast({ title: 'Usuário CEDRO atualizado com sucesso!' })
+        setOpen(false)
       } else {
         const result = await createTeamMember(payload)
         try {
@@ -143,7 +144,8 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
         setFieldErrors(pbErrors)
       } else {
         toast({
-        title: isEdit ? 'Erro ao atualizar Usuário CEDRO' : 'Erro ao cadastrar Usuário CEDRO',          description: getErrorMessage(err),
+          title: isEdit ? 'Erro ao atualizar Usuário CEDRO' : 'Erro ao cadastrar Usuário CEDRO',
+          description: getErrorMessage(err),
           variant: 'destructive',
         })
       }
@@ -166,8 +168,9 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
     </Button>
   ) : (
     <Button size="sm">
-    <UserPlus className="h-4 w-4 mr-2" /> Cadastrar Novo Usuário CEDRO
-  </Button>  )
+      <UserPlus className="h-4 w-4 mr-2" /> Cadastrar Novo Usuário CEDRO
+    </Button>
+  )
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

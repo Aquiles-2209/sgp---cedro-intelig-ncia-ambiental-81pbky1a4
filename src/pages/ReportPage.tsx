@@ -162,16 +162,6 @@ export default function ReportPage() {
                     <TableCell>{row.projectName}</TableCell>
                     <TableCell>{row.memberSector}</TableCell>
                     <TableCell>{row.memberName}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
-}
                     <TableCell>{row.activityTitle}</TableCell>
                     <TableCell>{row.activityLaunchDate}</TableCell>
                     <TableCell className="text-right">{row.plannedHours.toFixed(2)}</TableCell>
