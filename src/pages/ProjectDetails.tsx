@@ -39,6 +39,7 @@ import { TaskList } from '@/components/task-list'
 import { ProjectDeleteDialog } from '@/components/project-delete-dialog'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
+import { getTodaysTimeEntriesByTeamMember } from '@/services/time-entries'
 
 const statusColors: Record<string, string> = {
   'Em Andamento': 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -117,6 +118,21 @@ export default function ProjectDetails() {
     if (active) {
       toast({ title: 'Já existe um timer ativo para este membro.', variant: 'destructive' })
       return
+    }
+    try {
+      const todaysEntries = await getTodaysTimeEntriesByTeamMember(memberId)
+      const totalSeconds = todaysEntries.reduce((sum, te) => sum + (te.duration || 0), 0)
+      const totalHours = totalSeconds / 3600
+      if (totalHours >= 24) {
+        toast({
+          title:
+            'Limite máximo de 24 horas diárias atingido. Não é possível iniciar nova contagem.',
+          variant: 'destructive',
+        })
+        return
+      }
+    } catch {
+      /* If the check fails, proceed with starting the timer */
     }
     const userAlloc = projAllocs.find((a) => a.user === user?.id)
     await addTimeEntry({

@@ -48,6 +48,15 @@ export const updateTimeEntry = async (id: string, data: Partial<TimeEntry>): Pro
 export const deleteTimeEntry = async (id: string): Promise<void> =>
   pb.collection('time_entries').delete(id)
 
+export const getTodaysTimeEntriesByTeamMember = async (memberId: string): Promise<TimeEntry[]> => {
+  const now = new Date()
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+  return pb.collection('time_entries').getFullList({
+    filter: `team_member = "${memberId}" && start_time >= "${startOfDay.toISOString()}" && start_time < "${endOfDay.toISOString()}"`,
+  })
+}
+
 export const getTotalHoursByProject = async (): Promise<
   Array<{ projectId: string; projectName: string; totalHours: number; entryCount: number }>
 > => {
