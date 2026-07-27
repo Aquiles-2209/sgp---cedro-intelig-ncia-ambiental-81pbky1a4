@@ -12,7 +12,10 @@ function colLetterToIndex(letters: string): number {
 }
 
 function stripNs(xml: string): string {
-  return xml.replace(/xmlns(:\w+)?="[^"]*"/g, '').replace(/<(\/?)[a-zA-Z0-9]+:/g, '<$1')
+  return xml
+    .replace(/xmlns(:\w+)?="[^"]*"/g, '')
+    .replace(/xmlns(:\w+)?='[^']*'/g, '')
+    .replace(/<(\/?)[a-zA-Z0-9_.-]+:/g, '<$1')
 }
 
 function parseSharedStrings(xml: string): string[] {
@@ -34,8 +37,8 @@ function parseWorkbook(xml: string): Array<{ name: string; rId: string }> {
   const result: Array<{ name: string; rId: string }> = []
   for (let i = 0; i < sheets.length; i++) {
     result.push({
-      name: sheets[i].getAttribute('name') || '',
-      rId: sheets[i].getAttribute('r:id') || '',
+      name: (sheets[i].getAttribute('name') || '').trim(),
+      rId: (sheets[i].getAttribute('r:id') || sheets[i].getAttribute('id') || '').trim(),
     })
   }
   return result
