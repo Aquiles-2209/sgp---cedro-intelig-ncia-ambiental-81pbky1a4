@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-27T14:57:41.342Z",
+  "generatedAt": "2026-07-27T16:54:29.842Z",
   "collections": [
     {
       "name": "users",
@@ -278,6 +278,12 @@
         },
         {
           "name": "planned_hours",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "allocated_hours",
           "type": "number",
           "required": false,
           "system": false

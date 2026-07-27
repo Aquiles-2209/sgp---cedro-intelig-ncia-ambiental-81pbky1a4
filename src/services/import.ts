@@ -11,6 +11,9 @@ export interface SheetImportResult {
   created: number
   skipped: Array<{ row: number; reason: string }>
   errors: Array<{ row: number; column?: string; message: string }>
+  allocatedHoursImported?: number
+  allocatedHoursBlank?: number
+  allocatedHoursErrors?: number
 }
 
 export interface ImportResult {
@@ -44,6 +47,7 @@ const TASK_HEADERS = [
   'Data de Início',
   'Data de Finalização',
   'Horas Previstas',
+  'Horas Alocadas',
   'Status',
 ]
 
@@ -144,6 +148,9 @@ export async function executeImport(file: File): Promise<ImportResult> {
     memEmailSet,
     memByName,
   )
+  result.tarefas.allocatedHoursImported = 0
+  result.tarefas.allocatedHoursBlank = 0
+  result.tarefas.allocatedHoursErrors = 0
   await importTarefas(workbook.sheets.get('Tarefas')!, result.tarefas, projByName, memByName)
   return result
 }
@@ -330,7 +337,7 @@ async function importTarefas(
       startVal = (r[4] || '').trim(),
       dueVal = (r[5] || '').trim(),
       hoursStr = (r[6] || '').trim(),
-      status = (r[7] || '').trim()
+      status = (r[8] || '').trim()
     if (!projName) {
       res.errors.push({ row: i + 1, column: 'Projeto', message: 'Projeto é obrigatório.' })
       continue
@@ -378,6 +385,25 @@ async function importTarefas(
         continue
       }
     }
+    const allocatedStr = (r[7] || '').trim()
+    let allocatedHours: number | null = null
+    if (allocatedStr) {
+      const parsed = Number(allocatedStr.replace(',', '.'))
+      if (isNaN(parsed) || parsed < 0) {
+        res.errors.push({
+          row: i + 1,
+          column: 'Horas Alocadas',
+          message: `Valor inválido "${allocatedStr}": deve ser um número decimal maior ou igual a zero.`,
+        })
+        res.allocatedHoursErrors = (res.allocatedHoursErrors || 0) + 1
+        continue
+      }
+      allocatedHours = parsed
+      res.allocatedHoursImported = (res.allocatedHoursImported || 0) + 1
+    } else {
+      res.allocatedHoursBlank = (res.allocatedHoursBlank || 0) + 1
+    }
+    const status = (r[8] || '').trim()
     let memberIds: string[] = []
     if (memberStr) {
       memberIds = memberStr
@@ -397,6 +423,7 @@ async function importTarefas(
       if (sd) data.start_date = sd
       if (dd) data.due_date = dd
       if (hours !== undefined) data.planned_hours = hours
+      if (allocatedHours !== null) data.allocated_hours = allocatedHours
       if (memberIds.length > 0) data.members = memberIds
       const task = await createTask(data as any)
       for (const mid of memberIds) {

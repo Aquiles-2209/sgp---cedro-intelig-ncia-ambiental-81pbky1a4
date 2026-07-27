@@ -146,6 +146,7 @@ export function downloadImportTemplate(): void {
         'Data de Início',
         'Data de Finalização',
         'Horas Previstas',
+        'Horas Alocadas',
         'Status',
       ],
       example: [
@@ -156,6 +157,7 @@ export function downloadImportTemplate(): void {
         '01/01/2024',
         '15/01/2024',
         '8.5',
+        '6.0',
         'Pendente',
       ],
     },

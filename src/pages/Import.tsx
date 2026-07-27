@@ -8,6 +8,10 @@ import { executeImport, type ImportResult, type SheetImportResult } from '@/serv
 import { downloadImportTemplate } from '@/lib/import-template'
 
 function SheetResultCard({ title, result }: { title: string; result: SheetImportResult }) {
+  const hasAllocatedStats =
+    result.allocatedHoursImported !== undefined ||
+    result.allocatedHoursBlank !== undefined ||
+    result.allocatedHoursErrors !== undefined
   return (
     <Card className="border-slate-200 shadow-sm">
       <CardHeader className="pb-3">
@@ -28,6 +32,25 @@ function SheetResultCard({ title, result }: { title: string; result: SheetImport
             </Badge>
           )}
         </CardTitle>
+        {hasAllocatedStats && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {result.allocatedHoursImported !== undefined && result.allocatedHoursImported > 0 && (
+              <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+                Horas Alocadas: {result.allocatedHoursImported} importadas
+              </Badge>
+            )}
+            {result.allocatedHoursBlank !== undefined && result.allocatedHoursBlank > 0 && (
+              <Badge className="bg-slate-100 text-slate-600 hover:bg-slate-100">
+                Horas Alocadas: {result.allocatedHoursBlank} em branco
+              </Badge>
+            )}
+            {result.allocatedHoursErrors !== undefined && result.allocatedHoursErrors > 0 && (
+              <Badge className="bg-red-100 text-red-700 hover:bg-red-100">
+                Horas Alocadas: {result.allocatedHoursErrors} inválidas
+              </Badge>
+            )}
+          </div>
+        )}
       </CardHeader>
       {(result.skipped.length > 0 || result.errors.length > 0) && (
         <CardContent className="space-y-3 pt-0">
