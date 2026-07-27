@@ -29,6 +29,34 @@ const MEMBER_SETOR = ['Meio-Ambiente', 'Desenvolvimento Urbano', 'Administrativo
 const MEMBER_ROLE = ['admin', 'user']
 const TASK_STATUS = ['Pendente', 'Em Andamento', 'Concluído']
 
+const REQUIRED_SHEETS = ['Projetos', 'Usuários CEDRO', 'Tarefas']
+
+function normalizeSheetName(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+}
+
+function buildSheetLookup(
+  sheets: Map<string, string[][]>,
+): Map<string, { name: string; data: string[][] }> {
+  const lookup = new Map<string, { name: string; data: string[][] }>()
+  for (const [name, data] of sheets) {
+    lookup.set(normalizeSheetName(name), { name, data })
+  }
+  return lookup
+}
+
+function findSheet(
+  lookup: Map<string, { name: string; data: string[][] }>,
+  expected: string,
+): { name: string; data: string[][] } | undefined {
+  return lookup.get(normalizeSheetName(expected))
+}
+
 function matchCaseInsensitive(value: string, allowed: string[]): boolean {
   const normalized = value.trim().toLowerCase()
   return allowed.some((a) => a.toLowerCase() === normalized)
@@ -123,10 +151,28 @@ export async function executeImport(file: File): Promise<ImportResult> {
     )
     return result
   }
-  for (const name of ['Projetos', 'Usuários CEDRO', 'Tarefas']) {
-    if (!workbook.sheets.has(name)) result.sheetErrors.push(`Planilha "${name}" não encontrada.`)
+  const sheetLookup = buildSheetLookup(workbook.sheets)
+  const foundSheetNames =
+    workbook.sheetNames.length > 0 ? workbook.sheetNames : Array.from(workbook.sheets.keys())
+  const missingSheets: string[] = []
+  const sheetData: Record<string, string[][] | undefined> = {}
+  for (const expected of REQUIRED_SHEETS) {
+    const found = findSheet(sheetLookup, expected)
+    if (!found) {
+      missingSheets.push(expected)
+    } else {
+      sheetData[expected] = found.data
+    }
   }
-  if (result.sheetErrors.length > 0) return result
+  if (missingSheets.length > 0) {
+    const foundList = foundSheetNames.map((n) => `"${n}"`).join(', ')
+    for (const missing of missingSheets) {
+      result.sheetErrors.push(
+        `Planilha "${missing}" não encontrada. Planilhas encontradas: [${foundList}].`,
+      )
+    }
+    return result
+  }
 
   const [existingProjects, existingMembers] = await Promise.all([
     getProjects().catch(() => []),
@@ -145,22 +191,17 @@ export async function executeImport(file: File): Promise<ImportResult> {
   existingMembers.forEach((m: TeamMember) => memByName.set(normalizeName(m.name), m.id))
 
   await importProjetos(
-    workbook.sheets.get('Projetos')!,
+    sheetData['Projetos']!,
     result.projetos,
     projNameSet,
     projContractSet,
     projByName,
   )
-  await importUsuarios(
-    workbook.sheets.get('Usuários CEDRO')!,
-    result.usuarios,
-    memEmailSet,
-    memByName,
-  )
+  await importUsuarios(sheetData['Usuários CEDRO']!, result.usuarios, memEmailSet, memByName)
   result.tarefas.allocatedHoursImported = 0
   result.tarefas.allocatedHoursBlank = 0
   result.tarefas.allocatedHoursErrors = 0
-  await importTarefas(workbook.sheets.get('Tarefas')!, result.tarefas, projByName, memByName)
+  await importTarefas(sheetData['Tarefas']!, result.tarefas, projByName, memByName)
   return result
 }
 
