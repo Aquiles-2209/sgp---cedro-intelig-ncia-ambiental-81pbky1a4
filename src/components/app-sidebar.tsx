@@ -22,6 +22,7 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { useAuth } from '@/hooks/use-auth'
+import logoImg from '@/assets/image-c5b1f.png'
 
 const adminNavigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -51,9 +52,9 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-r border-slate-200 bg-white">
       <SidebarHeader className="p-4 pt-6">
-        <div className="flex items-center gap-2 px-2 text-primary">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
-            <Briefcase className="h-5 w-5" />
+        <div className="flex items-center gap-2.5 px-2 text-primary">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 p-1 shrink-0 shadow-sm">
+            <img src={logoImg} alt="CEDRO Logo" className="h-full w-full object-contain" />
           </div>
           <span className="text-lg font-bold tracking-tight">GestãoPro</span>
         </div>

@@ -54,6 +54,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(mapUser(pb.authStore.record))
       pb.collection('users')
         .authRefresh()
+        .then((res) => {
+          if (res?.record) setUser(mapUser(res.record))
+        })
         .catch(() => pb.authStore.clear())
         .finally(() => setLoading(false))
     } else {
