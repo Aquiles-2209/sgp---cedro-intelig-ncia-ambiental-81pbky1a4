@@ -12,7 +12,7 @@ function colLetterToIndex(letters: string): number {
 }
 
 function stripNs(xml: string): string {
-  return xml.replace(/xmlns="[^"]*"/g, '')
+  return xml.replace(/xmlns(:\w+)?="[^"]*"/g, '').replace(/<(\/?)[a-zA-Z0-9]+:/g, '<$1')
 }
 
 function parseSharedStrings(xml: string): string[] {
@@ -71,8 +71,8 @@ function parseSheet(xml: string, sharedStrings: string[]): string[][] {
         const v = cells[j].getElementsByTagName('v')[0]
         if (v && v.textContent) value = sharedStrings[parseInt(v.textContent, 10)] || ''
       } else if (type === 'inlineStr') {
-        const t = cells[j].getElementsByTagName('t')[0]
-        if (t) value = t.textContent || ''
+        const ts = cells[j].getElementsByTagName('t')
+        for (let k = 0; k < ts.length; k++) value += ts[k].textContent || ''
       } else {
         const v = cells[j].getElementsByTagName('v')[0]
         if (v) value = v.textContent || ''

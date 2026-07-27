@@ -28,6 +28,15 @@ const PROJECT_SETOR = ['Mineração', 'Geração de Energia', 'Infraestrutura']
 const MEMBER_SETOR = ['Meio-Ambiente', 'Desenvolvimento Urbano', 'Administrativo']
 const MEMBER_ROLE = ['admin', 'user']
 const TASK_STATUS = ['Pendente', 'Em Andamento', 'Concluído']
+
+function matchCaseInsensitive(value: string, allowed: string[]): boolean {
+  const normalized = value.trim().toLowerCase()
+  return allowed.some((a) => a.toLowerCase() === normalized)
+}
+
+function normalizeName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').toLowerCase()
+}
 const PROJECT_HEADERS = [
   'Nome do Projeto',
   'Cliente',
@@ -123,17 +132,17 @@ export async function executeImport(file: File): Promise<ImportResult> {
     getProjects().catch(() => []),
     getTeamMembers().catch(() => []),
   ])
-  const projNameSet = new Set(existingProjects.map((p: Project) => p.name.toLowerCase()))
+  const projNameSet = new Set(existingProjects.map((p: Project) => normalizeName(p.name)))
   const projContractSet = new Set(
-    existingProjects.map((p: Project) => (p.contract_id || '').toLowerCase()).filter(Boolean),
+    existingProjects.map((p: Project) => normalizeName(p.contract_id || '')).filter(Boolean),
   )
   const projByName = new Map<string, string>()
-  existingProjects.forEach((p: Project) => projByName.set(p.name.toLowerCase(), p.id))
+  existingProjects.forEach((p: Project) => projByName.set(normalizeName(p.name), p.id))
   const memEmailSet = new Set(
     existingMembers.map((m: TeamMember) => (m.email || '').toLowerCase()).filter(Boolean),
   )
   const memByName = new Map<string, string>()
-  existingMembers.forEach((m: TeamMember) => memByName.set(m.name.toLowerCase().trim(), m.id))
+  existingMembers.forEach((m: TeamMember) => memByName.set(normalizeName(m.name), m.id))
 
   await importProjetos(
     workbook.sheets.get('Projetos')!,
@@ -180,7 +189,7 @@ async function importProjetos(
       res.errors.push({ row: i + 1, column: 'Nome do Projeto', message: 'Nome é obrigatório.' })
       continue
     }
-    if (!PROJECT_STATUS.includes(status)) {
+    if (!matchCaseInsensitive(status, PROJECT_STATUS)) {
       res.errors.push({
         row: i + 1,
         column: 'Status',
@@ -188,7 +197,7 @@ async function importProjetos(
       })
       continue
     }
-    if (!PROJECT_SETOR.includes(setor)) {
+    if (!matchCaseInsensitive(setor, PROJECT_SETOR)) {
       res.errors.push({
         row: i + 1,
         column: 'Setor',
@@ -214,11 +223,11 @@ async function importProjetos(
       })
       continue
     }
-    if (nameSet.has(name.toLowerCase())) {
+    if (nameSet.has(normalizeName(name))) {
       res.skipped.push({ row: i + 1, reason: `Projeto "${name}" já existe.` })
       continue
     }
-    if (contractId && contractSet.has(contractId.toLowerCase())) {
+    if (contractId && contractSet.has(normalizeName(contractId))) {
       res.skipped.push({ row: i + 1, reason: `Contrato "${contractId}" já existe.` })
       continue
     }
@@ -235,9 +244,9 @@ async function importProjetos(
       const desc = (r[7] || '').trim()
       if (desc) data.description = desc
       const p = await createProject(data)
-      nameSet.add(name.toLowerCase())
-      if (contractId) contractSet.add(contractId.toLowerCase())
-      byName.set(name.toLowerCase(), p.id)
+      nameSet.add(normalizeName(name))
+      if (contractId) contractSet.add(normalizeName(contractId))
+      byName.set(normalizeName(name), p.id)
       res.created++
     } catch (e) {
       res.errors.push({ row: i + 1, message: `Erro ao criar: ${getErrorMessage(e)}` })
@@ -274,7 +283,7 @@ async function importUsuarios(
       res.errors.push({ row: i + 1, column: 'Função', message: 'Função é obrigatória.' })
       continue
     }
-    if (!MEMBER_SETOR.includes(setor)) {
+    if (!matchCaseInsensitive(setor, MEMBER_SETOR)) {
       res.errors.push({
         row: i + 1,
         column: 'Setor',
@@ -286,7 +295,7 @@ async function importUsuarios(
       res.errors.push({ row: i + 1, column: 'Email', message: 'Email inválido.' })
       continue
     }
-    if (role && !MEMBER_ROLE.includes(role)) {
+    if (role && !matchCaseInsensitive(role, MEMBER_ROLE)) {
       res.errors.push({
         row: i + 1,
         column: 'Usuário (role)',
@@ -294,7 +303,7 @@ async function importUsuarios(
       })
       continue
     }
-    if (email && emailSet.has(email.toLowerCase())) {
+    if (email && emailSet.has(email.trim().toLowerCase())) {
       res.skipped.push({ row: i + 1, reason: `Email "${email}" já existe.` })
       continue
     }
@@ -306,8 +315,8 @@ async function importUsuarios(
         setor,
         role: role || 'user',
       })
-      if (email) emailSet.add(email.toLowerCase())
-      byName.set(name.toLowerCase().trim(), m.id)
+      if (email) emailSet.add(email.trim().toLowerCase())
+      byName.set(normalizeName(name), m.id)
       res.created++
     } catch (e) {
       res.errors.push({ row: i + 1, message: `Erro ao criar: ${getErrorMessage(e)}` })
@@ -346,7 +355,7 @@ async function importTarefas(
       res.errors.push({ row: i + 1, column: 'Título', message: 'Título é obrigatório.' })
       continue
     }
-    if (!TASK_STATUS.includes(status)) {
+    if (!matchCaseInsensitive(status, TASK_STATUS)) {
       res.errors.push({
         row: i + 1,
         column: 'Status',
@@ -354,7 +363,7 @@ async function importTarefas(
       })
       continue
     }
-    const projId = projByName.get(projName.toLowerCase())
+    const projId = projByName.get(normalizeName(projName))
     if (!projId) {
       res.errors.push({
         row: i + 1,
@@ -409,7 +418,7 @@ async function importTarefas(
         .split(';')
         .map((n) => n.trim())
         .filter(Boolean)
-        .map((n) => memByName.get(n.toLowerCase().trim()))
+        .map((n) => memByName.get(normalizeName(n)))
         .filter(Boolean) as string[]
     }
     try {
