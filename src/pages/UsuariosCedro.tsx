@@ -10,6 +10,7 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/hooks/use-auth'
 import { MemberDialog } from '@/components/member-dialog'
 import { MemberDeleteDialog } from '@/components/member-delete-dialog'
+import { RegeneratePasswordButton } from '@/components/regenerate-password-button'
 
 export default function UsuariosCedro() {
   const { isAuthenticated, user } = useAuth()
@@ -123,6 +124,7 @@ export default function UsuariosCedro() {
                   </div>
                   {isAdmin && (
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <RegeneratePasswordButton member={member} />
                       <MemberDialog member={member} onCreated={loadMembers} />
                       <MemberDeleteDialog member={member} onDeleted={loadMembers} />
                     </div>
