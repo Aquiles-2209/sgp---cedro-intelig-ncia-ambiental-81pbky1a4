@@ -37,7 +37,7 @@ function parseWorkbook(xml: string): Array<{ name: string; rId: string }> {
   const result: Array<{ name: string; rId: string }> = []
   for (let i = 0; i < sheets.length; i++) {
     result.push({
-      name: (sheets[i].getAttribute('name') || '').trim(),
+      name: sheets[i].getAttribute('name') || '',
       rId: (sheets[i].getAttribute('r:id') || sheets[i].getAttribute('id') || '').trim(),
     })
   }

@@ -31,40 +31,6 @@ const TASK_STATUS = ['Pendente', 'Em Andamento', 'Concluído']
 
 const REQUIRED_SHEETS = ['Projetos', 'Usuários CEDRO', 'Tarefas']
 
-function normalizeSheetName(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '')
-}
-
-function buildSheetLookup(
-  sheets: Map<string, string[][]>,
-): Map<string, { name: string; data: string[][] }> {
-  const lookup = new Map<string, { name: string; data: string[][] }>()
-  for (const [name, data] of sheets) {
-    lookup.set(normalizeSheetName(name), { name, data })
-  }
-  return lookup
-}
-
-function findSheet(
-  lookup: Map<string, { name: string; data: string[][] }>,
-  expected: string,
-): { name: string; data: string[][] } | undefined {
-  return lookup.get(normalizeSheetName(expected))
-}
-
-function matchCaseInsensitive(value: string, allowed: string[]): boolean {
-  const normalized = value.trim().toLowerCase()
-  return allowed.some((a) => a.toLowerCase() === normalized)
-}
-
-function normalizeName(name: string): string {
-  return name.trim().replace(/\s+/g, ' ').toLowerCase()
-}
 const PROJECT_HEADERS = [
   'Nome do Projeto',
   'Cliente',
@@ -151,21 +117,18 @@ export async function executeImport(file: File): Promise<ImportResult> {
     )
     return result
   }
-  const sheetLookup = buildSheetLookup(workbook.sheets)
-  const foundSheetNames =
-    workbook.sheetNames.length > 0 ? workbook.sheetNames : Array.from(workbook.sheets.keys())
-  const missingSheets: string[] = []
   const sheetData: Record<string, string[][] | undefined> = {}
+  const missingSheets: string[] = []
   for (const expected of REQUIRED_SHEETS) {
-    const found = findSheet(sheetLookup, expected)
-    if (!found) {
+    const data = workbook.sheets.get(expected)
+    if (!data) {
       missingSheets.push(expected)
     } else {
-      sheetData[expected] = found.data
+      sheetData[expected] = data
     }
   }
   if (missingSheets.length > 0) {
-    const foundList = foundSheetNames.map((n) => `"${n}"`).join(', ')
+    const foundList = workbook.sheetNames.map((n) => `"${n}"`).join(', ')
     for (const missing of missingSheets) {
       result.sheetErrors.push(
         `Planilha "${missing}" não encontrada. Planilhas encontradas: [${foundList}].`,
@@ -178,25 +141,16 @@ export async function executeImport(file: File): Promise<ImportResult> {
     getProjects().catch(() => []),
     getTeamMembers().catch(() => []),
   ])
-  const projNameSet = new Set(existingProjects.map((p: Project) => normalizeName(p.name)))
-  const projContractSet = new Set(
-    existingProjects.map((p: Project) => normalizeName(p.contract_id || '')).filter(Boolean),
-  )
+  const projNameSet = new Set(existingProjects.map((p: Project) => p.name))
   const projByName = new Map<string, string>()
-  existingProjects.forEach((p: Project) => projByName.set(normalizeName(p.name), p.id))
+  existingProjects.forEach((p: Project) => projByName.set(p.name, p.id))
   const memEmailSet = new Set(
     existingMembers.map((m: TeamMember) => (m.email || '').toLowerCase()).filter(Boolean),
   )
   const memByName = new Map<string, string>()
-  existingMembers.forEach((m: TeamMember) => memByName.set(normalizeName(m.name), m.id))
+  existingMembers.forEach((m: TeamMember) => memByName.set(m.name, m.id))
 
-  await importProjetos(
-    sheetData['Projetos']!,
-    result.projetos,
-    projNameSet,
-    projContractSet,
-    projByName,
-  )
+  await importProjetos(sheetData['Projetos']!, result.projetos, projNameSet, projByName)
   await importUsuarios(sheetData['Usuários CEDRO']!, result.usuarios, memEmailSet, memByName)
   result.tarefas.allocatedHoursImported = 0
   result.tarefas.allocatedHoursBlank = 0
@@ -209,7 +163,6 @@ async function importProjetos(
   rows: string[][],
   res: SheetImportResult,
   nameSet: Set<string>,
-  contractSet: Set<string>,
   byName: Map<string, string>,
 ) {
   if (!rows.length) return
@@ -230,7 +183,7 @@ async function importProjetos(
       res.errors.push({ row: i + 1, column: 'Nome do Projeto', message: 'Nome é obrigatório.' })
       continue
     }
-    if (!matchCaseInsensitive(status, PROJECT_STATUS)) {
+    if (!PROJECT_STATUS.includes(status)) {
       res.errors.push({
         row: i + 1,
         column: 'Status',
@@ -238,7 +191,7 @@ async function importProjetos(
       })
       continue
     }
-    if (!matchCaseInsensitive(setor, PROJECT_SETOR)) {
+    if (!PROJECT_SETOR.includes(setor)) {
       res.errors.push({
         row: i + 1,
         column: 'Setor',
@@ -264,12 +217,8 @@ async function importProjetos(
       })
       continue
     }
-    if (nameSet.has(normalizeName(name))) {
+    if (nameSet.has(name)) {
       res.skipped.push({ row: i + 1, reason: `Projeto "${name}" já existe.` })
-      continue
-    }
-    if (contractId && contractSet.has(normalizeName(contractId))) {
-      res.skipped.push({ row: i + 1, reason: `Contrato "${contractId}" já existe.` })
       continue
     }
     try {
@@ -285,9 +234,8 @@ async function importProjetos(
       const desc = (r[7] || '').trim()
       if (desc) data.description = desc
       const p = await createProject(data)
-      nameSet.add(normalizeName(name))
-      if (contractId) contractSet.add(normalizeName(contractId))
-      byName.set(normalizeName(name), p.id)
+      nameSet.add(name)
+      byName.set(name, p.id)
       res.created++
     } catch (e) {
       res.errors.push({ row: i + 1, message: `Erro ao criar: ${getErrorMessage(e)}` })
@@ -324,7 +272,7 @@ async function importUsuarios(
       res.errors.push({ row: i + 1, column: 'Função', message: 'Função é obrigatória.' })
       continue
     }
-    if (!matchCaseInsensitive(setor, MEMBER_SETOR)) {
+    if (!MEMBER_SETOR.includes(setor)) {
       res.errors.push({
         row: i + 1,
         column: 'Setor',
@@ -336,7 +284,7 @@ async function importUsuarios(
       res.errors.push({ row: i + 1, column: 'Email', message: 'Email inválido.' })
       continue
     }
-    if (role && !matchCaseInsensitive(role, MEMBER_ROLE)) {
+    if (role && !MEMBER_ROLE.includes(role)) {
       res.errors.push({
         row: i + 1,
         column: 'Usuário (role)',
@@ -357,7 +305,7 @@ async function importUsuarios(
         role: role || 'user',
       })
       if (email) emailSet.add(email.trim().toLowerCase())
-      byName.set(normalizeName(name), m.id)
+      byName.set(name, m.id)
       res.created++
     } catch (e) {
       res.errors.push({ row: i + 1, message: `Erro ao criar: ${getErrorMessage(e)}` })
@@ -396,7 +344,7 @@ async function importTarefas(
       res.errors.push({ row: i + 1, column: 'Título', message: 'Título é obrigatório.' })
       continue
     }
-    if (!matchCaseInsensitive(status, TASK_STATUS)) {
+    if (!TASK_STATUS.includes(status)) {
       res.errors.push({
         row: i + 1,
         column: 'Status',
@@ -404,7 +352,7 @@ async function importTarefas(
       })
       continue
     }
-    const projId = projByName.get(normalizeName(projName))
+    const projId = projByName.get(projName)
     if (!projId) {
       res.errors.push({
         row: i + 1,
@@ -459,7 +407,7 @@ async function importTarefas(
         .split(';')
         .map((n) => n.trim())
         .filter(Boolean)
-        .map((n) => memByName.get(normalizeName(n)))
+        .map((n) => memByName.get(n))
         .filter(Boolean) as string[]
     }
     try {
