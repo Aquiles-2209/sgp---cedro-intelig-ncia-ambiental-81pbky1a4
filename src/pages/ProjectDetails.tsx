@@ -36,6 +36,7 @@ import {
 import { ExportDialog } from '@/components/export-dialog'
 import { TaskDialog } from '@/components/task-dialog'
 import { TaskList } from '@/components/task-list'
+import { ProjectDeleteDialog } from '@/components/project-delete-dialog'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -228,6 +229,13 @@ export default function ProjectDetails() {
             >
               <Edit className="h-4 w-4 mr-2" /> Editar Projeto
             </Button>
+          )}
+          {isAdmin && (
+            <ProjectDeleteDialog
+              projectId={id!}
+              projectName={project.name}
+              onDeleted={() => navigate('/projetos')}
+            />
           )}
         </div>
       </div>
