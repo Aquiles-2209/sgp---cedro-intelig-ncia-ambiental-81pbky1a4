@@ -9,7 +9,6 @@ import {
   FileBarChart,
   ScrollText,
   Clock,
-  Upload,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -33,7 +32,6 @@ const adminNavigation = [
   { name: 'Relatórios', href: '/relatorios', icon: FileBarChart },
   { name: 'Total de Horas', href: '/total-horas', icon: Clock },
   { name: 'Logs', href: '/logs', icon: ScrollText },
-  { name: 'Importar', href: '/importar', icon: Upload },
   { name: 'Configurações', href: '/configuracoes', icon: Settings },
 ]
 

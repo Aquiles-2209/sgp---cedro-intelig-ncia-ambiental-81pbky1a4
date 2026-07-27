@@ -21,7 +21,6 @@ import ReportPage from './pages/ReportPage'
 import AuditLogs from './pages/AuditLogs'
 import TotalHours from './pages/TotalHours'
 import Settings from './pages/Settings'
-import Import from './pages/Import'
 
 const App = () => (
   <AuthProvider>
@@ -85,14 +84,6 @@ const App = () => (
                 }
               />
               <Route path="/configuracoes" element={<Settings />} />
-              <Route
-                path="/importar"
-                element={
-                  <AdminRoute>
-                    <Import />
-                  </AdminRoute>
-                }
-              />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
