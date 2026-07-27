@@ -403,7 +403,6 @@ async function importTarefas(
     } else {
       res.allocatedHoursBlank = (res.allocatedHoursBlank || 0) + 1
     }
-    const status = (r[8] || '').trim()
     let memberIds: string[] = []
     if (memberStr) {
       memberIds = memberStr
