@@ -9,8 +9,8 @@ onRecordDeleteRequest((e) => {
     var auditCol = $app.findCollectionByNameOrId('audit_logs')
     var log = new Record(auditCol)
     log.set('user', auth.id)
-    log.set('action', 'DELETE')
-    log.set('resource_type', 'Project')
+    log.set('action', 'delete')
+    log.set('resource_type', 'project')
     log.set('resource_name', e.record.getString('name') || 'Unnamed')
     $app.save(log)
   } catch (err) {

@@ -234,6 +234,7 @@ export default function ProjectDetails() {
             <ProjectDeleteDialog
               projectId={id!}
               projectName={project.name}
+              projectStatus={project.status}
               onDeleted={() => navigate('/projetos')}
             />
           )}
