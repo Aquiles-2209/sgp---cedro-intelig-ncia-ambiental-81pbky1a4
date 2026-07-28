@@ -1,0 +1,182 @@
+import pb from '@/lib/pocketbase/client'
+import { getProjects } from '@/services/projects'
+import { getTeamMembers } from '@/services/team-members'
+import type { ParsedData } from './import-data'
+import type { Project, TeamMember } from '@/types/models'
+
+export interface ImportResult {
+  success: boolean
+  message: string
+  counts: { projects: number; members: number; allocations: number; tasks: number }
+  skipped: { projects: number; members: number }
+}
+
+export async function executeImport(data: ParsedData): Promise<ImportResult> {
+  const created = {
+    projects: [] as string[],
+    members: [] as string[],
+    allocations: [] as string[],
+    tasks: [] as string[],
+    assignments: [] as string[],
+  }
+
+  try {
+    const existingProjects = await getProjects()
+    const existingMembers = await getTeamMembers()
+    const projByName = new Map<string, string>(existingProjects.map((p: Project) => [p.name, p.id]))
+    const memberByEmail = new Map<string, string>(
+      existingMembers.filter((m: TeamMember) => m.email).map((m: TeamMember) => [m.email, m.id]),
+    )
+    const memberByName = new Map<string, string>(
+      existingMembers.map((m: TeamMember) => [m.name, m.id]),
+    )
+
+    let skipP = 0,
+      skipM = 0,
+      cntP = 0,
+      cntM = 0,
+      cntA = 0,
+      cntT = 0
+
+    for (const p of data.projects) {
+      if (projByName.has(p.name)) {
+        skipP++
+        continue
+      }
+      const rec = await pb.collection('projects').create({
+        name: p.name,
+        description: p.description,
+        contract_id: p.contract_id,
+        client: p.client,
+        start_date: p.start_date,
+        end_date: p.end_date,
+        status: p.status,
+        setor: p.setor,
+      })
+      created.projects.push(rec.id)
+      projByName.set(p.name, rec.id)
+      cntP++
+    }
+
+    for (const m of data.members) {
+      if (m.email && memberByEmail.has(m.email)) {
+        skipM++
+        continue
+      }
+      const rec = await pb.collection('team_members').create({
+        name: m.name,
+        function: m.function,
+        setor: m.setor,
+        email: m.email,
+        role: m.role,
+      })
+      created.members.push(rec.id)
+      memberByEmail.set(m.email, rec.id)
+      memberByName.set(m.name, rec.id)
+      cntM++
+    }
+
+    const allocKey = new Map<string, string>()
+    for (const a of data.allocations) {
+      const projectId = projByName.get(a.projectName)
+      if (!projectId)
+        throw new Error(`Linha ${a._row} de Alocações: Projeto '${a.projectName}' não encontrado.`)
+      let userId: string | undefined
+      if (a.userEmail) {
+        try {
+          const user = await pb.collection('users').getFirstListItem(`email = "${a.userEmail}"`)
+          userId = user.id
+        } catch {
+          /* no auth user */
+        }
+      }
+      const rec = await pb.collection('allocations').create({
+        project: projectId,
+        member_name: a.memberName,
+        function: a.function,
+        start_date: a.start_date,
+        end_date: a.end_date,
+        ...(userId ? { user: userId } : {}),
+      })
+      created.allocations.push(rec.id)
+      allocKey.set(`${projectId}:${a.memberName}`, rec.id)
+      cntA++
+    }
+
+    for (const t of data.tasks) {
+      const projectId = projByName.get(t.projectName)
+      if (!projectId)
+        throw new Error(`Linha ${t._row} de Tarefas: Projeto '${t.projectName}' não encontrado.`)
+      const memberId = t.memberName ? memberByName.get(t.memberName) : undefined
+      const allocationId = memberId ? allocKey.get(`${projectId}:${t.memberName}`) : undefined
+      const taskData: Record<string, unknown> = {
+        project: projectId,
+        title: t.title,
+        description: t.description,
+        status: t.status,
+        start_date: t.start_date,
+        due_date: t.due_date,
+        planned_hours: t.planned_hours,
+      }
+      if (t.allocated_hours !== null) taskData.allocated_hours = t.allocated_hours
+      if (allocationId) taskData.allocation = allocationId
+      if (memberId) taskData.members = [memberId]
+      const rec = await pb.collection('tasks').create(taskData)
+      created.tasks.push(rec.id)
+      if (memberId) {
+        const ta = await pb
+          .collection('task_assignments')
+          .create({ task: rec.id, team_member: memberId })
+        created.assignments.push(ta.id)
+      }
+      cntT++
+    }
+
+    const parts: string[] = []
+    if (cntP) parts.push(`${cntP} projeto${cntP > 1 ? 's' : ''}`)
+    if (cntM) parts.push(`${cntM} usuário${cntM > 1 ? 's' : ''}`)
+    if (cntA) parts.push(`${cntA} alocação${cntA > 1 ? 'ões' : ''}`)
+    if (cntT) parts.push(`${cntT} tarefa${cntT > 1 ? 's' : ''}`)
+    const total = cntP + cntM + cntA + cntT
+    let msg = parts.length
+      ? parts.join(', ') + ' importado' + (total > 1 ? 's' : '') + ' com sucesso!'
+      : 'Nenhum registro novo para importar.'
+    const skipTotal = skipP + skipM
+    if (skipTotal > 0)
+      msg += ` (${skipP} projeto${skipP > 1 ? 's' : ''} e ${skipM} usuário${skipM > 1 ? 's' : ''} duplicado${skipTotal > 1 ? 's' : ''} ignorado${skipTotal > 1 ? 's' : ''}.)`
+
+    return {
+      success: true,
+      message: msg,
+      counts: { projects: cntP, members: cntM, allocations: cntA, tasks: cntT },
+      skipped: { projects: skipP, members: skipM },
+    }
+  } catch (err) {
+    for (const id of created.assignments)
+      await pb
+        .collection('task_assignments')
+        .delete(id)
+        .catch(() => {})
+    for (const id of created.tasks)
+      await pb
+        .collection('tasks')
+        .delete(id)
+        .catch(() => {})
+    for (const id of created.allocations)
+      await pb
+        .collection('allocations')
+        .delete(id)
+        .catch(() => {})
+    for (const id of created.members)
+      await pb
+        .collection('team_members')
+        .delete(id)
+        .catch(() => {})
+    for (const id of created.projects)
+      await pb
+        .collection('projects')
+        .delete(id)
+        .catch(() => {})
+    throw err
+  }
+}
