@@ -9,6 +9,7 @@ export interface ReportRow {
   activityTitle: string
   activityLaunchDate: string
   plannedHours: number
+  allocatedHours: number
   hoursWorked: number
 }
 
@@ -40,7 +41,7 @@ export async function fetchReportData(
     const teamMember = te.expand?.team_member
     const memberName = teamMember?.name || '—'
     const memberSector = teamMember?.setor || '—'
-    const activityDate = normalizeDate(te.created)
+    const activityDate = normalizeDate(te.start_time || te.created)
     const hours = (te.duration || 0) / 3600
 
     rows.push({
@@ -51,6 +52,7 @@ export async function fetchReportData(
       activityTitle: task.title || '—',
       activityLaunchDate: activityDate,
       plannedHours: task.planned_hours || 0,
+      allocatedHours: task.allocated_hours || 0,
       hoursWorked: hours,
     })
   }

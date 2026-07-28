@@ -14,6 +14,17 @@ function formatDateBR(dateStr: string): string {
   return `${day}/${month}/${year}`
 }
 
+interface GroupedRow {
+  memberName: string
+  memberSector: string
+  activityTitle: string
+  activityDate: string
+  hours: number
+  plannedHours: number
+  allocatedHours: number
+  taskIds: Set<string>
+}
+
 export function exportProjectReport(
   project: Project,
   _allocations: Allocation[],
@@ -28,22 +39,13 @@ export function exportProjectReport(
     'Nome da Atividade',
     'Data de Lançamento da Atividade',
     'Total da Hora Prevista',
+    'Total da Hora Alocada',
     'Total de horas trabalhadas no período selecionado',
   ]
 
   const lines: string[] = [headers.map(escapeCsv).join(',')]
 
-  const grouped = new Map<
-    string,
-    {
-      memberName: string
-      memberSector: string
-      activityDate: string
-      hours: number
-      plannedHours: number
-      taskIds: Set<string>
-    }
-  >()
+  const grouped = new Map<string, GroupedRow>()
 
   for (const te of timeEntries) {
     const task = tasks.find((t) => t.id === te.task)
@@ -56,6 +58,7 @@ export function exportProjectReport(
     const key = `${memberName}|${activityDate}`
     const hours = (te.duration || 0) / 3600
     const taskPlannedHours = task.planned_hours || 0
+    const taskAllocatedHours = task.allocated_hours || 0
 
     const existing = grouped.get(key)
     if (existing) {
@@ -64,6 +67,7 @@ export function exportProjectReport(
       if (!existing.taskIds.has(task.id)) {
         existing.taskIds.add(task.id)
         existing.plannedHours += taskPlannedHours
+        existing.allocatedHours += taskAllocatedHours
       }
     } else {
       grouped.set(key, {
@@ -73,6 +77,7 @@ export function exportProjectReport(
         activityDate,
         hours,
         plannedHours: taskPlannedHours,
+        allocatedHours: taskAllocatedHours,
         taskIds: new Set([task.id]),
       })
     }
@@ -82,7 +87,15 @@ export function exportProjectReport(
     a.activityDate.localeCompare(b.activityDate),
   )
 
+  let totalPlanned = 0
+  let totalAllocated = 0
+  let totalWorked = 0
+
   for (const g of sorted) {
+    totalPlanned += g.plannedHours
+    totalAllocated += g.allocatedHours
+    totalWorked += g.hours
+
     lines.push(
       [
         escapeCsv(project.client || '—'),
@@ -92,10 +105,25 @@ export function exportProjectReport(
         escapeCsv(g.activityTitle),
         escapeCsv(formatDateBR(g.activityDate)),
         g.plannedHours.toFixed(2),
+        g.allocatedHours.toFixed(2),
         g.hours.toFixed(2),
       ].join(','),
     )
   }
+
+  lines.push(
+    [
+      escapeCsv(''),
+      escapeCsv(''),
+      escapeCsv(''),
+      escapeCsv(''),
+      escapeCsv('TOTAL GERAL'),
+      escapeCsv(''),
+      totalPlanned.toFixed(2),
+      totalAllocated.toFixed(2),
+      totalWorked.toFixed(2),
+    ].join(','),
+  )
 
   const csvContent = '\uFEFF' + lines.join('\n')
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })

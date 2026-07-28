@@ -18,6 +18,7 @@ export function exportExcelReport(rows: ReportRow[]): void {
     'Tarefa',
     'Data',
     'Horas Previstas',
+    'Horas Alocadas',
     'Horas Trabalhadas',
     'Saldo Horas',
   ]
@@ -32,6 +33,7 @@ export function exportExcelReport(rows: ReportRow[]): void {
       { type: 'string' as const, value: row.activityTitle },
       { type: 'string' as const, value: formatDateBR(row.activityLaunchDate) },
       { type: 'number' as const, value: Number(row.plannedHours.toFixed(2)) },
+      { type: 'number' as const, value: Number(row.allocatedHours.toFixed(2)) },
       { type: 'number' as const, value: Number(row.hoursWorked.toFixed(2)) },
       {
         type: 'number' as const,
@@ -40,6 +42,28 @@ export function exportExcelReport(rows: ReportRow[]): void {
       },
     ]
   })
+
+  const totalPlanned = rows.reduce((sum, r) => sum + r.plannedHours, 0)
+  const totalAllocated = rows.reduce((sum, r) => sum + r.allocatedHours, 0)
+  const totalWorked = rows.reduce((sum, r) => sum + r.hoursWorked, 0)
+  const totalBalance = Number((totalPlanned - totalWorked).toFixed(2))
+
+  xlsxRows.push([
+    { type: 'string' as const, value: '' },
+    { type: 'string' as const, value: '' },
+    { type: 'string' as const, value: '' },
+    { type: 'string' as const, value: '' },
+    { type: 'string' as const, value: 'TOTAL GERAL' },
+    { type: 'string' as const, value: '' },
+    { type: 'number' as const, value: Number(totalPlanned.toFixed(2)) },
+    { type: 'number' as const, value: Number(totalAllocated.toFixed(2)) },
+    { type: 'number' as const, value: Number(totalWorked.toFixed(2)) },
+    {
+      type: 'number' as const,
+      value: totalBalance,
+      style: totalBalance > 0 ? 'positive' : totalBalance < 0 ? 'negative' : 'normal',
+    },
+  ])
 
   const blob = generateXlsx(headers, xlsxRows)
   const url = URL.createObjectURL(blob)
