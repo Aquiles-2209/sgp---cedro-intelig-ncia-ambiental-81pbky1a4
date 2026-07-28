@@ -24,19 +24,38 @@ interface ReportGroup {
   hoursWorked: number
 }
 
-async function fetchTimeEntriesBatched(
-  allocationIds: string[],
+function resolveMemberName(te: any, allocationMap: Map<string, any>): string {
+  if (te.allocation) {
+    const alloc = allocationMap.get(te.allocation)
+    if (alloc?.member_name) return alloc.member_name
+    if (te.expand?.allocation?.member_name) return te.expand.allocation.member_name
+  }
+  if (te.expand?.team_member?.name) return te.expand.team_member.name
+  return '—'
+}
+
+async function fetchTimeEntriesByTaskBatched(
+  taskIds: string[],
   startDate: string,
   endDate: string,
 ): Promise<any[]> {
   const allEntries: any[] = []
-  for (let i = 0; i < allocationIds.length; i += BATCH_SIZE) {
-    const batch = allocationIds.slice(i, i + BATCH_SIZE)
-    const allocFilter = batch.map((id) => `allocation = "${id}"`).join(' || ')
-    const filter = `(${allocFilter}) && start_time >= "${startDate}" && start_time <= "${endDate}"`
+  const seenIds = new Set<string>()
+  for (let i = 0; i < taskIds.length; i += BATCH_SIZE) {
+    const batch = taskIds.slice(i, i + BATCH_SIZE)
+    const taskFilter = batch.map((id) => `task = "${id}"`).join(' || ')
+    const filter = `(${taskFilter}) && start_time >= "${startDate}" && start_time <= "${endDate}"`
     try {
-      const batchEntries = await pb.collection('time_entries').getFullList({ filter })
-      allEntries.push(...batchEntries)
+      const batchEntries = await pb.collection('time_entries').getFullList({
+        filter,
+        expand: 'team_member,task,allocation',
+      })
+      for (const entry of batchEntries as any[]) {
+        if (!seenIds.has(entry.id)) {
+          seenIds.add(entry.id)
+          allEntries.push(entry)
+        }
+      }
     } catch (err) {
       console.error('[fetchReportData] Error fetching time_entries batch:', err)
     }
@@ -61,7 +80,17 @@ export async function fetchReportData(
         sort: 'start_date',
       })
 
-      if (allocations.length === 0) {
+      const tasks = await pb.collection('tasks').getFullList({
+        filter: `project = "${projectId}"`,
+      })
+
+      const allocationMap = new Map<string, any>(allocations.map((a: any) => [a.id, a]))
+
+      const taskIds = (tasks as any[]).map((t) => t.id)
+      const timeEntries =
+        taskIds.length > 0 ? await fetchTimeEntriesByTaskBatched(taskIds, startDate, endDate) : []
+
+      if (allocations.length === 0 && tasks.length === 0) {
         rows.push({
           client: (project as any).client || '—',
           projectName: (project as any).name,
@@ -76,14 +105,16 @@ export async function fetchReportData(
         continue
       }
 
-      const tasks = await pb.collection('tasks').getFullList({
-        filter: `project = "${projectId}"`,
-      })
-
-      const allocationIds = allocations.map((a: any) => a.id)
-      const timeEntries = await fetchTimeEntriesBatched(allocationIds, startDate, endDate)
-
-      const allocationMap = new Map<string, any>(allocations.map((a: any) => [a.id, a]))
+      const timeEntriesByTask = new Map<string, any[]>()
+      for (const te of timeEntries) {
+        if (!te.task) continue
+        const list = timeEntriesByTask.get(te.task)
+        if (list) {
+          list.push(te)
+        } else {
+          timeEntriesByTask.set(te.task, [te])
+        }
+      }
 
       const groupMap = new Map<string, ReportGroup>()
 
@@ -97,10 +128,33 @@ export async function fetchReportData(
             ? [task.allocation]
             : []
 
-        if (taskAllocIds.length === 0) {
+        const allTaskTimeEntries = timeEntriesByTask.get(task.id) || []
+
+        const memberHoursMap = new Map<string, number>()
+        for (const te of allTaskTimeEntries) {
+          const memberName = resolveMemberName(te, allocationMap)
+          const hours = (te.duration || 0) / 3600
+          memberHoursMap.set(memberName, (memberHoursMap.get(memberName) || 0) + hours)
+        }
+
+        const memberDateMap = new Map<string, string>()
+        for (const allocId of taskAllocIds) {
+          const alloc = allocationMap.get(allocId)
+          if (!alloc) continue
+          const memberName = alloc.member_name || '—'
+          if (!memberDateMap.has(memberName)) {
+            memberDateMap.set(memberName, normalizeDate(alloc.start_date || ''))
+          }
+        }
+        for (const memberName of memberHoursMap.keys()) {
+          if (!memberDateMap.has(memberName)) {
+            memberDateMap.set(memberName, '')
+          }
+        }
+
+        if (memberDateMap.size === 0) {
           const key = `—||${taskTitle}`
-          const existing = groupMap.get(key)
-          if (!existing) {
+          if (!groupMap.has(key)) {
             groupMap.set(key, {
               memberName: '—',
               taskTitle,
@@ -113,18 +167,9 @@ export async function fetchReportData(
           continue
         }
 
-        for (const allocId of taskAllocIds) {
-          const alloc = allocationMap.get(allocId)
-          if (!alloc) continue
-
-          const memberName = alloc.member_name || '—'
+        for (const [memberName, activityDate] of memberDateMap) {
           const key = `${memberName}||${taskTitle}`
-
-          const taskTimeEntries = timeEntries.filter(
-            (te) => te.task === task.id && te.allocation === allocId,
-          )
-          const hoursWorked =
-            taskTimeEntries.reduce((sum, te) => sum + (te.duration || 0), 0) / 3600
+          const hoursWorked = memberHoursMap.get(memberName) || 0
 
           const existing = groupMap.get(key)
           if (existing) {
@@ -133,7 +178,7 @@ export async function fetchReportData(
             groupMap.set(key, {
               memberName,
               taskTitle,
-              activityDate: normalizeDate(alloc.start_date || ''),
+              activityDate,
               plannedHours: task.planned_hours || 0,
               allocatedHours: task.allocated_hours || 0,
               hoursWorked,

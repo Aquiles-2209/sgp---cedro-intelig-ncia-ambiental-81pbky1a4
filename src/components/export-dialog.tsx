@@ -25,20 +25,26 @@ interface ExportDialogProps {
 }
 
 async function fetchTimeEntriesBatched(
-  allocationIds: string[],
+  taskIds: string[],
   startDate: string,
   endDate: string,
 ): Promise<TimeEntry[]> {
   const allEntries: TimeEntry[] = []
-  for (let i = 0; i < allocationIds.length; i += BATCH_SIZE) {
-    const batch = allocationIds.slice(i, i + BATCH_SIZE)
-    const allocFilter = batch.map((id) => `allocation = "${id}"`).join(' || ')
-    const filter = `(${allocFilter}) && start_time >= "${startDate}" && start_time <= "${endDate}"`
+  const seenIds = new Set<string>()
+  for (let i = 0; i < taskIds.length; i += BATCH_SIZE) {
+    const batch = taskIds.slice(i, i + BATCH_SIZE)
+    const taskFilter = batch.map((id) => `task = "${id}"`).join(' || ')
+    const filter = `(${taskFilter}) && start_time >= "${startDate}" && start_time <= "${endDate}"`
     try {
       const batchEntries = await pb
         .collection('time_entries')
-        .getFullList<TimeEntry>({ filter, expand: 'team_member,task' })
-      allEntries.push(...batchEntries)
+        .getFullList<TimeEntry>({ filter, expand: 'team_member,task,allocation' })
+      for (const entry of batchEntries) {
+        if (!seenIds.has(entry.id)) {
+          seenIds.add(entry.id)
+          allEntries.push(entry)
+        }
+      }
     } catch (err) {
       console.error('[ExportDialog] Error fetching time_entries batch:', err)
     }
@@ -95,9 +101,9 @@ export function ExportDialog({ projectId, projectName }: ExportDialogProps) {
       })
 
       let timeEntryList: TimeEntry[] = []
-      if (allocationList.length > 0) {
-        const allocationIds = allocationList.map((a) => a.id)
-        timeEntryList = await fetchTimeEntriesBatched(allocationIds, startDate, endDate)
+      if (taskList.length > 0) {
+        const taskIds = taskList.map((t) => t.id)
+        timeEntryList = await fetchTimeEntriesBatched(taskIds, startDate, endDate)
       }
 
       exportProjectReport(projectData, allocationList, taskList, timeEntryList)

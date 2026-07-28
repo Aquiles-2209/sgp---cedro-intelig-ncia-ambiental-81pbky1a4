@@ -14,6 +14,16 @@ function formatDateBR(dateStr: string): string {
   return `${day}/${month}/${year}`
 }
 
+function resolveMemberName(te: TimeEntry, allocationMap: Map<string, Allocation>): string {
+  if (te.allocation) {
+    const alloc = allocationMap.get(te.allocation)
+    if (alloc?.member_name) return alloc.member_name
+    if (te.expand?.allocation?.member_name) return te.expand.allocation.member_name
+  }
+  if (te.expand?.team_member?.name) return te.expand.team_member.name
+  return '—'
+}
+
 interface ReportGroup {
   memberName: string
   taskTitle: string
@@ -53,6 +63,17 @@ export function exportProjectReport(
 
   const allocationMap = new Map(allocations.map((a) => [a.id, a]))
 
+  const timeEntriesByTask = new Map<string, TimeEntry[]>()
+  for (const te of timeEntries) {
+    if (!te.task) continue
+    const list = timeEntriesByTask.get(te.task)
+    if (list) {
+      list.push(te)
+    } else {
+      timeEntriesByTask.set(te.task, [te])
+    }
+  }
+
   const groupMap = new Map<string, ReportGroup>()
 
   for (const task of tasks) {
@@ -65,10 +86,33 @@ export function exportProjectReport(
         ? [task.allocation]
         : []
 
-    if (taskAllocIds.length === 0) {
+    const allTaskTimeEntries = timeEntriesByTask.get(task.id) || []
+
+    const memberHoursMap = new Map<string, number>()
+    for (const te of allTaskTimeEntries) {
+      const memberName = resolveMemberName(te, allocationMap)
+      const hours = (te.duration || 0) / 3600
+      memberHoursMap.set(memberName, (memberHoursMap.get(memberName) || 0) + hours)
+    }
+
+    const memberDateMap = new Map<string, string>()
+    for (const allocId of taskAllocIds) {
+      const alloc = allocationMap.get(allocId)
+      if (!alloc) continue
+      const memberName = alloc.member_name || '—'
+      if (!memberDateMap.has(memberName)) {
+        memberDateMap.set(memberName, normalizeDate(alloc.start_date || ''))
+      }
+    }
+    for (const memberName of memberHoursMap.keys()) {
+      if (!memberDateMap.has(memberName)) {
+        memberDateMap.set(memberName, '')
+      }
+    }
+
+    if (memberDateMap.size === 0) {
       const key = `—||${taskTitle}`
-      const existing = groupMap.get(key)
-      if (!existing) {
+      if (!groupMap.has(key)) {
         groupMap.set(key, {
           memberName: '—',
           taskTitle,
@@ -81,17 +125,9 @@ export function exportProjectReport(
       continue
     }
 
-    for (const allocId of taskAllocIds) {
-      const alloc = allocationMap.get(allocId)
-      if (!alloc) continue
-
-      const memberName = alloc.member_name || '—'
+    for (const [memberName, activityDate] of memberDateMap) {
       const key = `${memberName}||${taskTitle}`
-
-      const taskTimeEntries = timeEntries.filter(
-        (te) => te.task === task.id && te.allocation === allocId,
-      )
-      const hoursWorked = taskTimeEntries.reduce((sum, te) => sum + (te.duration || 0), 0) / 3600
+      const hoursWorked = memberHoursMap.get(memberName) || 0
 
       const existing = groupMap.get(key)
       if (existing) {
@@ -100,7 +136,7 @@ export function exportProjectReport(
         groupMap.set(key, {
           memberName,
           taskTitle,
-          activityDate: normalizeDate(alloc.start_date || ''),
+          activityDate,
           plannedHours: task.planned_hours || 0,
           allocatedHours: task.allocated_hours || 0,
           hoursWorked,
