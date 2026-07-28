@@ -14,6 +14,15 @@ function formatDateBR(dateStr: string): string {
   return `${day}/${month}/${year}`
 }
 
+interface ReportGroup {
+  memberName: string
+  taskTitle: string
+  activityDate: string
+  plannedHours: number
+  allocatedHours: number
+  hoursWorked: number
+}
+
 export function exportProjectReport(
   project: Project,
   allocations: Allocation[],
@@ -39,45 +48,70 @@ export function exportProjectReport(
   let totalAllocated = 0
   let totalWorked = 0
 
-  const sortedAllocations = [...allocations].sort((a, b) =>
-    normalizeDate(a.start_date || '').localeCompare(normalizeDate(b.start_date || '')),
+  const allocationMap = new Map(allocations.map((a) => [a.id, a]))
+
+  const groupMap = new Map<string, ReportGroup>()
+
+  for (const task of tasks) {
+    const taskTitle = (task.title || '').trim()
+    if (!taskTitle) continue
+
+    const taskAllocIds: string[] = Array.isArray(task.allocation)
+      ? task.allocation
+      : task.allocation
+        ? [task.allocation]
+        : []
+
+    if (taskAllocIds.length === 0) continue
+
+    for (const allocId of taskAllocIds) {
+      const alloc = allocationMap.get(allocId)
+      if (!alloc) continue
+
+      const memberName = alloc.member_name || '—'
+      const key = `${memberName}||${taskTitle}`
+
+      const taskTimeEntries = timeEntries.filter(
+        (te) => te.task === task.id && te.allocation === allocId,
+      )
+      const hoursWorked = taskTimeEntries.reduce((sum, te) => sum + (te.duration || 0), 0) / 3600
+
+      const existing = groupMap.get(key)
+      if (existing) {
+        existing.hoursWorked += hoursWorked
+      } else {
+        groupMap.set(key, {
+          memberName,
+          taskTitle,
+          activityDate: normalizeDate(alloc.start_date || ''),
+          plannedHours: task.planned_hours || 0,
+          allocatedHours: task.allocated_hours || 0,
+          hoursWorked,
+        })
+      }
+    }
+  }
+
+  const sortedGroups = [...groupMap.values()].sort((a, b) =>
+    a.activityDate.localeCompare(b.activityDate),
   )
 
-  for (const alloc of sortedAllocations) {
-    const allocTasks = tasks.filter((t) => {
-      const ta = t.allocation
-      if (Array.isArray(ta)) return ta.includes(alloc.id)
-      return ta === alloc.id
-    })
-
-    const allocTimeEntries = timeEntries.filter((te) => te.allocation === alloc.id)
-
-    const plannedHours = allocTasks.reduce((sum, t) => sum + (t.planned_hours || 0), 0)
-    const allocatedHours = allocTasks.reduce((sum, t) => sum + (t.allocated_hours || 0), 0)
-    const hoursWorked = allocTimeEntries.reduce((sum, te) => sum + (te.duration || 0), 0) / 3600
-
-    totalPlanned += plannedHours
-    totalAllocated += allocatedHours
-    totalWorked += hoursWorked
-
-    const activityTitle =
-      allocTasks
-        .map((t) => t.title)
-        .filter(Boolean)
-        .join('; ') || '—'
-    const activityDate = normalizeDate(alloc.start_date || '')
+  for (const group of sortedGroups) {
+    totalPlanned += group.plannedHours
+    totalAllocated += group.allocatedHours
+    totalWorked += group.hoursWorked
 
     lines.push(
       [
         escapeCsv(project.client || '—'),
         escapeCsv(project.name),
         escapeCsv(projectSetor),
-        escapeCsv(alloc.member_name || '—'),
-        escapeCsv(activityTitle),
-        escapeCsv(formatDateBR(activityDate)),
-        plannedHours.toFixed(2),
-        allocatedHours.toFixed(2),
-        hoursWorked.toFixed(2),
+        escapeCsv(group.memberName),
+        escapeCsv(group.taskTitle),
+        escapeCsv(formatDateBR(group.activityDate)),
+        group.plannedHours.toFixed(2),
+        group.allocatedHours.toFixed(2),
+        group.hoursWorked.toFixed(2),
       ].join(','),
     )
   }
