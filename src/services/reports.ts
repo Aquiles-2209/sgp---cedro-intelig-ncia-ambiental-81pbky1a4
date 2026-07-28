@@ -1,7 +1,7 @@
 import pb from '@/lib/pocketbase/client'
 import { normalizeDate } from '@/types/models'
 
-const BATCH_SIZE = 10
+const BATCH_SIZE = 15
 
 export interface ReportRow {
   client: string

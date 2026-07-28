@@ -17,7 +17,7 @@ import pb from '@/lib/pocketbase/client'
 import type { Project, TimeEntry, Task, Allocation } from '@/types/models'
 import { exportProjectReport } from '@/lib/export-report'
 
-const BATCH_SIZE = 10
+const BATCH_SIZE = 15
 
 interface ExportDialogProps {
   projectId: string

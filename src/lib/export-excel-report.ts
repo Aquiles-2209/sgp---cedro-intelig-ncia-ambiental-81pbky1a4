@@ -20,21 +20,31 @@ export function exportExcelReport(rows: ReportRow[]): void {
     'Horas Previstas',
     'Horas Alocadas',
     'Horas Trabalhadas',
+    'Total Horas',
     'Saldo Horas',
   ]
 
-  const xlsxRows = rows.map((row) => {
-    const balance = Number((row.plannedHours - row.hoursWorked).toFixed(2))
+  const sortedRows = [...rows].sort((a, b) => {
+    const taskCmp = (a.activityTitle || '').localeCompare(b.activityTitle || '')
+    if (taskCmp !== 0) return taskCmp
+    return (a.memberName || '').localeCompare(b.memberName || '')
+  })
+
+  const xlsxRows = sortedRows.map((row, idx) => {
+    const totalHours = Number((row.allocatedHours + row.hoursWorked).toFixed(2))
+    const balance = Number((row.plannedHours - totalHours).toFixed(2))
+    const showTask = idx === 0 || sortedRows[idx - 1].activityTitle !== row.activityTitle
     return [
       { type: 'string' as const, value: row.client },
       { type: 'string' as const, value: row.projectName },
       { type: 'string' as const, value: row.memberSector },
       { type: 'string' as const, value: row.memberName },
-      { type: 'string' as const, value: row.activityTitle },
+      { type: 'string' as const, value: showTask ? row.activityTitle : '' },
       { type: 'string' as const, value: formatDateBR(row.activityLaunchDate) },
       { type: 'number' as const, value: Number(row.plannedHours.toFixed(2)) },
       { type: 'number' as const, value: Number(row.allocatedHours.toFixed(2)) },
       { type: 'number' as const, value: Number(row.hoursWorked.toFixed(2)) },
+      { type: 'number' as const, value: totalHours },
       {
         type: 'number' as const,
         value: balance,
@@ -46,7 +56,8 @@ export function exportExcelReport(rows: ReportRow[]): void {
   const totalPlanned = rows.reduce((sum, r) => sum + r.plannedHours, 0)
   const totalAllocated = rows.reduce((sum, r) => sum + r.allocatedHours, 0)
   const totalWorked = rows.reduce((sum, r) => sum + r.hoursWorked, 0)
-  const totalBalance = Number((totalPlanned - totalWorked).toFixed(2))
+  const totalTotal = Number((totalAllocated + totalWorked).toFixed(2))
+  const totalBalance = Number((totalPlanned - totalTotal).toFixed(2))
 
   xlsxRows.push([
     { type: 'string' as const, value: '' },
@@ -58,6 +69,7 @@ export function exportExcelReport(rows: ReportRow[]): void {
     { type: 'number' as const, value: Number(totalPlanned.toFixed(2)) },
     { type: 'number' as const, value: Number(totalAllocated.toFixed(2)) },
     { type: 'number' as const, value: Number(totalWorked.toFixed(2)) },
+    { type: 'number' as const, value: totalTotal },
     {
       type: 'number' as const,
       value: totalBalance,

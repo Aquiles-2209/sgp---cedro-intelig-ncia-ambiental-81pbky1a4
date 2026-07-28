@@ -39,6 +39,8 @@ export function exportProjectReport(
     'Total da Hora Prevista',
     'Total da Hora Alocada',
     'Total de horas trabalhadas no período selecionado',
+    'Total Horas',
+    'Saldo Horas',
   ]
 
   const lines: string[] = [headers.map(escapeCsv).join(',')]
@@ -47,6 +49,7 @@ export function exportProjectReport(
   let totalPlanned = 0
   let totalAllocated = 0
   let totalWorked = 0
+  let totalTotal = 0
 
   const allocationMap = new Map(allocations.map((a) => [a.id, a]))
 
@@ -106,14 +109,22 @@ export function exportProjectReport(
     }
   }
 
-  const sortedGroups = [...groupMap.values()].sort((a, b) =>
-    (a.activityDate || '').localeCompare(b.activityDate || ''),
-  )
+  const sortedGroups = [...groupMap.values()].sort((a, b) => {
+    const taskCmp = (a.taskTitle || '').localeCompare(b.taskTitle || '')
+    if (taskCmp !== 0) return taskCmp
+    return (a.memberName || '').localeCompare(b.memberName || '')
+  })
 
-  for (const group of sortedGroups) {
+  sortedGroups.forEach((group, idx) => {
+    const groupTotal = group.allocatedHours + group.hoursWorked
+    const groupBalance = group.plannedHours - groupTotal
+
     totalPlanned += group.plannedHours
     totalAllocated += group.allocatedHours
     totalWorked += group.hoursWorked
+    totalTotal += groupTotal
+
+    const showTask = idx === 0 || sortedGroups[idx - 1].taskTitle !== group.taskTitle
 
     lines.push(
       [
@@ -121,14 +132,18 @@ export function exportProjectReport(
         escapeCsv(project.name),
         escapeCsv(projectSetor),
         escapeCsv(group.memberName),
-        escapeCsv(group.taskTitle),
+        escapeCsv(showTask ? group.taskTitle : ''),
         escapeCsv(formatDateBR(group.activityDate)),
         group.plannedHours.toFixed(2),
         group.allocatedHours.toFixed(2),
         group.hoursWorked.toFixed(2),
+        groupTotal.toFixed(2),
+        groupBalance.toFixed(2),
       ].join(','),
     )
-  }
+  })
+
+  const totalBalance = totalPlanned - totalTotal
 
   lines.push(
     [
@@ -141,6 +156,8 @@ export function exportProjectReport(
       totalPlanned.toFixed(2),
       totalAllocated.toFixed(2),
       totalWorked.toFixed(2),
+      totalTotal.toFixed(2),
+      totalBalance.toFixed(2),
     ].join(','),
   )
 
