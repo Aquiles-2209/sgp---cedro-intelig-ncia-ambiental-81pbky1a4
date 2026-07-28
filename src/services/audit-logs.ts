@@ -21,3 +21,11 @@ export interface AuditLog {
 
 export const getAuditLogs = async (): Promise<AuditLog[]> =>
   pb.collection('audit_logs').getFullList({ sort: '-created', expand: 'user' })
+
+export function resolveAuditUser(log: Pick<AuditLog, 'user' | 'expand'>): string {
+  const expanded = log.expand?.user
+  if (!expanded) return 'Usuário desconhecido'
+  if (expanded.name && expanded.name.trim()) return expanded.name
+  if (expanded.email && expanded.email.trim()) return expanded.email
+  return 'Usuário desconhecido'
+}

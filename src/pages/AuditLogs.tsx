@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { getAuditLogs, type AuditLog } from '@/services/audit-logs'
+import { getAuditLogs, resolveAuditUser, type AuditLog } from '@/services/audit-logs'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -88,9 +88,7 @@ export default function AuditLogs() {
               <TableBody>
                 {logs.map((log) => (
                   <TableRow key={log.id}>
-                    <TableCell className="font-medium">
-                      {log.expand?.user?.name || log.expand?.user?.email || 'Usuário desconhecido'}
-                    </TableCell>
+                    <TableCell className="font-medium">{resolveAuditUser(log)}</TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
