@@ -1,21 +1,17 @@
 onRecordCreateRequest((e) => {
-  var auth = e.auth
-  if (!auth) {
-    e.next()
-    return
-  }
-
-  try {
-    var auditCol = $app.findCollectionByNameOrId('audit_logs')
-    var log = new Record(auditCol)
-    log.set('user', auth.id)
-    log.set('action', 'CREATE')
-    log.set('resource_type', 'Team Member')
-    log.set('resource_name', e.record.getString('name') || 'Unnamed')
-    $app.save(log)
-  } catch (err) {
-    console.log('audit log failed: ' + err.message)
-  }
-
+  const userId = e.auth?.id || ''
+  const resourceName = e.record.getString('name') || ''
   e.next()
+  if (!userId) return
+  try {
+    const col = $app.findCollectionByNameOrId('audit_logs')
+    const rec = new Record(col)
+    rec.set('user', userId)
+    rec.set('action', 'CREATE')
+    rec.set('resource_type', 'Membro da Equipe')
+    rec.set('resource_name', resourceName || 'Sem nome')
+    $app.save(rec)
+  } catch (err) {
+    $app.logger().error('audit log failed', 'error', err.message)
+  }
 }, 'team_members')
