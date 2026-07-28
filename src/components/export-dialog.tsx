@@ -17,9 +17,33 @@ import pb from '@/lib/pocketbase/client'
 import type { Project, TimeEntry, Task, Allocation } from '@/types/models'
 import { exportProjectReport } from '@/lib/export-report'
 
+const BATCH_SIZE = 10
+
 interface ExportDialogProps {
   projectId: string
   projectName: string
+}
+
+async function fetchTimeEntriesBatched(
+  allocationIds: string[],
+  startDate: string,
+  endDate: string,
+): Promise<TimeEntry[]> {
+  const allEntries: TimeEntry[] = []
+  for (let i = 0; i < allocationIds.length; i += BATCH_SIZE) {
+    const batch = allocationIds.slice(i, i + BATCH_SIZE)
+    const allocFilter = batch.map((id) => `allocation = "${id}"`).join(' || ')
+    const filter = `(${allocFilter}) && start_time >= "${startDate}" && start_time <= "${endDate}"`
+    try {
+      const batchEntries = await pb
+        .collection('time_entries')
+        .getFullList<TimeEntry>({ filter, expand: 'team_member,task' })
+      allEntries.push(...batchEntries)
+    } catch (err) {
+      console.error('[ExportDialog] Error fetching time_entries batch:', err)
+    }
+  }
+  return allEntries
 }
 
 export function ExportDialog({ projectId, projectName }: ExportDialogProps) {
@@ -44,7 +68,8 @@ export function ExportDialog({ projectId, projectName }: ExportDialogProps) {
       exportExcelReport(rows)
       toast({ title: 'Relatório Excel exportado com sucesso!' })
       setOpen(false)
-    } catch {
+    } catch (err) {
+      console.error('[ExportDialog] Error exporting Excel:', err)
       toast({ title: 'Erro ao exportar relatório.', variant: 'destructive' })
     } finally {
       setLoading(null)
@@ -65,26 +90,21 @@ export function ExportDialog({ projectId, projectName }: ExportDialogProps) {
         sort: 'start_date',
       })
 
-      if (allocationList.length === 0) {
-        toast({ title: 'Nenhuma alocação encontrada para este projeto.' })
-        return
-      }
-
       const taskList = await pb.collection('tasks').getFullList<Task>({
         filter: `project = "${projectId}"`,
       })
 
-      const allocationIds = allocationList.map((a) => a.id)
-      const allocFilterParts = allocationIds.map((id) => `allocation = "${id}"`)
-      const timeEntryList = await pb.collection('time_entries').getFullList<TimeEntry>({
-        filter: `(${allocFilterParts.join(' || ')}) && start_time >= "${startDate}" && start_time <= "${endDate}"`,
-        expand: 'team_member,task',
-      })
+      let timeEntryList: TimeEntry[] = []
+      if (allocationList.length > 0) {
+        const allocationIds = allocationList.map((a) => a.id)
+        timeEntryList = await fetchTimeEntriesBatched(allocationIds, startDate, endDate)
+      }
 
       exportProjectReport(projectData, allocationList, taskList, timeEntryList)
       toast({ title: 'Relatório CSV exportado com sucesso!' })
       setOpen(false)
-    } catch {
+    } catch (err) {
+      console.error('[ExportDialog] Error exporting CSV:', err)
       toast({ title: 'Erro ao exportar relatório.', variant: 'destructive' })
     } finally {
       setLoading(null)

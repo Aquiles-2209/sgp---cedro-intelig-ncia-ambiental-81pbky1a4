@@ -62,7 +62,21 @@ export function exportProjectReport(
         ? [task.allocation]
         : []
 
-    if (taskAllocIds.length === 0) continue
+    if (taskAllocIds.length === 0) {
+      const key = `—||${taskTitle}`
+      const existing = groupMap.get(key)
+      if (!existing) {
+        groupMap.set(key, {
+          memberName: '—',
+          taskTitle,
+          activityDate: '',
+          plannedHours: task.planned_hours || 0,
+          allocatedHours: task.allocated_hours || 0,
+          hoursWorked: 0,
+        })
+      }
+      continue
+    }
 
     for (const allocId of taskAllocIds) {
       const alloc = allocationMap.get(allocId)
@@ -93,7 +107,7 @@ export function exportProjectReport(
   }
 
   const sortedGroups = [...groupMap.values()].sort((a, b) =>
-    a.activityDate.localeCompare(b.activityDate),
+    (a.activityDate || '').localeCompare(b.activityDate || ''),
   )
 
   for (const group of sortedGroups) {
