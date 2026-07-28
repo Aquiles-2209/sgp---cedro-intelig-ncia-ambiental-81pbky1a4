@@ -21,6 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import { toast } from '@/hooks/use-toast'
 import { readXlsxFile, type SheetData } from '@/lib/xlsx-reader'
 import { validateImport, type ValidationError, type ParsedData } from '@/lib/import-data'
 import { executeImport, type ImportResult } from '@/lib/import-executor'
@@ -71,8 +72,10 @@ export default function Importar() {
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.name.endsWith('.xlsx')) {
-      setErrors([{ sheet: '', row: 0, column: '', message: 'Apenas arquivos .xlsx são aceitos.' }])
+      const msg = 'Apenas arquivos .xlsx são aceitos.'
+      setErrors([{ sheet: '', row: 0, column: '', message: msg }])
       setState('error')
+      toast({ title: 'Formato inválido', description: msg, variant: 'destructive' })
       return
     }
     setFileName(file.name)
@@ -84,16 +87,21 @@ export default function Importar() {
       if (errs.length > 0) {
         setErrors(errs)
         setState('error')
+        toast({
+          title: 'Validação falhou',
+          description: `${errs.length} erro(s) encontrado(s). Corrija a planilha e tente novamente.`,
+          variant: 'destructive',
+        })
       } else {
         setParsed(data)
         setErrors([])
         setState('preview')
       }
     } catch (e) {
-      setErrors([
-        { sheet: '', row: 0, column: '', message: `Erro ao ler arquivo: ${(e as Error).message}` },
-      ])
+      const msg = `Erro ao ler arquivo: ${(e as Error).message}`
+      setErrors([{ sheet: '', row: 0, column: '', message: msg }])
       setState('error')
+      toast({ title: 'Erro ao ler arquivo', description: msg, variant: 'destructive' })
     }
   }, [])
 
@@ -105,10 +113,10 @@ export default function Importar() {
       setResult(r)
       setState('success')
     } catch (e) {
-      setErrors([
-        { sheet: '', row: 0, column: '', message: `Erro ao importar: ${(e as Error).message}` },
-      ])
+      const msg = `Erro ao importar: ${(e as Error).message}`
+      setErrors([{ sheet: '', row: 0, column: '', message: msg }])
       setState('error')
+      toast({ title: 'Falha na importação', description: msg, variant: 'destructive' })
     }
   }
 

@@ -60,6 +60,7 @@ const MEMBER_SETOR = ['Meio-Ambiente', 'Desenvolvimento Urbano', 'Administrativo
 const MEMBER_ROLE = ['admin', 'user']
 const TASK_STATUS = ['Pendente', 'Em Andamento', 'Concluído']
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function excelSerialToDate(serial: number): string {
   const date = new Date(Date.UTC(1899, 11, 30) + serial * 86400000)
@@ -115,6 +116,33 @@ function valDate(val: string, row: number, col: string, sheet: string, errors: V
     })
 }
 
+function valRequired(
+  val: string,
+  fieldName: string,
+  row: number,
+  col: string,
+  sheet: string,
+  errors: ValidationError[],
+) {
+  if (!val)
+    errors.push({
+      sheet,
+      row,
+      column: col,
+      message: `campo '${fieldName}' está vazio.`,
+    })
+}
+
+function valEmail(val: string, row: number, col: string, sheet: string, errors: ValidationError[]) {
+  if (val && !EMAIL_RE.test(val))
+    errors.push({
+      sheet,
+      row,
+      column: col,
+      message: `email '${val}' não é válido.`,
+    })
+}
+
 export function validateImport(sheets: SheetData[]): {
   data: ParsedData | null
   errors: ValidationError[]
@@ -161,13 +189,7 @@ export function validateImport(sheets: SheetData[]): {
     const setor = String(gv(pSheet, row, 'Setor')).trim()
     const start = normDate(gv(pSheet, row, 'Data Início'))
     const end = normDate(gv(pSheet, row, 'Data Fim'))
-    if (!name)
-      errors.push({
-        sheet: 'Projetos',
-        row: rn,
-        column: 'Nome do Projeto',
-        message: 'Campo obrigatório vazio.',
-      })
+    valRequired(name, 'Nome do Projeto', rn, 'Nome do Projeto', 'Projetos', errors)
     valEnum(status, PROJECT_STATUS, rn, 'Status', 'Projetos', errors)
     valEnum(setor, PROJECT_SECTOR, rn, 'Setor', 'Projetos', errors)
     valDate(start, rn, 'Data Início', 'Projetos', errors)
@@ -195,22 +217,21 @@ export function validateImport(sheets: SheetData[]): {
   const members: ParsedMember[] = mSheet.rows.map((row, i) => {
     const rn = i + 2
     const name = String(gv(mSheet, row, 'Nome')).trim()
+    const func = String(gv(mSheet, row, 'Função')).trim()
     const setor = String(gv(mSheet, row, 'Setor')).trim()
+    const email = String(gv(mSheet, row, 'Email')).trim()
     const role = String(gv(mSheet, row, 'Role')).trim()
-    if (!name)
-      errors.push({
-        sheet: 'Usuários (Equipe)',
-        row: rn,
-        column: 'Nome',
-        message: 'Campo obrigatório vazio.',
-      })
+    valRequired(name, 'Nome', rn, 'Nome', 'Usuários (Equipe)', errors)
+    valRequired(func, 'função', rn, 'Função', 'Usuários (Equipe)', errors)
+    valRequired(setor, 'setor', rn, 'Setor', 'Usuários (Equipe)', errors)
+    valEmail(email, rn, 'Email', 'Usuários (Equipe)', errors)
     valEnum(setor, MEMBER_SETOR, rn, 'Setor', 'Usuários (Equipe)', errors)
     valEnum(role, MEMBER_ROLE, rn, 'Role', 'Usuários (Equipe)', errors)
     return {
       name,
-      function: String(gv(mSheet, row, 'Função')).trim(),
+      function: func,
       setor,
-      email: String(gv(mSheet, row, 'Email')).trim(),
+      email,
       role,
       _row: rn,
     }
@@ -231,23 +252,15 @@ export function validateImport(sheets: SheetData[]): {
     const rn = i + 2
     const pn = String(gv(aSheet, row, 'Projeto (Nome)')).trim()
     const mn = String(gv(aSheet, row, 'Membro (Nome)')).trim()
+    const func = String(gv(aSheet, row, 'Função')).trim()
     const ue = String(gv(aSheet, row, 'Usuário (Email)')).trim()
     const start = normDate(gv(aSheet, row, 'Data Início'))
     const end = normDate(gv(aSheet, row, 'Data Fim'))
-    if (!pn)
-      errors.push({
-        sheet: 'Alocações',
-        row: rn,
-        column: 'Projeto (Nome)',
-        message: 'Campo obrigatório vazio.',
-      })
-    if (!mn)
-      errors.push({
-        sheet: 'Alocações',
-        row: rn,
-        column: 'Membro (Nome)',
-        message: 'Campo obrigatório vazio.',
-      })
+    valRequired(pn, 'Projeto (Nome)', rn, 'Projeto (Nome)', 'Alocações', errors)
+    valRequired(mn, 'Membro (Nome)', rn, 'Membro (Nome)', 'Alocações', errors)
+    valRequired(func, 'Função', rn, 'Função', 'Alocações', errors)
+    valRequired(start, 'Data Início', rn, 'Data Início', 'Alocações', errors)
+    valRequired(end, 'Data Fim', rn, 'Data Fim', 'Alocações', errors)
     if (pn && !projNames.has(pn))
       errors.push({
         sheet: 'Alocações',
@@ -274,7 +287,7 @@ export function validateImport(sheets: SheetData[]): {
     return {
       projectName: pn,
       memberName: mn,
-      function: String(gv(aSheet, row, 'Função')).trim(),
+      function: func,
       start_date: start,
       end_date: end,
       userEmail: ue,
@@ -311,13 +324,7 @@ export function validateImport(sheets: SheetData[]): {
     const ahRaw = gv(tSheet, row, 'Horas Alocadas')
     const ph = phRaw === '' ? 0 : Number(phRaw) || 0
     const ah = ahRaw === '' || ahRaw === undefined ? null : Number(ahRaw) || 0
-    if (!title)
-      errors.push({
-        sheet: 'Tarefas',
-        row: rn,
-        column: 'Título',
-        message: 'Campo obrigatório vazio.',
-      })
+    valRequired(title, 'Título', rn, 'Título', 'Tarefas', errors)
     if (pn && !projNames.has(pn))
       errors.push({
         sheet: 'Tarefas',

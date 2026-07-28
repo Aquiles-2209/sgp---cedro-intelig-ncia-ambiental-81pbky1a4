@@ -1,4 +1,5 @@
 import pb from '@/lib/pocketbase/client'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { getProjects } from '@/services/projects'
 import { getTeamMembers } from '@/services/team-members'
 import type { ParsedData } from './import-data'
@@ -43,19 +44,23 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
         skipP++
         continue
       }
-      const rec = await pb.collection('projects').create({
-        name: p.name,
-        description: p.description,
-        contract_id: p.contract_id,
-        client: p.client,
-        start_date: p.start_date,
-        end_date: p.end_date,
-        status: p.status,
-        setor: p.setor,
-      })
-      created.projects.push(rec.id)
-      projByName.set(p.name, rec.id)
-      cntP++
+      try {
+        const rec = await pb.collection('projects').create({
+          name: p.name,
+          description: p.description,
+          contract_id: p.contract_id,
+          client: p.client,
+          start_date: p.start_date,
+          end_date: p.end_date,
+          status: p.status,
+          setor: p.setor,
+        })
+        created.projects.push(rec.id)
+        projByName.set(p.name, rec.id)
+        cntP++
+      } catch (err) {
+        throw new Error(`Linha ${p._row} da aba Projetos: ${getErrorMessage(err)}`)
+      }
     }
 
     for (const m of data.members) {
@@ -63,17 +68,21 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
         skipM++
         continue
       }
-      const rec = await pb.collection('team_members').create({
-        name: m.name,
-        function: m.function,
-        setor: m.setor,
-        email: m.email,
-        role: m.role,
-      })
-      created.members.push(rec.id)
-      memberByEmail.set(m.email, rec.id)
-      memberByName.set(m.name, rec.id)
-      cntM++
+      try {
+        const rec = await pb.collection('team_members').create({
+          name: m.name,
+          function: m.function,
+          setor: m.setor,
+          email: m.email,
+          role: m.role,
+        })
+        created.members.push(rec.id)
+        memberByEmail.set(m.email, rec.id)
+        memberByName.set(m.name, rec.id)
+        cntM++
+      } catch (err) {
+        throw new Error(`Linha ${m._row} da aba Usuários (Equipe): ${getErrorMessage(err)}`)
+      }
     }
 
     const allocKey = new Map<string, string>()
@@ -90,17 +99,21 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
           /* no auth user */
         }
       }
-      const rec = await pb.collection('allocations').create({
-        project: projectId,
-        member_name: a.memberName,
-        function: a.function,
-        start_date: a.start_date,
-        end_date: a.end_date,
-        ...(userId ? { user: userId } : {}),
-      })
-      created.allocations.push(rec.id)
-      allocKey.set(`${projectId}:${a.memberName}`, rec.id)
-      cntA++
+      try {
+        const rec = await pb.collection('allocations').create({
+          project: projectId,
+          member_name: a.memberName,
+          function: a.function,
+          start_date: a.start_date,
+          end_date: a.end_date,
+          ...(userId ? { user: userId } : {}),
+        })
+        created.allocations.push(rec.id)
+        allocKey.set(`${projectId}:${a.memberName}`, rec.id)
+        cntA++
+      } catch (err) {
+        throw new Error(`Linha ${a._row} da aba Alocações: ${getErrorMessage(err)}`)
+      }
     }
 
     for (const t of data.tasks) {
@@ -121,15 +134,19 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
       if (t.allocated_hours !== null) taskData.allocated_hours = t.allocated_hours
       if (allocationId) taskData.allocation = allocationId
       if (memberId) taskData.members = [memberId]
-      const rec = await pb.collection('tasks').create(taskData)
-      created.tasks.push(rec.id)
-      if (memberId) {
-        const ta = await pb
-          .collection('task_assignments')
-          .create({ task: rec.id, team_member: memberId })
-        created.assignments.push(ta.id)
+      try {
+        const rec = await pb.collection('tasks').create(taskData)
+        created.tasks.push(rec.id)
+        if (memberId) {
+          const ta = await pb
+            .collection('task_assignments')
+            .create({ task: rec.id, team_member: memberId })
+          created.assignments.push(ta.id)
+        }
+        cntT++
+      } catch (err) {
+        throw new Error(`Linha ${t._row} da aba Tarefas: ${getErrorMessage(err)}`)
       }
-      cntT++
     }
 
     const parts: string[] = []
