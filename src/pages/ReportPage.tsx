@@ -1,5 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import { FileSpreadsheet, Loader2 } from 'lucide-react'
+
+function formatLaunchDate(dateStr: string): string {
+  if (!dateStr) return '—'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -151,6 +164,7 @@ export default function ReportPage() {
                   <TableHead>Nome do Usuário CEDRO da equipe</TableHead>
                   <TableHead>Nome da Atividade</TableHead>
                   <TableHead>Data de Lançamento da Atividade</TableHead>
+                  <TableHead>Data de Lançamento</TableHead>
                   <TableHead className="text-right">Total da Hora Prevista</TableHead>
                   <TableHead className="text-right">Total de horas</TableHead>
                 </TableRow>
@@ -164,6 +178,7 @@ export default function ReportPage() {
                     <TableCell>{row.memberName}</TableCell>
                     <TableCell>{row.activityTitle}</TableCell>
                     <TableCell>{row.activityLaunchDate}</TableCell>
+                    <TableCell>{formatLaunchDate(row.launchDate)}</TableCell>
                     <TableCell className="text-right">{row.plannedHours.toFixed(2)}</TableCell>
                     <TableCell className="text-right">{row.hoursWorked.toFixed(2)}</TableCell>
                   </TableRow>

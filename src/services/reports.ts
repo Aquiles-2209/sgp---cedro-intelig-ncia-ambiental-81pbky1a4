@@ -10,6 +10,7 @@ export interface ReportRow {
   memberName: string
   activityTitle: string
   activityLaunchDate: string
+  launchDate: string
   plannedHours: number
   allocatedHours: number
   hoursWorked: number
@@ -19,6 +20,7 @@ interface ReportGroup {
   memberName: string
   taskTitle: string
   activityDate: string
+  launchDate: string
   plannedHours: number
   allocatedHours: number
   hoursWorked: number
@@ -98,6 +100,7 @@ export async function fetchReportData(
           memberName: '—',
           activityTitle: '—',
           activityLaunchDate: '',
+          launchDate: '',
           plannedHours: 0,
           allocatedHours: 0,
           hoursWorked: 0,
@@ -131,10 +134,18 @@ export async function fetchReportData(
         const allTaskTimeEntries = timeEntriesByTask.get(task.id) || []
 
         const memberHoursMap = new Map<string, number>()
+        const memberLaunchDateMap = new Map<string, string>()
         for (const te of allTaskTimeEntries) {
           const memberName = resolveMemberName(te, allocationMap)
           const hours = (te.duration || 0) / 3600
           memberHoursMap.set(memberName, (memberHoursMap.get(memberName) || 0) + hours)
+          const created = te.created || ''
+          if (created) {
+            const existing = memberLaunchDateMap.get(memberName)
+            if (!existing || created < existing) {
+              memberLaunchDateMap.set(memberName, created)
+            }
+          }
         }
 
         const memberDateMap = new Map<string, string>()
@@ -159,6 +170,7 @@ export async function fetchReportData(
               memberName: '—',
               taskTitle,
               activityDate: '',
+              launchDate: '',
               plannedHours: task.planned_hours || 0,
               allocatedHours: task.allocated_hours || 0,
               hoursWorked: 0,
@@ -170,15 +182,20 @@ export async function fetchReportData(
         for (const [memberName, activityDate] of memberDateMap) {
           const key = `${memberName}||${taskTitle}`
           const hoursWorked = memberHoursMap.get(memberName) || 0
+          const launchDate = memberLaunchDateMap.get(memberName) || ''
 
           const existing = groupMap.get(key)
           if (existing) {
             existing.hoursWorked += hoursWorked
+            if (launchDate && (!existing.launchDate || launchDate < existing.launchDate)) {
+              existing.launchDate = launchDate
+            }
           } else {
             groupMap.set(key, {
               memberName,
               taskTitle,
               activityDate,
+              launchDate,
               plannedHours: task.planned_hours || 0,
               allocatedHours: task.allocated_hours || 0,
               hoursWorked,
@@ -195,6 +212,7 @@ export async function fetchReportData(
           memberName: group.memberName,
           activityTitle: group.taskTitle,
           activityLaunchDate: group.activityDate,
+          launchDate: group.launchDate,
           plannedHours: group.plannedHours,
           allocatedHours: group.allocatedHours,
           hoursWorked: group.hoursWorked,

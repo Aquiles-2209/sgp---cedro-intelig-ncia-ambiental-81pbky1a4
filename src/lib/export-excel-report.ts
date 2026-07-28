@@ -9,6 +9,19 @@ function formatDateBR(dateStr: string): string {
   return `${day}/${month}/${year}`
 }
 
+function formatDateTimeBR(dateStr: string): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export function exportExcelReport(rows: ReportRow[]): void {
   const headers = [
     'Cliente',
@@ -17,6 +30,7 @@ export function exportExcelReport(rows: ReportRow[]): void {
     'Nome Equipe',
     'Tarefa',
     'Data',
+    'Data de Lançamento',
     'Horas Previstas',
     'Horas Alocadas',
     'Horas Trabalhadas',
@@ -41,6 +55,7 @@ export function exportExcelReport(rows: ReportRow[]): void {
       { type: 'string' as const, value: row.memberName },
       { type: 'string' as const, value: showTask ? row.activityTitle : '' },
       { type: 'string' as const, value: formatDateBR(row.activityLaunchDate) },
+      { type: 'string' as const, value: formatDateTimeBR(row.launchDate) },
       { type: 'number' as const, value: Number(row.plannedHours.toFixed(2)) },
       { type: 'number' as const, value: Number(row.allocatedHours.toFixed(2)) },
       { type: 'number' as const, value: Number(row.hoursWorked.toFixed(2)) },
@@ -65,6 +80,7 @@ export function exportExcelReport(rows: ReportRow[]): void {
     { type: 'string' as const, value: '' },
     { type: 'string' as const, value: '' },
     { type: 'string' as const, value: 'TOTAL GERAL' },
+    { type: 'string' as const, value: '' },
     { type: 'string' as const, value: '' },
     { type: 'number' as const, value: Number(totalPlanned.toFixed(2)) },
     { type: 'number' as const, value: Number(totalAllocated.toFixed(2)) },
