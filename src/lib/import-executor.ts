@@ -12,6 +12,60 @@ export interface ImportResult {
   skipped: { projects: number; members: number }
 }
 
+const THROTTLE_MS = 200
+const RETRY_DELAY_MS = 3000
+const MAX_RETRIES = 2
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function isRateLimitError(err: unknown): boolean {
+  if (err && typeof err === 'object' && 'status' in err) {
+    return (err as { status: number }).status === 429
+  }
+  const msg = err instanceof Error ? err.message : String(err)
+  return msg.includes('429') || msg.toLowerCase().includes('too many requests')
+}
+
+function isRateLimitMessage(err: unknown): boolean {
+  return err instanceof Error && err.message.includes('Limite de requisições')
+}
+
+function rateLimitMessage(sheetName: string): string {
+  return `Limite de requisições atingido na aba ${sheetName}. Aguarde alguns segundos e tente novamente.`
+}
+
+async function withRetry<T>(fn: () => Promise<T>, sheetName: string): Promise<T> {
+  let lastErr: unknown
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastErr = err
+      if (isRateLimitError(err) && attempt < MAX_RETRIES) {
+        await delay(RETRY_DELAY_MS)
+        continue
+      }
+      if (isRateLimitError(err)) {
+        throw new Error(rateLimitMessage(sheetName))
+      }
+      throw err
+    }
+  }
+  throw lastErr
+}
+
+async function createThrottled(
+  collection: string,
+  data: Record<string, unknown>,
+  sheetName: string,
+): Promise<{ id: string }> {
+  const rec = await withRetry(() => pb.collection(collection).create(data), sheetName)
+  await delay(THROTTLE_MS)
+  return rec
+}
+
 export async function executeImport(data: ParsedData): Promise<ImportResult> {
   const created = {
     projects: [] as string[],
@@ -32,6 +86,12 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
       existingMembers.map((m: TeamMember) => [m.name, m.id]),
     )
 
+    const userCache = new Map<string, string>()
+    const allUsers = await withRetry(() => pb.collection('users').getFullList(), 'Alocações')
+    for (const u of allUsers as any[]) {
+      if (u.email) userCache.set(u.email, u.id)
+    }
+
     let skipP = 0,
       skipM = 0,
       cntP = 0,
@@ -45,20 +105,25 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
         continue
       }
       try {
-        const rec = await pb.collection('projects').create({
-          name: p.name,
-          description: p.description,
-          contract_id: p.contract_id,
-          client: p.client,
-          start_date: p.start_date,
-          end_date: p.end_date,
-          status: p.status,
-          setor: p.setor,
-        })
+        const rec = await createThrottled(
+          'projects',
+          {
+            name: p.name,
+            description: p.description,
+            contract_id: p.contract_id,
+            client: p.client,
+            start_date: p.start_date,
+            end_date: p.end_date,
+            status: p.status,
+            setor: p.setor,
+          },
+          'Projetos',
+        )
         created.projects.push(rec.id)
         projByName.set(p.name, rec.id)
         cntP++
       } catch (err) {
+        if (isRateLimitMessage(err)) throw err
         throw new Error(`Linha ${p._row} da aba Projetos: ${getErrorMessage(err)}`)
       }
     }
@@ -69,18 +134,23 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
         continue
       }
       try {
-        const rec = await pb.collection('team_members').create({
-          name: m.name,
-          function: m.function,
-          setor: m.setor,
-          email: m.email,
-          role: m.role,
-        })
+        const rec = await createThrottled(
+          'team_members',
+          {
+            name: m.name,
+            function: m.function,
+            setor: m.setor,
+            email: m.email,
+            role: m.role,
+          },
+          'Usuários (Equipe)',
+        )
         created.members.push(rec.id)
         memberByEmail.set(m.email, rec.id)
         memberByName.set(m.name, rec.id)
         cntM++
       } catch (err) {
+        if (isRateLimitMessage(err)) throw err
         throw new Error(`Linha ${m._row} da aba Usuários (Equipe): ${getErrorMessage(err)}`)
       }
     }
@@ -90,28 +160,25 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
       const projectId = projByName.get(a.projectName)
       if (!projectId)
         throw new Error(`Linha ${a._row} de Alocações: Projeto '${a.projectName}' não encontrado.`)
-      let userId: string | undefined
-      if (a.userEmail) {
-        try {
-          const user = await pb.collection('users').getFirstListItem(`email = "${a.userEmail}"`)
-          userId = user.id
-        } catch {
-          /* no auth user */
-        }
-      }
+      const userId = a.userEmail ? userCache.get(a.userEmail) : undefined
       try {
-        const rec = await pb.collection('allocations').create({
-          project: projectId,
-          member_name: a.memberName,
-          function: a.function,
-          start_date: a.start_date,
-          end_date: a.end_date,
-          ...(userId ? { user: userId } : {}),
-        })
+        const rec = await createThrottled(
+          'allocations',
+          {
+            project: projectId,
+            member_name: a.memberName,
+            function: a.function,
+            start_date: a.start_date,
+            end_date: a.end_date,
+            ...(userId ? { user: userId } : {}),
+          },
+          'Alocações',
+        )
         created.allocations.push(rec.id)
         allocKey.set(`${projectId}:${a.memberName}`, rec.id)
         cntA++
       } catch (err) {
+        if (isRateLimitMessage(err)) throw err
         throw new Error(`Linha ${a._row} da aba Alocações: ${getErrorMessage(err)}`)
       }
     }
@@ -135,16 +202,19 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
       if (allocationId) taskData.allocation = allocationId
       if (memberId) taskData.members = [memberId]
       try {
-        const rec = await pb.collection('tasks').create(taskData)
+        const rec = await createThrottled('tasks', taskData, 'Tarefas')
         created.tasks.push(rec.id)
         if (memberId) {
-          const ta = await pb
-            .collection('task_assignments')
-            .create({ task: rec.id, team_member: memberId })
+          const ta = await createThrottled(
+            'task_assignments',
+            { task: rec.id, team_member: memberId },
+            'Tarefas',
+          )
           created.assignments.push(ta.id)
         }
         cntT++
       } catch (err) {
+        if (isRateLimitMessage(err)) throw err
         throw new Error(`Linha ${t._row} da aba Tarefas: ${getErrorMessage(err)}`)
       }
     }

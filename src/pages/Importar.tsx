@@ -112,6 +112,7 @@ export default function Importar() {
       const r = await executeImport(parsed)
       setResult(r)
       setState('success')
+      toast({ title: 'Importação concluída com sucesso!', description: r.message })
     } catch (e) {
       const msg = `Erro ao importar: ${(e as Error).message}`
       setErrors([{ sheet: '', row: 0, column: '', message: msg }])
