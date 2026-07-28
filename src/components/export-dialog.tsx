@@ -60,23 +60,28 @@ export function ExportDialog({ projectId, projectName }: ExportDialogProps) {
     try {
       const projectData = await pb.collection('projects').getOne<Project>(projectId)
 
+      const allocationList = await pb.collection('allocations').getFullList<Allocation>({
+        filter: `project = "${projectId}"`,
+        sort: 'start_date',
+      })
+
+      if (allocationList.length === 0) {
+        toast({ title: 'Nenhuma alocação encontrada para este projeto.' })
+        return
+      }
+
       const taskList = await pb.collection('tasks').getFullList<Task>({
         filter: `project = "${projectId}"`,
       })
 
-      const taskIds = taskList.map((t) => t.id)
-      if (taskIds.length === 0) {
-        toast({ title: 'Nenhuma tarefa encontrada para este projeto.' })
-        return
-      }
-
-      const filterParts = taskIds.map((id) => `task = "${id}"`)
+      const allocationIds = allocationList.map((a) => a.id)
+      const allocFilterParts = allocationIds.map((id) => `allocation = "${id}"`)
       const timeEntryList = await pb.collection('time_entries').getFullList<TimeEntry>({
-        filter: `(${filterParts.join(' || ')}) && start_time >= "${startDate}" && start_time <= "${endDate}"`,
+        filter: `(${allocFilterParts.join(' || ')}) && start_time >= "${startDate}" && start_time <= "${endDate}"`,
         expand: 'team_member,task',
       })
 
-      exportProjectReport(projectData, [] as Allocation[], taskList, timeEntryList)
+      exportProjectReport(projectData, allocationList, taskList, timeEntryList)
       toast({ title: 'Relatório CSV exportado com sucesso!' })
       setOpen(false)
     } catch {

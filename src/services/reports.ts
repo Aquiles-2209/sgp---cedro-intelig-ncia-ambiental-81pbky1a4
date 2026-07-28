@@ -18,43 +18,63 @@ export async function fetchReportData(
   startDate: string,
   endDate: string,
 ): Promise<ReportRow[]> {
-  const projects = await pb.collection('projects').getFullList()
-  const projectMap = new Map<string, any>(projects.map((p: any) => [p.id, p]))
-
-  const timeEntries = await pb.collection('time_entries').getFullList({
-    filter: `start_time >= "${startDate}" && start_time <= "${endDate}"`,
-    sort: 'created',
-    expand: 'team_member,task',
-  })
-
   const rows: ReportRow[] = []
 
-  for (const te of timeEntries as any[]) {
-    const task = te.expand?.task
-    if (!task) continue
-    const projectId = task.project
-    if (!projectIds.includes(projectId)) continue
+  for (const projectId of projectIds) {
+    const project = await pb.collection('projects').getOne(projectId)
+    const projectSetor = (project as any).setor || '—'
 
-    const project = projectMap.get(projectId)
-    if (!project) continue
-
-    const teamMember = te.expand?.team_member
-    const memberName = teamMember?.name || '—'
-    const memberSector = teamMember?.setor || '—'
-    const activityDate = normalizeDate(te.start_time || te.created)
-    const hours = (te.duration || 0) / 3600
-
-    rows.push({
-      client: project.client || '—',
-      projectName: project.name,
-      memberSector,
-      memberName,
-      activityTitle: task.title || '—',
-      activityLaunchDate: activityDate,
-      plannedHours: task.planned_hours || 0,
-      allocatedHours: task.allocated_hours || 0,
-      hoursWorked: hours,
+    const allocations = await pb.collection('allocations').getFullList({
+      filter: `project = "${projectId}"`,
+      sort: 'start_date',
     })
+
+    if (allocations.length === 0) continue
+
+    const tasks = await pb.collection('tasks').getFullList({
+      filter: `project = "${projectId}"`,
+    })
+
+    const allocationIds = allocations.map((a: any) => a.id)
+    let timeEntries: any[] = []
+    if (allocationIds.length > 0) {
+      const allocFilter = allocationIds.map((id: string) => `allocation = "${id}"`).join(' || ')
+      timeEntries = await pb.collection('time_entries').getFullList({
+        filter: `(${allocFilter}) && start_time >= "${startDate}" && start_time <= "${endDate}"`,
+      })
+    }
+
+    for (const allocation of allocations as any[]) {
+      const allocTasks = (tasks as any[]).filter((t) => {
+        const ta = t.allocation
+        if (Array.isArray(ta)) return ta.includes(allocation.id)
+        return ta === allocation.id
+      })
+
+      const allocTimeEntries = timeEntries.filter((te) => te.allocation === allocation.id)
+
+      const plannedHours = allocTasks.reduce((sum, t) => sum + (t.planned_hours || 0), 0)
+      const allocatedHours = allocTasks.reduce((sum, t) => sum + (t.allocated_hours || 0), 0)
+      const hoursWorked = allocTimeEntries.reduce((sum, te) => sum + (te.duration || 0), 0) / 3600
+
+      const activityTitle =
+        allocTasks
+          .map((t) => t.title)
+          .filter(Boolean)
+          .join('; ') || '—'
+
+      rows.push({
+        client: (project as any).client || '—',
+        projectName: (project as any).name,
+        memberSector: projectSetor,
+        memberName: allocation.member_name || '—',
+        activityTitle,
+        activityLaunchDate: normalizeDate(allocation.start_date || ''),
+        plannedHours,
+        allocatedHours,
+        hoursWorked,
+      })
+    }
   }
 
   return rows.sort((a, b) => a.activityLaunchDate.localeCompare(b.activityLaunchDate))
