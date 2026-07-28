@@ -55,7 +55,10 @@ export default function AuditLogs() {
         <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
           <ScrollText className="h-8 w-8 text-primary" /> Logs de Auditoria
         </h1>
-        <p className="text-slate-500 mt-1">Registro de ações de criação e exclusão no sistema.</p>
+        <p className="text-slate-500 mt-1">
+          Registro de ações de criação e exclusão no sistema. Exibe o nome do usuário que realizou
+          cada ação.
+        </p>
       </div>
 
       <Card className="border-slate-200 shadow-sm">
@@ -86,7 +89,7 @@ export default function AuditLogs() {
                 {logs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="font-medium">
-                      {log.expand?.user?.name || 'Desconhecido'}
+                      {log.expand?.user?.name || log.expand?.user?.email || 'Usuário desconhecido'}
                     </TableCell>
                     <TableCell>
                       <Badge

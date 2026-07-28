@@ -14,6 +14,7 @@ export interface AuditLog {
       name: string
       email: string
       avatar?: string
+      role?: string
     }
   }
 }
