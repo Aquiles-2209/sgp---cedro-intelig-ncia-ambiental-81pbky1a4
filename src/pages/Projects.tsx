@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Plus, Search, Calendar, Users2, Briefcase, Pencil, Download, Loader2 } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
 import { useAuth } from '@/hooks/use-auth'
+import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -123,10 +124,18 @@ export default function Projects() {
           })
           const allocCount = getUniqueAllocatedCount(projAllocs, projTasks, projAssignments)
           const handleExport = () => exportProjectReport(project, projAllocs, projTasks)
+          const isUserAllocated = projAllocs.some((a) => {
+            const allocUser =
+              typeof a.user === 'string' ? a.user : (a as any)?.user?.id || a.expand?.user?.id
+            return allocUser === user?.id
+          })
           return (
             <Card
               key={project.id}
-              className="hover:shadow-md transition-all duration-300 hover:-translate-y-1 group"
+              className={cn(
+                'hover:shadow-md transition-all duration-300 hover:-translate-y-1 group',
+                !isAdmin && isUserAllocated && 'bg-green-50 border-green-200',
+              )}
             >
               <CardContent className="p-6 space-y-4">
                 <div className="flex justify-between items-start">
