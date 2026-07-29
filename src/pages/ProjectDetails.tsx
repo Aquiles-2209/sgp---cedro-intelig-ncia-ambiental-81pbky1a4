@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import {
   ArrowLeft,
   Edit,
@@ -99,6 +99,9 @@ export default function ProjectDetails() {
   useRealtime('task_assignments', () => loadTaskAssignments())
 
   if (!project) return <div className="p-8 text-center">Projeto não encontrado.</div>
+
+  const userAllocated = allocations.some((a) => a.project === id && a.user === user?.id)
+  if (!isAdmin && !userAllocated) return <Navigate to="/projetos" replace />
 
   const projAllocs = allocations.filter((a) => a.project === id)
   const projTasks = tasks.filter((t) => t.project === id)

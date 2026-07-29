@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
+import { useAuth } from '@/hooks/use-auth'
 import { ProjectStatus, normalizeDate } from '@/types/models'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,6 +42,8 @@ export default function ProjectEdit() {
   const navigate = useNavigate()
   const { projects, allocations, editProject, addAllocation, editAllocation, removeAllocation } =
     useAppState()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const project = projects.find((p) => p.id === id)
 
   const [form, setForm] = useState({
@@ -87,6 +90,7 @@ export default function ProjectEdit() {
   }, [allocations, id])
 
   if (!project) return <div className="p-8 text-center">Projeto não encontrado.</div>
+  if (!isAdmin) return <Navigate to="/projetos" replace />
 
   const update = (field: string, value: string) => setForm((prev) => ({ ...prev, [field]: value }))
   const updateAlloc = (allocId: string, field: keyof LocalAlloc, value: string) =>
