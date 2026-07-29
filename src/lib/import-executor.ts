@@ -10,6 +10,7 @@ export interface ImportResult {
   message: string
   counts: { projects: number; members: number; allocations: number; tasks: number }
   skipped: { projects: number; members: number }
+  emptyTitleRows: number[]
 }
 
 const THROTTLE_MS = 200
@@ -74,7 +75,7 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
     tasks: [] as string[],
     assignments: [] as string[],
   }
-
+  const emptyTitleRows: number[] = []
   try {
     const existingProjects = await getProjects()
     const existingMembers = await getTeamMembers()
@@ -184,6 +185,7 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
     }
 
     for (const t of data.tasks) {
+      if (t.hadEmptyTitle) emptyTitleRows.push(t._row)
       const projectId = projByName.get(t.projectName)
       if (!projectId)
         throw new Error(`Linha ${t._row} de Tarefas: Projeto '${t.projectName}' não encontrado.`)
@@ -237,6 +239,7 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
       message: msg,
       counts: { projects: cntP, members: cntM, allocations: cntA, tasks: cntT },
       skipped: { projects: skipP, members: skipM },
+      emptyTitleRows,
     }
   } catch (err) {
     for (const id of created.assignments)

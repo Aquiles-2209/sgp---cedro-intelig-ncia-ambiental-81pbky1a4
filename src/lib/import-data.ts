@@ -46,6 +46,7 @@ export interface ParsedTask {
   planned_hours: number
   allocated_hours: number | null
   _row: number
+  hadEmptyTitle: boolean
 }
 export interface ParsedData {
   projects: ParsedProject[]
@@ -315,7 +316,7 @@ export function validateImport(sheets: SheetData[]): {
   const tasks: ParsedTask[] = tSheet.rows.map((row, i) => {
     const rn = i + 2
     const pn = String(gv(tSheet, row, 'Projeto (Nome)')).trim()
-    const title = String(gv(tSheet, row, 'Título')).trim()
+    let title = String(gv(tSheet, row, 'Título')).trim()
     const status = String(gv(tSheet, row, 'Status')).trim()
     const mn = String(gv(tSheet, row, 'Alocação (Nome do Membro)')).trim()
     const start = normDate(gv(tSheet, row, 'Data Início'))
@@ -324,7 +325,10 @@ export function validateImport(sheets: SheetData[]): {
     const ahRaw = gv(tSheet, row, 'Horas Alocadas')
     const ph = phRaw === '' ? 0 : Number(phRaw) || 0
     const ah = ahRaw === '' || ahRaw === undefined ? null : Number(ahRaw) || 0
-    valRequired(title, 'Título', rn, 'Título', 'Tarefas', errors)
+    const hadEmptyTitle = !title
+    if (hadEmptyTitle) {
+      title = 'Tarefa sem título'
+    }
     if (pn && !projNames.has(pn))
       errors.push({
         sheet: 'Tarefas',
@@ -353,6 +357,7 @@ export function validateImport(sheets: SheetData[]): {
       planned_hours: ph,
       allocated_hours: ah,
       _row: rn,
+      hadEmptyTitle,
     }
   })
 

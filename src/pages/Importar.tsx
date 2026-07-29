@@ -316,6 +316,20 @@ export default function Importar() {
           <CardContent className="flex flex-col items-center gap-4 py-12">
             <CheckCircle2 className="h-16 w-16 text-green-500" />
             <p className="text-lg font-medium text-center">{result.message}</p>
+            {result.emptyTitleRows.length > 0 && (
+              <Alert className="max-w-lg">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <p className="font-medium mb-1">
+                    {result.emptyTitleRows.length} tarefa(s) com título vazio:
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Linhas: {result.emptyTitleRows.join(', ')} — título padrão &ldquo;Tarefa sem
+                    título&rdquo; aplicado. Você pode editá-las posteriormente.
+                  </p>
+                </AlertDescription>
+              </Alert>
+            )}
             <Button onClick={reset} size="lg">
               Nova Importação
             </Button>
