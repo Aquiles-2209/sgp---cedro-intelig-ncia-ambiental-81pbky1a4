@@ -10,6 +10,7 @@ export interface ImportResult {
   message: string
   counts: { projects: number; members: number; allocations: number; tasks: number }
   skipped: { projects: number; members: number }
+  skippedRows: { sheet: string; row: number; reason: string }[]
   emptyTitleRows: number[]
 }
 
@@ -158,6 +159,7 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
 
     const allocKey = new Map<string, string>()
     for (const a of data.allocations) {
+      if (!a.projectName) continue
       const projectId = projByName.get(a.projectName)
       if (!projectId)
         throw new Error(`Linha ${a._row} de Alocações: Projeto '${a.projectName}' não encontrado.`)
@@ -186,6 +188,7 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
 
     for (const t of data.tasks) {
       if (t.hadEmptyTitle) emptyTitleRows.push(t._row)
+      if (!t.projectName) continue
       const projectId = projByName.get(t.projectName)
       if (!projectId)
         throw new Error(`Linha ${t._row} de Tarefas: Projeto '${t.projectName}' não encontrado.`)
@@ -239,6 +242,7 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
       message: msg,
       counts: { projects: cntP, members: cntM, allocations: cntA, tasks: cntT },
       skipped: { projects: skipP, members: skipM },
+      skippedRows: data.skippedRows,
       emptyTitleRows,
     }
   } catch (err) {

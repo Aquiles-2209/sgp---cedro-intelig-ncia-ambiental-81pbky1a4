@@ -7,6 +7,12 @@ export interface ValidationError {
   message: string
 }
 
+export interface SkippedRow {
+  sheet: string
+  row: number
+  reason: string
+}
+
 export interface ParsedProject {
   name: string
   description: string
@@ -53,6 +59,7 @@ export interface ParsedData {
   members: ParsedMember[]
   allocations: ParsedAllocation[]
   tasks: ParsedTask[]
+  skippedRows: SkippedRow[]
 }
 
 const PROJECT_STATUS = ['Planejado', 'Em Andamento', 'Concluído']
@@ -71,6 +78,10 @@ function excelSerialToDate(serial: number): string {
 function normDate(val: string | number | undefined): string {
   if (typeof val === 'number' && val > 30000) return excelSerialToDate(val)
   return String(val ?? '').trim()
+}
+
+function isRowEmpty(row: (string | number)[]): boolean {
+  return row.every((cell) => cell === '' || cell === null || cell === undefined)
 }
 
 function checkCols(
@@ -149,6 +160,7 @@ export function validateImport(sheets: SheetData[]): {
   errors: ValidationError[]
 } {
   const errors: ValidationError[] = []
+  const skippedRows: SkippedRow[] = []
   const map = new Map(sheets.map((s) => [s.name, s]))
   const required = ['Projetos', 'Usuários (Equipe)', 'Alocações', 'Tarefas']
   for (const n of required) {
@@ -183,19 +195,32 @@ export function validateImport(sheets: SheetData[]): {
     'Projetos',
     errors,
   )
-  const projects: ParsedProject[] = pSheet.rows.map((row, i) => {
+  const projects: ParsedProject[] = []
+  for (let i = 0; i < pSheet.rows.length; i++) {
+    const row = pSheet.rows[i]
     const rn = i + 2
+    if (isRowEmpty(row)) {
+      skippedRows.push({ sheet: 'Projetos', row: rn, reason: 'linha vazia ignorada' })
+      continue
+    }
     const name = String(gv(pSheet, row, 'Nome do Projeto')).trim()
+    if (!name) {
+      skippedRows.push({
+        sheet: 'Projetos',
+        row: rn,
+        reason: 'Projeto não informado – linha ignorada',
+      })
+      continue
+    }
     const status = String(gv(pSheet, row, 'Status')).trim()
     const setor = String(gv(pSheet, row, 'Setor')).trim()
     const start = normDate(gv(pSheet, row, 'Data Início'))
     const end = normDate(gv(pSheet, row, 'Data Fim'))
-    valRequired(name, 'Nome do Projeto', rn, 'Nome do Projeto', 'Projetos', errors)
     valEnum(status, PROJECT_STATUS, rn, 'Status', 'Projetos', errors)
     valEnum(setor, PROJECT_SECTOR, rn, 'Setor', 'Projetos', errors)
     valDate(start, rn, 'Data Início', 'Projetos', errors)
     valDate(end, rn, 'Data Fim', 'Projetos', errors)
-    return {
+    projects.push({
       name,
       description: String(gv(pSheet, row, 'Descrição')).trim(),
       contract_id: String(gv(pSheet, row, 'Contrato')).trim(),
@@ -205,8 +230,8 @@ export function validateImport(sheets: SheetData[]): {
       status,
       setor,
       _row: rn,
-    }
-  })
+    })
+  }
 
   const mSheet = map.get('Usuários (Equipe)')!
   checkCols(
@@ -215,28 +240,41 @@ export function validateImport(sheets: SheetData[]): {
     'Usuários (Equipe)',
     errors,
   )
-  const members: ParsedMember[] = mSheet.rows.map((row, i) => {
+  const members: ParsedMember[] = []
+  for (let i = 0; i < mSheet.rows.length; i++) {
+    const row = mSheet.rows[i]
     const rn = i + 2
+    if (isRowEmpty(row)) {
+      skippedRows.push({ sheet: 'Usuários (Equipe)', row: rn, reason: 'linha vazia ignorada' })
+      continue
+    }
     const name = String(gv(mSheet, row, 'Nome')).trim()
+    if (!name) {
+      skippedRows.push({
+        sheet: 'Usuários (Equipe)',
+        row: rn,
+        reason: 'Nome não informado – linha ignorada',
+      })
+      continue
+    }
     const func = String(gv(mSheet, row, 'Função')).trim()
     const setor = String(gv(mSheet, row, 'Setor')).trim()
     const email = String(gv(mSheet, row, 'Email')).trim()
     const role = String(gv(mSheet, row, 'Role')).trim()
-    valRequired(name, 'Nome', rn, 'Nome', 'Usuários (Equipe)', errors)
     valRequired(func, 'função', rn, 'Função', 'Usuários (Equipe)', errors)
     valRequired(setor, 'setor', rn, 'Setor', 'Usuários (Equipe)', errors)
     valEmail(email, rn, 'Email', 'Usuários (Equipe)', errors)
     valEnum(setor, MEMBER_SETOR, rn, 'Setor', 'Usuários (Equipe)', errors)
     valEnum(role, MEMBER_ROLE, rn, 'Role', 'Usuários (Equipe)', errors)
-    return {
+    members.push({
       name,
       function: func,
       setor,
       email,
       role,
       _row: rn,
-    }
-  })
+    })
+  }
 
   const projNames = new Set(projects.map((p) => p.name))
   const memberNames = new Set(members.map((m) => m.name))
@@ -249,20 +287,33 @@ export function validateImport(sheets: SheetData[]): {
     'Alocações',
     errors,
   )
-  const allocations: ParsedAllocation[] = aSheet.rows.map((row, i) => {
+  const allocations: ParsedAllocation[] = []
+  for (let i = 0; i < aSheet.rows.length; i++) {
+    const row = aSheet.rows[i]
     const rn = i + 2
+    if (isRowEmpty(row)) {
+      skippedRows.push({ sheet: 'Alocações', row: rn, reason: 'linha vazia ignorada' })
+      continue
+    }
     const pn = String(gv(aSheet, row, 'Projeto (Nome)')).trim()
+    if (!pn) {
+      skippedRows.push({
+        sheet: 'Alocações',
+        row: rn,
+        reason: 'Projeto não informado – linha ignorada',
+      })
+      continue
+    }
     const mn = String(gv(aSheet, row, 'Membro (Nome)')).trim()
     const func = String(gv(aSheet, row, 'Função')).trim()
     const ue = String(gv(aSheet, row, 'Usuário (Email)')).trim()
     const start = normDate(gv(aSheet, row, 'Data Início'))
     const end = normDate(gv(aSheet, row, 'Data Fim'))
-    valRequired(pn, 'Projeto (Nome)', rn, 'Projeto (Nome)', 'Alocações', errors)
     valRequired(mn, 'Membro (Nome)', rn, 'Membro (Nome)', 'Alocações', errors)
     valRequired(func, 'Função', rn, 'Função', 'Alocações', errors)
     valRequired(start, 'Data Início', rn, 'Data Início', 'Alocações', errors)
     valRequired(end, 'Data Fim', rn, 'Data Fim', 'Alocações', errors)
-    if (pn && !projNames.has(pn))
+    if (!projNames.has(pn))
       errors.push({
         sheet: 'Alocações',
         row: rn,
@@ -285,7 +336,7 @@ export function validateImport(sheets: SheetData[]): {
       })
     valDate(start, rn, 'Data Início', 'Alocações', errors)
     valDate(end, rn, 'Data Fim', 'Alocações', errors)
-    return {
+    allocations.push({
       projectName: pn,
       memberName: mn,
       function: func,
@@ -293,8 +344,8 @@ export function validateImport(sheets: SheetData[]): {
       end_date: end,
       userEmail: ue,
       _row: rn,
-    }
-  })
+    })
+  }
 
   const tSheet = map.get('Tarefas')!
   checkCols(
@@ -313,9 +364,23 @@ export function validateImport(sheets: SheetData[]): {
     'Tarefas',
     errors,
   )
-  const tasks: ParsedTask[] = tSheet.rows.map((row, i) => {
+  const tasks: ParsedTask[] = []
+  for (let i = 0; i < tSheet.rows.length; i++) {
+    const row = tSheet.rows[i]
     const rn = i + 2
+    if (isRowEmpty(row)) {
+      skippedRows.push({ sheet: 'Tarefas', row: rn, reason: 'linha vazia ignorada' })
+      continue
+    }
     const pn = String(gv(tSheet, row, 'Projeto (Nome)')).trim()
+    if (!pn) {
+      skippedRows.push({
+        sheet: 'Tarefas',
+        row: rn,
+        reason: 'Projeto não informado – linha ignorada',
+      })
+      continue
+    }
     let title = String(gv(tSheet, row, 'Título')).trim()
     const status = String(gv(tSheet, row, 'Status')).trim()
     const mn = String(gv(tSheet, row, 'Alocação (Nome do Membro)')).trim()
@@ -329,7 +394,7 @@ export function validateImport(sheets: SheetData[]): {
     if (hadEmptyTitle) {
       title = 'Tarefa sem título'
     }
-    if (pn && !projNames.has(pn))
+    if (!projNames.has(pn))
       errors.push({
         sheet: 'Tarefas',
         row: rn,
@@ -346,7 +411,7 @@ export function validateImport(sheets: SheetData[]): {
     valEnum(status, TASK_STATUS, rn, 'Status', 'Tarefas', errors)
     valDate(start, rn, 'Data Início', 'Tarefas', errors)
     valDate(due, rn, 'Data Fim (Prazo)', 'Tarefas', errors)
-    return {
+    tasks.push({
       projectName: pn,
       title,
       description: String(gv(tSheet, row, 'Descrição')).trim(),
@@ -358,8 +423,11 @@ export function validateImport(sheets: SheetData[]): {
       allocated_hours: ah,
       _row: rn,
       hadEmptyTitle,
-    }
-  })
+    })
+  }
 
-  return { data: errors.length ? null : { projects, members, allocations, tasks }, errors }
+  return {
+    data: errors.length ? null : { projects, members, allocations, tasks, skippedRows },
+    errors,
+  }
 }
