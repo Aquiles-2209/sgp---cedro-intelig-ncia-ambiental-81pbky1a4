@@ -372,6 +372,10 @@ export function validateImport(sheets: SheetData[]): {
       skippedRows.push({ sheet: 'Tarefas', row: rn, reason: 'linha vazia ignorada' })
       continue
     }
+    const mn = String(gv(tSheet, row, 'Alocação (Nome do Membro)')).trim()
+    if (!mn || !mn.toUpperCase().includes('CEDRO')) {
+      continue
+    }
     const pn = String(gv(tSheet, row, 'Projeto (Nome)')).trim()
     if (!pn) {
       skippedRows.push({
@@ -383,7 +387,6 @@ export function validateImport(sheets: SheetData[]): {
     }
     let title = String(gv(tSheet, row, 'Título')).trim()
     const status = String(gv(tSheet, row, 'Status')).trim()
-    const mn = String(gv(tSheet, row, 'Alocação (Nome do Membro)')).trim()
     const start = normDate(gv(tSheet, row, 'Data Início'))
     const due = normDate(gv(tSheet, row, 'Data Fim (Prazo)'))
     const phRaw = gv(tSheet, row, 'Horas Previstas')
