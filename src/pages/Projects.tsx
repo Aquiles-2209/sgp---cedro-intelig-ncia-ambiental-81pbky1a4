@@ -132,7 +132,10 @@ export default function Projects() {
           return (
             <Card
               key={project.id}
-              className="hover:shadow-md transition-all duration-300 hover:-translate-y-1 group"
+              className={cn(
+                'hover:shadow-md transition-all duration-300 hover:-translate-y-1 group',
+                !isAdmin && isUserAllocated && 'bg-blue-400',
+              )}
             >
               <CardContent className="p-6 space-y-4">
                 <div className="flex justify-between items-start">
