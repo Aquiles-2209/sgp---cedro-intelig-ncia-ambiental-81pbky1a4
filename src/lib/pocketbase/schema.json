@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-29T16:27:20.840Z",
+  "generatedAt": "2026-07-29T16:37:26.389Z",
   "collections": [
     {
       "name": "users",
@@ -55,8 +55,8 @@
       "name": "projects",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.role = 'admin' || (@collection.allocations.project = id && @collection.allocations.user = @request.auth.id)",
-        "view": "@request.auth.role = 'admin' || (@collection.allocations.project = id && @collection.allocations.user = @request.auth.id)",
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
         "create": "@request.auth.role = 'admin'",
         "update": "@request.auth.role = 'admin'",
         "delete": "@request.auth.role = 'admin'"
@@ -203,8 +203,8 @@
       "name": "tasks",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.role = 'admin' || (@collection.allocations.project = project && @collection.allocations.user = @request.auth.id)",
-        "view": "@request.auth.role = 'admin' || (@collection.allocations.project = project && @collection.allocations.user = @request.auth.id)",
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
         "create": "@request.auth.role = 'admin'",
         "update": "@request.auth.role = 'admin'",
         "delete": "@request.auth.role = 'admin'"

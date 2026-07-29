@@ -165,7 +165,11 @@ export default function Projects() {
         {filtered.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center p-12 text-slate-500 bg-white rounded-xl border border-dashed border-slate-200">
             <Briefcase className="h-10 w-10 text-slate-300 mb-3" />
-            <p>Nenhum projeto encontrado.</p>
+            <p>
+              {!isAdmin && allocations.length === 0
+                ? 'Você não está alocado em nenhum projeto.'
+                : 'Nenhum projeto encontrado.'}
+            </p>
           </div>
         )}
       </div>
