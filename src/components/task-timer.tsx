@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Play, Pause } from 'lucide-react'
 import { TimeEntry, formatDuration, formatLiveTimer } from '@/types/models'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 interface MemberTimerProps {
   taskId: string
@@ -9,9 +10,17 @@ interface MemberTimerProps {
   timeEntries: TimeEntry[]
   onStart: (taskId: string, memberId: string) => Promise<void>
   onStop: (entryId: string) => Promise<void>
+  canStart?: boolean
 }
 
-export function MemberTimer({ taskId, memberId, timeEntries, onStart, onStop }: MemberTimerProps) {
+export function MemberTimer({
+  taskId,
+  memberId,
+  timeEntries,
+  onStart,
+  onStop,
+  canStart = true,
+}: MemberTimerProps) {
   const [elapsed, setElapsed] = useState(0)
 
   const activeEntry = timeEntries.find(
@@ -67,9 +76,17 @@ export function MemberTimer({ taskId, memberId, timeEntries, onStart, onStop }: 
     )
   }
 
+  const startDisabled = !canStart
+
   return (
     <div className="flex items-center gap-2">
-      <Button size="sm" variant="outline" className="h-7" onClick={handleStart}>
+      <Button
+        size="sm"
+        variant="outline"
+        className={cn('h-7', startDisabled && 'opacity-50 cursor-not-allowed')}
+        disabled={startDisabled}
+        onClick={handleStart}
+      >
         <Play className="h-3 w-3 mr-1" />
         <span className="text-xs">Iniciar</span>
       </Button>

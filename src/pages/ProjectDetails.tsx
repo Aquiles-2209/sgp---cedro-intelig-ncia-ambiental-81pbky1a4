@@ -120,6 +120,7 @@ export default function ProjectDetails() {
 
   const projAllocs = allocations.filter((a) => a.project === id)
   const projTasks = tasks.filter((t) => t.project === id)
+  const userAllocIds = projAllocs.filter((a) => a.user === user?.id).map((a) => a.id)
 
   const handleTaskStatusChange = async (taskId: string, status: TaskStatus) => {
     await editTask(taskId, { status })
@@ -407,6 +408,7 @@ export default function ProjectDetails() {
             projectId={id!}
             teamMembers={teamMembers}
             isAdmin={isAdmin}
+            userAllocIds={userAllocIds}
             onEdit={editTask}
             onEditStatus={handleTaskStatusChange}
             onDelete={handleTaskDelete}

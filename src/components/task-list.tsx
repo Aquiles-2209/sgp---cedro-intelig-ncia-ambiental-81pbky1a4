@@ -36,6 +36,7 @@ interface TaskListProps {
   projectId: string
   teamMembers: TeamMember[]
   isAdmin: boolean
+  userAllocIds: string[]
   onEdit: (id: string, data: Partial<Task>) => Promise<void>
   onEditStatus: (id: string, status: TaskStatus) => Promise<void>
   onDelete: (id: string) => Promise<void>
@@ -58,6 +59,7 @@ export function TaskList({
   projectId,
   teamMembers,
   isAdmin,
+  userAllocIds,
   onEdit,
   onEditStatus,
   onDelete,
@@ -84,6 +86,10 @@ export function TaskList({
         const taskMembers = allMemberIds
           .map((id) => teamMembers.find((m) => m.id === id))
           .filter(Boolean) as TeamMember[]
+        const canStartTimer =
+          isAdmin ||
+          (Array.isArray(task.allocation) &&
+            task.allocation.some((aid) => userAllocIds.includes(aid)))
 
         return (
           <div
@@ -195,6 +201,7 @@ export function TaskList({
                           timeEntries={timeEntries}
                           onStart={onStartTimer}
                           onStop={onStopTimer}
+                          canStart={canStartTimer}
                         />
                       </div>
                       <div className="flex items-center gap-4 mt-2 ml-5">
