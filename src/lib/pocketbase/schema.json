@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-29T17:43:44.247Z",
+  "generatedAt": "2026-07-29T18:01:23.755Z",
   "collections": [
     {
       "name": "users",
@@ -55,8 +55,8 @@
       "name": "projects",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.role = 'admin' || (@collection.allocations.project = id && @collection.allocations.user = @request.auth.id)",
-        "view": "@request.auth.role = 'admin' || (@collection.allocations.project = id && @collection.allocations.user = @request.auth.id)",
+        "list": "@request.auth.role = 'admin' || (@collection.allocations.project ?= id && @collection.allocations.user ?= @request.auth.id)",
+        "view": "@request.auth.role = 'admin' || (@collection.allocations.project ?= id && @collection.allocations.user ?= @request.auth.id)",
         "create": "@request.auth.role = 'admin'",
         "update": "@request.auth.role = 'admin'",
         "delete": "@request.auth.role = 'admin'"
@@ -133,8 +133,8 @@
       "name": "allocations",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.role = 'admin' || user = @request.auth.id",
-        "view": "@request.auth.role = 'admin' || user = @request.auth.id",
+        "list": "@request.auth.role = 'admin' || user ?= @request.auth.id",
+        "view": "@request.auth.role = 'admin' || user ?= @request.auth.id",
         "create": "@request.auth.role = 'admin'",
         "update": "@request.auth.role = 'admin'",
         "delete": "@request.auth.role = 'admin'"
@@ -203,8 +203,8 @@
       "name": "tasks",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
+        "list": "@request.auth.role = 'admin' || (@collection.allocations.project ?= project && @collection.allocations.user ?= @request.auth.id)",
+        "view": "@request.auth.role = 'admin' || (@collection.allocations.project ?= project && @collection.allocations.user ?= @request.auth.id)",
         "create": "@request.auth.role = 'admin'",
         "update": "@request.auth.role = 'admin'",
         "delete": "@request.auth.role = 'admin'"

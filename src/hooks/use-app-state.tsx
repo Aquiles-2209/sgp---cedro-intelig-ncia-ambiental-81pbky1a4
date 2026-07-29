@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
+import { useAuth } from '@/hooks/use-auth'
+import { useRealtime } from '@/hooks/use-realtime'
 import { getProjects, createProject, updateProject, deleteProject } from '@/services/projects'
 import {
   getAllocations,
@@ -14,14 +16,14 @@ import {
   deleteTimeEntry,
 } from '@/services/time-entries'
 import {
+  getTaskAssignments,
   createTaskAssignment,
   updateTaskAssignment,
   deleteTaskAssignment,
 } from '@/services/task-assignments'
-import { useRealtime } from '@/hooks/use-realtime'
 import type { Project, Allocation, Task, TimeEntry, TaskAssignment } from '@/types/models'
 
-interface AppStateContextType {
+interface AppStateType {
   projects: Project[]
   allocations: Allocation[]
   tasks: Task[]
@@ -44,7 +46,7 @@ interface AppStateContextType {
   removeTaskAssignment: (id: string) => Promise<void>
 }
 
-const AppStateContext = createContext<AppStateContextType | undefined>(undefined)
+const AppStateContext = createContext<AppStateType | undefined>(undefined)
 
 export const useAppState = () => {
   const context = useContext(AppStateContext)
@@ -53,6 +55,7 @@ export const useAppState = () => {
 }
 
 export const AppStateProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth()
   const [projects, setProjects] = useState<Project[]>([])
   const [allocations, setAllocations] = useState<Allocation[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
@@ -60,22 +63,29 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true)
 
   const loadData = useCallback(async () => {
-    const results = await Promise.allSettled([
-      getProjects(),
-      getAllocations(),
-      getTasks(),
-      getTimeEntries(),
-    ])
-    if (results[0].status === 'fulfilled') setProjects(results[0].value)
-    if (results[1].status === 'fulfilled') setAllocations(results[1].value)
-    if (results[2].status === 'fulfilled') setTasks(results[2].value)
-    if (results[3].status === 'fulfilled') setTimeEntries(results[3].value)
-    setLoading(false)
+    try {
+      const [p, a, t, te] = await Promise.all([
+        getProjects(),
+        getAllocations(),
+        getTasks(),
+        getTimeEntries(),
+      ])
+      setProjects(p)
+      setAllocations(a)
+      setTasks(t)
+      setTimeEntries(te)
+    } catch (err) {
+      console.error('Failed to load app state:', err)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
+    if (!user) return
+    setLoading(true)
     loadData()
-  }, [loadData])
+  }, [user, loadData])
 
   useRealtime('projects', () => loadData())
   useRealtime('allocations', () => loadData())
@@ -88,21 +98,19 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   }
   const editProject = async (id: string, data: Partial<Project>) => {
     const updated = await updateProject(id, data)
-    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...updated } : p)))
+    setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)))
   }
   const removeProject = async (id: string) => {
     await deleteProject(id)
     setProjects((prev) => prev.filter((p) => p.id !== id))
-    setAllocations((prev) => prev.filter((a) => a.project !== id))
-    setTasks((prev) => prev.filter((t) => t.project !== id))
   }
   const addAllocation = async (data: Partial<Allocation>) => {
     const created = await createAllocation(data)
-    setAllocations((prev) => [created, ...prev])
+    setAllocations((prev) => [...prev, created])
   }
   const editAllocation = async (id: string, data: Partial<Allocation>) => {
     const updated = await updateAllocation(id, data)
-    setAllocations((prev) => prev.map((a) => (a.id === id ? { ...a, ...updated } : a)))
+    setAllocations((prev) => prev.map((a) => (a.id === id ? updated : a)))
   }
   const removeAllocation = async (id: string) => {
     await deleteAllocation(id)
@@ -114,20 +122,19 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   }
   const editTask = async (id: string, data: Partial<Task>) => {
     const updated = await updateTask(id, data)
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...updated } : t)))
+    setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)))
   }
   const removeTask = async (id: string) => {
     await deleteTask(id)
     setTasks((prev) => prev.filter((t) => t.id !== id))
-    setTimeEntries((prev) => prev.filter((te) => te.task !== id))
   }
   const addTimeEntry = async (data: Partial<TimeEntry>) => {
     const created = await createTimeEntry(data)
-    setTimeEntries((prev) => [created, ...prev])
+    setTimeEntries((prev) => [...prev, created])
   }
   const editTimeEntry = async (id: string, data: Partial<TimeEntry>) => {
     const updated = await updateTimeEntry(id, data)
-    setTimeEntries((prev) => prev.map((te) => (te.id === id ? { ...te, ...updated } : te)))
+    setTimeEntries((prev) => prev.map((te) => (te.id === id ? updated : te)))
   }
   const removeTimeEntry = async (id: string) => {
     await deleteTimeEntry(id)
