@@ -373,7 +373,7 @@ export function validateImport(sheets: SheetData[]): {
       continue
     }
     const mn = String(gv(tSheet, row, 'Alocação (Nome do Membro)')).trim()
-    if (!mn || !mn.toUpperCase().includes('CEDRO')) {
+    if (!mn) {
       continue
     }
     const pn = String(gv(tSheet, row, 'Projeto (Nome)')).trim()
