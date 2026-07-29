@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Search, Calendar, Users2, Briefcase, Pencil, Download } from 'lucide-react'
+import { Plus, Search, Calendar, Users2, Briefcase, Pencil, Download, Loader2 } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
 import { useAuth } from '@/hooks/use-auth'
 import { Input } from '@/components/ui/input'
@@ -18,7 +18,7 @@ const statusColors: Record<ProjectStatus, string> = {
 
 export default function Projects() {
   const { projects, allocations, tasks, loading } = useAppState()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const isAdmin = user?.role === 'admin'
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('todos')
@@ -33,7 +33,7 @@ export default function Projects() {
     return matchSearch && matchStatus && matchAllocation
   })
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="space-y-6 animate-fade-in-up">
         <div className="h-8 w-48 bg-slate-100 rounded animate-pulse" />
@@ -166,8 +166,8 @@ export default function Projects() {
           <div className="col-span-full flex flex-col items-center justify-center p-12 text-slate-500 bg-white rounded-xl border border-dashed border-slate-200">
             <Briefcase className="h-10 w-10 text-slate-300 mb-3" />
             <p>
-              {!isAdmin && allocations.length === 0
-                ? 'Você não está alocado em nenhum projeto.'
+              {!isAdmin && (allocations.length === 0 || filtered.length === 0)
+                ? 'Você não está alocado em nenhum projeto no momento.'
                 : 'Nenhum projeto encontrado.'}
             </p>
           </div>
