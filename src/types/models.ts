@@ -127,4 +127,56 @@ export function formatLiveTimer(seconds: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+export function filterAllocationsByProject(
+  allocations: Allocation[],
+  projectId: string,
+): Allocation[] {
+  if (!allocations || !projectId) return []
+  return allocations.filter((a) => {
+    if (!a.project) return false
+    if (typeof a.project === 'string') {
+      return a.project === projectId
+    }
+    if (typeof a.project === 'object') {
+      return (a.project as any)?.id === projectId || a.expand?.project?.id === projectId
+    }
+    return a.expand?.project?.id === projectId
+  })
+}
+
+export function getUniqueAllocatedCount(projAllocs: Allocation[]): number {
+  if (!projAllocs || projAllocs.length === 0) return 0
+
+  const nameToUserMap = new Map<string, string>()
+
+  projAllocs.forEach((a) => {
+    const userId = typeof a.user === 'string' ? a.user.trim() : (a.user as any)?.id?.trim()
+    const name = (a.member_name || a.expand?.user?.name || '').trim().toLowerCase()
+
+    if (userId && name) {
+      nameToUserMap.set(name, userId)
+    }
+  })
+
+  const uniqueIdentities = new Set<string>()
+
+  projAllocs.forEach((a) => {
+    const userId = typeof a.user === 'string' ? a.user.trim() : (a.user as any)?.id?.trim()
+    const rawName = (a.member_name || a.expand?.user?.name || '').trim().toLowerCase()
+
+    if (userId) {
+      uniqueIdentities.add(`user:${userId}`)
+    } else if (rawName) {
+      const knownUserId = nameToUserMap.get(rawName)
+      if (knownUserId) {
+        uniqueIdentities.add(`user:${knownUserId}`)
+      } else {
+        uniqueIdentities.add(`name:${rawName}`)
+      }
+    }
+  })
+
+  return uniqueIdentities.size
+}
+
 import { differenceInDays } from 'date-fns'

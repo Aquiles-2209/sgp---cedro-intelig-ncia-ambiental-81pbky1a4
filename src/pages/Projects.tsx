@@ -7,7 +7,12 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ProjectStatus, normalizeDate } from '@/types/models'
+import {
+  ProjectStatus,
+  normalizeDate,
+  filterAllocationsByProject,
+  getUniqueAllocatedCount,
+} from '@/types/models'
 import { exportProjectReport } from '@/lib/export-report'
 
 const statusColors: Record<ProjectStatus, string> = {
@@ -92,17 +97,8 @@ export default function Projects() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {filtered.map((project) => {
-          const projAllocs = allocations.filter(
-            (a) =>
-              a.project === project.id ||
-              (typeof a.project === 'object' && (a.project as any)?.id === project.id),
-          )
-          const uniqueUsers = new Set(
-            projAllocs
-              .map((a) => (a.member_name ? a.member_name.trim().toLowerCase() : a.user))
-              .filter((v): v is string => Boolean(v && v.length > 0)),
-          )
-          const allocCount = uniqueUsers.size
+          const projAllocs = filterAllocationsByProject(allocations, project.id)
+          const allocCount = getUniqueAllocatedCount(projAllocs)
           const projTasks = tasks.filter((t) => t.project === project.id)
           const handleExport = () => exportProjectReport(project, projAllocs, projTasks)
           return (

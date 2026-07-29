@@ -2,7 +2,7 @@ import pb from '@/lib/pocketbase/client'
 import { Allocation } from '@/types/models'
 
 export const getAllocations = async (): Promise<Allocation[]> =>
-  pb.collection('allocations').getFullList({ sort: '-created', expand: 'project' })
+  pb.collection('allocations').getFullList({ sort: '-created', expand: 'project,user' })
 
 export const getAllocationsByProject = async (projectId: string): Promise<Allocation[]> =>
   pb
