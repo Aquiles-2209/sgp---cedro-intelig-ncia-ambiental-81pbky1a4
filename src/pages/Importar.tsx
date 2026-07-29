@@ -116,11 +116,9 @@ export default function Importar() {
         r.emptyTitleRows.length > 0
           ? ` Linhas ${r.emptyTitleRows.join(', ')}: título preenchido automaticamente como 'Tarefa sem título'.`
           : ''
-      const skippedSummary =
-        r.skippedRows.length > 0 ? ` ${r.skippedRows.length} linha(s) ignorada(s).` : ''
       toast({
         title: 'Importação concluída com sucesso!',
-        description: r.message + emptyTitleSummary + skippedSummary,
+        description: r.message + emptyTitleSummary,
       })
     } catch (e) {
       const msg = `Erro ao importar: ${(e as Error).message}`
@@ -257,20 +255,6 @@ export default function Importar() {
                   </span>
                 ))}
               </div>
-              {parsed.skippedRows.length > 0 && (
-                <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30">
-                  <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                    Linhas ignoradas durante a validação:
-                  </p>
-                  <ul className="mt-1 space-y-1">
-                    {parsed.skippedRows.map((sr, i) => (
-                      <li key={i} className="text-xs text-amber-600 dark:text-amber-500">
-                        Linha {sr.row} ({sr.sheet}): {sr.reason}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -352,23 +336,6 @@ export default function Importar() {
                     Linhas {result.emptyTitleRows.join(', ')}: título preenchido automaticamente
                     como &ldquo;Tarefa sem título&rdquo;.
                   </p>
-                </AlertDescription>
-              </Alert>
-            )}
-            {result.skippedRows.length > 0 && (
-              <Alert className="max-w-lg">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  <p className="text-sm font-medium">
-                    {result.skippedRows.length} linha(s) ignorada(s):
-                  </p>
-                  <ul className="mt-1 space-y-1">
-                    {result.skippedRows.map((sr, i) => (
-                      <li key={i} className="text-sm">
-                        Linha {sr.row} ({sr.sheet}): {sr.reason}
-                      </li>
-                    ))}
-                  </ul>
                 </AlertDescription>
               </Alert>
             )}
