@@ -28,7 +28,17 @@ export default function Projects() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('todos')
 
-  const filtered = projects.filter((p) => {
+  const visibleProjects = isAdmin
+    ? projects
+    : projects.filter((p) =>
+        allocations.some((a) => {
+          const allocUser =
+            typeof a.user === 'string' ? a.user : (a as any)?.user?.id || a.expand?.user?.id
+          return allocUser === user?.id && filterAllocationsByProject(allocations, p.id).length > 0
+        }),
+      )
+
+  const filtered = visibleProjects.filter((p) => {
     const matchSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.contract_id.toLowerCase().includes(search.toLowerCase())
