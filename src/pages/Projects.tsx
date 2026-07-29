@@ -28,9 +28,7 @@ export default function Projects() {
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.contract_id.toLowerCase().includes(search.toLowerCase())
     const matchStatus = statusFilter === 'todos' || p.status === statusFilter
-    const matchAllocation =
-      isAdmin || allocations.some((a) => a.project === p.id && a.user === user?.id)
-    return matchSearch && matchStatus && matchAllocation
+    return matchSearch && matchStatus
   })
 
   if (loading || authLoading) {
