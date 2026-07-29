@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate, Navigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   Edit,
@@ -72,6 +72,7 @@ export default function ProjectDetails() {
   const [localTaskAssignments, setLocalTaskAssignments] = useState<TaskAssignment[]>([])
   const [savingAssignmentKey, setSavingAssignmentKey] = useState<string>('')
   const project = projects.find((p) => p.id === id)
+  const userAllocated = allocations.some((a) => a.project === id && a.user === user?.id)
 
   const loadTeamMembers = useCallback(async () => {
     try {
@@ -99,15 +100,24 @@ export default function ProjectDetails() {
   useRealtime('team_members', () => loadTeamMembers())
   useRealtime('task_assignments', () => loadTaskAssignments())
 
+  useEffect(() => {
+    if (!loading && project && !isAdmin && !userAllocated) {
+      toast({
+        title: 'Você não tem permissão para acessar este projeto.',
+        variant: 'destructive',
+      })
+      navigate('/projetos', { replace: true })
+    }
+  }, [loading, project, isAdmin, userAllocated, toast, navigate])
+
   if (!project) {
     if (loading) return <div className="p-8 text-center text-slate-500">Carregando projeto...</div>
     return <div className="p-8 text-center text-slate-500">Projeto não encontrado.</div>
   }
 
-  const userAllocated = allocations.some((a) => a.project === id && a.user === user?.id)
   if (!isAdmin && !userAllocated) {
     if (loading) return <div className="p-8 text-center text-slate-500">Carregando...</div>
-    return <Navigate to="/projetos" replace />
+    return <div className="p-8 text-center text-slate-500">Redirecionando...</div>
   }
 
   const projAllocs = allocations.filter((a) => a.project === id)
