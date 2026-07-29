@@ -22,7 +22,7 @@ const statusColors: Record<ProjectStatus, string> = {
 }
 
 export default function Projects() {
-  const { projects, allocations, tasks, loading } = useAppState()
+  const { projects, allocations, tasks, taskAssignments, loading } = useAppState()
   const { user, loading: authLoading } = useAuth()
   const isAdmin = user?.role === 'admin'
   const [search, setSearch] = useState('')
@@ -98,8 +98,20 @@ export default function Projects() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {filtered.map((project) => {
           const projAllocs = filterAllocationsByProject(allocations, project.id)
-          const allocCount = getUniqueAllocatedCount(projAllocs)
-          const projTasks = tasks.filter((t) => t.project === project.id)
+          const projTasks = tasks.filter((t) => {
+            const pId =
+              typeof t.project === 'string'
+                ? t.project
+                : (t.project as any)?.id || t.expand?.project?.id
+            return pId === project.id
+          })
+          const projAssignments = (taskAssignments || []).filter((ta) => {
+            const taskObj = ta.expand?.task
+            const pId =
+              typeof taskObj?.project === 'string' ? taskObj.project : taskObj?.project?.id
+            return pId === project.id || projTasks.some((t) => t.id === ta.task)
+          })
+          const allocCount = getUniqueAllocatedCount(projAllocs, projTasks, projAssignments)
           const handleExport = () => exportProjectReport(project, projAllocs, projTasks)
           return (
             <Card

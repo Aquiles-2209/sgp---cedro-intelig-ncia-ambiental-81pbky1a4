@@ -132,51 +132,170 @@ export function filterAllocationsByProject(
   projectId: string,
 ): Allocation[] {
   if (!allocations || !projectId) return []
+  const targetId = projectId.trim()
   return allocations.filter((a) => {
     if (!a.project) return false
-    if (typeof a.project === 'string') {
-      return a.project === projectId
-    }
-    if (typeof a.project === 'object') {
-      return (a.project as any)?.id === projectId || a.expand?.project?.id === projectId
-    }
-    return a.expand?.project?.id === projectId
+    const projId =
+      typeof a.project === 'string'
+        ? a.project.trim()
+        : (a.project as any)?.id?.trim() || a.expand?.project?.id?.trim() || ''
+    return projId === targetId
   })
 }
 
-export function getUniqueAllocatedCount(projAllocs: Allocation[]): number {
-  if (!projAllocs || projAllocs.length === 0) return 0
+export function getUniqueAllocatedCount(
+  projAllocs: Allocation[] = [],
+  projTasks: Task[] = [],
+  projTaskAssignments: TaskAssignment[] = [],
+): number {
+  const allocs = projAllocs || []
+  const tasks = projTasks || []
+  const assignments = projTaskAssignments || []
 
-  const nameToUserMap = new Map<string, string>()
+  if (allocs.length === 0 && tasks.length === 0 && assignments.length === 0) {
+    return 0
+  }
 
-  projAllocs.forEach((a) => {
-    const userId = typeof a.user === 'string' ? a.user.trim() : (a.user as any)?.id?.trim()
-    const name = (a.member_name || a.expand?.user?.name || '').trim().toLowerCase()
+  interface IdentityRef {
+    userId?: string
+    teamMemberId?: string
+    email?: string
+    name?: string
+    fallbackKey?: string
+  }
 
-    if (userId && name) {
-      nameToUserMap.set(name, userId)
+  const refs: IdentityRef[] = []
+
+  // 1. Process allocations
+  allocs.forEach((a) => {
+    const rawUser = a.user
+    const userId = typeof rawUser === 'string' ? rawUser.trim() : (rawUser as any)?.id?.trim()
+    const expandedUser = (a.expand as any)?.user
+    const finalUserId = userId || expandedUser?.id?.trim()
+    const email = (expandedUser?.email || '').trim().toLowerCase()
+    const name = (a.member_name || expandedUser?.name || '').trim().toLowerCase()
+
+    if (finalUserId || email || (name && name !== '-' && name !== 'n/a')) {
+      refs.push({
+        userId: finalUserId || undefined,
+        email: email && email.includes('@') ? email : undefined,
+        name: name && name !== '-' && name !== 'n/a' ? name : undefined,
+      })
+    } else {
+      refs.push({ fallbackKey: `alloc:${a.id}` })
     }
   })
 
-  const uniqueIdentities = new Set<string>()
+  // 2. Process task assignments
+  assignments.forEach((ta) => {
+    const rawTm = ta.team_member
+    const tmId = typeof rawTm === 'string' ? rawTm.trim() : (rawTm as any)?.id?.trim()
+    const expandedTm = ta.expand?.team_member
+    const finalTmId = tmId || expandedTm?.id?.trim()
+    const email = (expandedTm?.email || '').trim().toLowerCase()
+    const name = (expandedTm?.name || '').trim().toLowerCase()
 
-  projAllocs.forEach((a) => {
-    const userId = typeof a.user === 'string' ? a.user.trim() : (a.user as any)?.id?.trim()
-    const rawName = (a.member_name || a.expand?.user?.name || '').trim().toLowerCase()
+    if (finalTmId || email || (name && name !== '-' && name !== 'n/a')) {
+      refs.push({
+        teamMemberId: finalTmId || undefined,
+        email: email && email.includes('@') ? email : undefined,
+        name: name && name !== '-' && name !== 'n/a' ? name : undefined,
+      })
+    } else {
+      refs.push({ fallbackKey: `ta:${ta.id}` })
+    }
+  })
 
-    if (userId) {
-      uniqueIdentities.add(`user:${userId}`)
-    } else if (rawName) {
-      const knownUserId = nameToUserMap.get(rawName)
-      if (knownUserId) {
-        uniqueIdentities.add(`user:${knownUserId}`)
-      } else {
-        uniqueIdentities.add(`name:${rawName}`)
+  // 3. Process task direct members
+  tasks.forEach((t) => {
+    if (Array.isArray(t.members)) {
+      t.members.forEach((m: any) => {
+        const tmId = typeof m === 'string' ? m.trim() : m?.id?.trim()
+        const name = (m?.name || '').trim().toLowerCase()
+        const email = (m?.email || '').trim().toLowerCase()
+        if (tmId || email || name) {
+          refs.push({
+            teamMemberId: tmId || undefined,
+            email: email && email.includes('@') ? email : undefined,
+            name: name && name !== '-' && name !== 'n/a' ? name : undefined,
+          })
+        }
+      })
+    }
+    if (Array.isArray(t.expand?.members)) {
+      t.expand.members.forEach((m: any) => {
+        const tmId = m?.id?.trim()
+        const name = (m?.name || '').trim().toLowerCase()
+        const email = (m?.email || '').trim().toLowerCase()
+        if (tmId || email || name) {
+          refs.push({
+            teamMemberId: tmId || undefined,
+            email: email && email.includes('@') ? email : undefined,
+            name: name && name !== '-' && name !== 'n/a' ? name : undefined,
+          })
+        }
+      })
+    }
+  })
+
+  if (refs.length === 0) return 0
+
+  const nameToUsers = new Map<string, Set<string>>()
+  const emailToUsers = new Map<string, Set<string>>()
+
+  refs.forEach((r) => {
+    const explicitId = r.userId
+      ? `usr:${r.userId}`
+      : r.teamMemberId
+        ? `tm:${r.teamMemberId}`
+        : undefined
+    if (explicitId) {
+      if (r.name) {
+        if (!nameToUsers.has(r.name)) nameToUsers.set(r.name, new Set())
+        nameToUsers.get(r.name)!.add(explicitId)
+      }
+      if (r.email) {
+        if (!emailToUsers.has(r.email)) emailToUsers.set(r.email, new Set())
+        emailToUsers.get(r.email)!.add(explicitId)
       }
     }
   })
 
-  return uniqueIdentities.size
+  const groups = new Set<string>()
+
+  refs.forEach((r, idx) => {
+    if (r.userId) {
+      groups.add(`usr:${r.userId}`)
+      return
+    }
+    if (r.teamMemberId) {
+      groups.add(`tm:${r.teamMemberId}`)
+      return
+    }
+    if (r.email) {
+      const mapped = emailToUsers.get(r.email)
+      if (mapped && mapped.size === 1) {
+        groups.add(Array.from(mapped)[0])
+        return
+      } else if (!mapped || mapped.size === 0) {
+        groups.add(`email:${r.email}`)
+        return
+      }
+    }
+    if (r.name) {
+      const mapped = nameToUsers.get(r.name)
+      if (mapped && mapped.size === 1) {
+        groups.add(Array.from(mapped)[0])
+        return
+      } else if (!mapped || mapped.size === 0) {
+        groups.add(`name:${r.name}`)
+        return
+      }
+    }
+    groups.add(`fallback:${r.fallbackKey || idx}`)
+  })
+
+  return groups.size
 }
 
 import { differenceInDays } from 'date-fns'

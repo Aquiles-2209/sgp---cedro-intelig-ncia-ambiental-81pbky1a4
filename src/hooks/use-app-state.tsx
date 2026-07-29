@@ -28,6 +28,7 @@ interface AppStateType {
   allocations: Allocation[]
   tasks: Task[]
   timeEntries: TimeEntry[]
+  taskAssignments: TaskAssignment[]
   loading: boolean
   addProject: (data: Partial<Project>) => Promise<void>
   editProject: (id: string, data: Partial<Project>) => Promise<void>
@@ -60,20 +61,23 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const [allocations, setAllocations] = useState<Allocation[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([])
+  const [taskAssignments, setTaskAssignments] = useState<TaskAssignment[]>([])
   const [loading, setLoading] = useState(true)
 
   const loadData = useCallback(async () => {
     try {
-      const [p, a, t, te] = await Promise.all([
+      const [p, a, t, te, ta] = await Promise.all([
         getProjects(),
         getAllocations(),
         getTasks(),
         getTimeEntries(),
+        getTaskAssignments().catch(() => []),
       ])
       setProjects(p)
       setAllocations(a)
       setTasks(t)
       setTimeEntries(te)
+      setTaskAssignments(ta)
     } catch (err) {
       console.error('Failed to load app state:', err)
     } finally {
@@ -91,6 +95,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   useRealtime('allocations', () => loadData())
   useRealtime('tasks', () => loadData())
   useRealtime('time_entries', () => loadData())
+  useRealtime('task_assignments', () => loadData())
 
   const addProject = async (data: Partial<Project>) => {
     const created = await createProject(data)
@@ -157,6 +162,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         allocations,
         tasks,
         timeEntries,
+        taskAssignments,
         loading,
         addProject,
         editProject,
