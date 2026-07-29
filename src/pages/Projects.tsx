@@ -17,7 +17,7 @@ const statusColors: Record<ProjectStatus, string> = {
 }
 
 export default function Projects() {
-  const { projects, allocations, tasks } = useAppState()
+  const { projects, allocations, tasks, loading } = useAppState()
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
   const [search, setSearch] = useState('')
@@ -32,6 +32,23 @@ export default function Projects() {
       isAdmin || allocations.some((a) => a.project === p.id && a.user === user?.id)
     return matchSearch && matchStatus && matchAllocation
   })
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-fade-in-up">
+        <div className="h-8 w-48 bg-slate-100 rounded animate-pulse" />
+        <div className="flex gap-4 mb-6">
+          <div className="h-10 flex-1 max-w-md bg-slate-100 rounded animate-pulse" />
+          <div className="h-10 w-40 bg-slate-100 rounded animate-pulse" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-48 bg-slate-50 rounded-xl animate-pulse" />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 animate-fade-in-up">

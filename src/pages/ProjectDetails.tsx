@@ -55,6 +55,7 @@ export default function ProjectDetails() {
     allocations,
     tasks,
     timeEntries,
+    loading,
     addTask,
     editTask,
     removeTask,
@@ -98,10 +99,16 @@ export default function ProjectDetails() {
   useRealtime('team_members', () => loadTeamMembers())
   useRealtime('task_assignments', () => loadTaskAssignments())
 
-  if (!project) return <div className="p-8 text-center">Projeto não encontrado.</div>
+  if (!project) {
+    if (loading) return <div className="p-8 text-center text-slate-500">Carregando projeto...</div>
+    return <div className="p-8 text-center text-slate-500">Projeto não encontrado.</div>
+  }
 
   const userAllocated = allocations.some((a) => a.project === id && a.user === user?.id)
-  if (!isAdmin && !userAllocated) return <Navigate to="/projetos" replace />
+  if (!isAdmin && !userAllocated) {
+    if (loading) return <div className="p-8 text-center text-slate-500">Carregando...</div>
+    return <Navigate to="/projetos" replace />
+  }
 
   const projAllocs = allocations.filter((a) => a.project === id)
   const projTasks = tasks.filter((t) => t.project === id)
