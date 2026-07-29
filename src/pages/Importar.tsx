@@ -112,7 +112,14 @@ export default function Importar() {
       const r = await executeImport(parsed)
       setResult(r)
       setState('success')
-      toast({ title: 'Importação concluída com sucesso!', description: r.message })
+      const emptyTitleSummary =
+        r.emptyTitleRows.length > 0
+          ? ` Linhas ${r.emptyTitleRows.join(', ')}: título preenchido automaticamente como 'Tarefa sem título'.`
+          : ''
+      toast({
+        title: 'Importação concluída com sucesso!',
+        description: r.message + emptyTitleSummary,
+      })
     } catch (e) {
       const msg = `Erro ao importar: ${(e as Error).message}`
       setErrors([{ sheet: '', row: 0, column: '', message: msg }])
@@ -320,12 +327,9 @@ export default function Importar() {
               <Alert className="max-w-lg">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  <p className="font-medium mb-1">
-                    {result.emptyTitleRows.length} tarefa(s) com título vazio:
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Linhas: {result.emptyTitleRows.join(', ')} — título padrão &ldquo;Tarefa sem
-                    título&rdquo; aplicado. Você pode editá-las posteriormente.
+                  <p className="text-sm">
+                    Linhas {result.emptyTitleRows.join(', ')}: título preenchido automaticamente
+                    como &ldquo;Tarefa sem título&rdquo;.
                   </p>
                 </AlertDescription>
               </Alert>
