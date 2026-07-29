@@ -79,8 +79,10 @@ export function TaskList({
     <div className="space-y-2">
       {tasks.map((task) => {
         const taskAssignmentsForTask = taskAssignments.filter((ta) => ta.task === task.id)
-        const taskMembers = taskAssignmentsForTask
-          .map((ta) => teamMembers.find((m) => m.id === ta.team_member))
+        const assignmentMemberIds = taskAssignmentsForTask.map((ta) => ta.team_member)
+        const allMemberIds = Array.from(new Set([...assignmentMemberIds, ...(task.members || [])]))
+        const taskMembers = allMemberIds
+          .map((id) => teamMembers.find((m) => m.id === id))
           .filter(Boolean) as TeamMember[]
 
         return (
