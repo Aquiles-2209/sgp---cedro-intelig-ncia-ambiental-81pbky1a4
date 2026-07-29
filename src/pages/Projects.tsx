@@ -134,7 +134,7 @@ export default function Projects() {
               key={project.id}
               className={cn(
                 'hover:shadow-md transition-all duration-300 hover:-translate-y-1 group',
-                !isAdmin && isUserAllocated && 'bg-blue-400',
+                !isAdmin && isUserAllocated && 'bg-blue-200',
               )}
             >
               <CardContent className="p-6 space-y-4">
