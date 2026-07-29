@@ -132,10 +132,7 @@ export default function Projects() {
           return (
             <Card
               key={project.id}
-              className={cn(
-                'hover:shadow-md transition-all duration-300 hover:-translate-y-1 group',
-                !isAdmin && isUserAllocated && 'bg-green-50 border-green-200',
-              )}
+              className="hover:shadow-md transition-all duration-300 hover:-translate-y-1 group"
             >
               <CardContent className="p-6 space-y-4">
                 <div className="flex justify-between items-start">
@@ -167,7 +164,12 @@ export default function Projects() {
                   </div>
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg text-slate-900 line-clamp-1 group-hover:text-primary transition-colors">
+                  <h3
+                    className={cn(
+                      'font-bold text-lg line-clamp-1 group-hover:text-primary transition-colors',
+                      !isAdmin && isUserAllocated ? 'text-green-800' : 'text-slate-900',
+                    )}
+                  >
                     <Link to={`/projetos/${project.id}`}>{project.name}</Link>
                   </h3>
                   <p className="text-sm text-slate-500 mt-1">{project.client}</p>
