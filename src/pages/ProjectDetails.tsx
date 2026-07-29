@@ -101,14 +101,12 @@ export default function ProjectDetails() {
   useRealtime('task_assignments', () => loadTaskAssignments())
 
   useEffect(() => {
-    if (!loading && projects.length > 0 && project && !isAdmin && !userAllocated) {
-      toast({
-        title: 'Você não tem permissão para acessar este projeto.',
-        variant: 'destructive',
-      })
+    if (loading || isAdmin || !project) return
+    if (!userAllocated) {
+      toast({ title: 'Você não está alocado neste projeto.' })
       navigate('/projetos', { replace: true })
     }
-  }, [loading, projects.length, project, isAdmin, userAllocated, toast, navigate])
+  }, [loading, project, isAdmin, userAllocated, toast, navigate])
 
   if (!project) {
     if (loading) return <div className="p-8 text-center text-slate-500">Carregando projeto...</div>
@@ -116,7 +114,7 @@ export default function ProjectDetails() {
   }
 
   if (!isAdmin && !userAllocated) {
-    if (loading) return <div className="p-8 text-center text-slate-500">Carregando...</div>
+    if (loading) return <div className="p-8 text-center text-slate-500">Carregando projeto...</div>
     return <div className="p-8 text-center text-slate-500">Redirecionando...</div>
   }
 
