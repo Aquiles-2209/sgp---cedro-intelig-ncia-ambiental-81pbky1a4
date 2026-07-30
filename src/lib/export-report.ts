@@ -28,6 +28,7 @@ interface ReportGroup {
   memberName: string
   taskTitle: string
   activityDate: string
+  launchDate: string
   plannedHours: number
   allocatedHours: number
   hoursWorked: number
@@ -38,6 +39,8 @@ export function exportProjectReport(
   allocations: Allocation[],
   tasks: Task[],
   timeEntries: TimeEntry[],
+  startDate: string,
+  endDate: string,
 ): void {
   const headers = [
     'Nome do Cliente',
@@ -89,10 +92,18 @@ export function exportProjectReport(
     const allTaskTimeEntries = timeEntriesByTask.get(task.id) || []
 
     const memberHoursMap = new Map<string, number>()
+    const memberLaunchDateMap = new Map<string, string>()
     for (const te of allTaskTimeEntries) {
       const memberName = resolveMemberName(te, allocationMap)
       const hours = (te.duration || 0) / 3600
       memberHoursMap.set(memberName, (memberHoursMap.get(memberName) || 0) + hours)
+      const created = te.created || ''
+      if (created) {
+        const existing = memberLaunchDateMap.get(memberName)
+        if (!existing || created < existing) {
+          memberLaunchDateMap.set(memberName, created)
+        }
+      }
     }
 
     const memberDateMap = new Map<string, string>()
@@ -117,6 +128,7 @@ export function exportProjectReport(
           memberName: '—',
           taskTitle,
           activityDate: '',
+          launchDate: '',
           plannedHours: task.planned_hours || 0,
           allocatedHours: task.allocated_hours || 0,
           hoursWorked: 0,
@@ -128,15 +140,20 @@ export function exportProjectReport(
     for (const [memberName, activityDate] of memberDateMap) {
       const key = `${memberName}||${taskTitle}`
       const hoursWorked = memberHoursMap.get(memberName) || 0
+      const launchDate = memberLaunchDateMap.get(memberName) || ''
 
       const existing = groupMap.get(key)
       if (existing) {
         existing.hoursWorked += hoursWorked
+        if (launchDate && (!existing.launchDate || launchDate < existing.launchDate)) {
+          existing.launchDate = launchDate
+        }
       } else {
         groupMap.set(key, {
           memberName,
           taskTitle,
           activityDate,
+          launchDate,
           plannedHours: task.planned_hours || 0,
           allocatedHours: task.allocated_hours || 0,
           hoursWorked,
@@ -151,7 +168,25 @@ export function exportProjectReport(
     return (a.memberName || '').localeCompare(b.memberName || '')
   })
 
-  sortedGroups.forEach((group, idx) => {
+  const filteredGroups = sortedGroups.filter((group) => {
+    const normalizedActivityDate = normalizeDate(group.activityDate)
+    const normalizedLaunchDate = normalizeDate(group.launchDate)
+
+    if (!normalizedActivityDate && !normalizedLaunchDate) return false
+
+    const activityInRange =
+      normalizedActivityDate !== '' &&
+      normalizedActivityDate >= startDate &&
+      normalizedActivityDate <= endDate
+    const launchInRange =
+      normalizedLaunchDate !== '' &&
+      normalizedLaunchDate >= startDate &&
+      normalizedLaunchDate <= endDate
+
+    return activityInRange || launchInRange
+  })
+
+  filteredGroups.forEach((group, idx) => {
     const groupTotal = group.allocatedHours + group.hoursWorked
     const groupBalance = group.plannedHours - groupTotal
 
@@ -160,7 +195,7 @@ export function exportProjectReport(
     totalWorked += group.hoursWorked
     totalTotal += groupTotal
 
-    const showTask = idx === 0 || sortedGroups[idx - 1].taskTitle !== group.taskTitle
+    const showTask = idx === 0 || filteredGroups[idx - 1].taskTitle !== group.taskTitle
 
     lines.push(
       [

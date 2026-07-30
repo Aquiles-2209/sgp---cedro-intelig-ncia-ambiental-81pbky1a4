@@ -106,7 +106,7 @@ export function ExportDialog({ projectId, projectName }: ExportDialogProps) {
         timeEntryList = await fetchTimeEntriesBatched(taskIds, startDate, endDate)
       }
 
-      exportProjectReport(projectData, allocationList, taskList, timeEntryList)
+      exportProjectReport(projectData, allocationList, taskList, timeEntryList, startDate, endDate)
       toast({ title: 'Relatório CSV exportado com sucesso!' })
       setOpen(false)
     } catch (err) {

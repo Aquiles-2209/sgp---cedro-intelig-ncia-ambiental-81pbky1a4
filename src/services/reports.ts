@@ -93,18 +93,6 @@ export async function fetchReportData(
         taskIds.length > 0 ? await fetchTimeEntriesByTaskBatched(taskIds, startDate, endDate) : []
 
       if (allocations.length === 0 && tasks.length === 0) {
-        rows.push({
-          client: (project as any).client || '—',
-          projectName: (project as any).name,
-          memberSector: projectSetor,
-          memberName: '—',
-          activityTitle: '—',
-          activityLaunchDate: '',
-          launchDate: '',
-          plannedHours: 0,
-          allocatedHours: 0,
-          hoursWorked: 0,
-        })
         continue
       }
 
@@ -205,6 +193,22 @@ export async function fetchReportData(
       }
 
       for (const group of groupMap.values()) {
+        const normalizedActivityDate = normalizeDate(group.activityDate)
+        const normalizedLaunchDate = normalizeDate(group.launchDate)
+
+        if (!normalizedActivityDate && !normalizedLaunchDate) continue
+
+        const activityInRange =
+          normalizedActivityDate !== '' &&
+          normalizedActivityDate >= startDate &&
+          normalizedActivityDate <= endDate
+        const launchInRange =
+          normalizedLaunchDate !== '' &&
+          normalizedLaunchDate >= startDate &&
+          normalizedLaunchDate <= endDate
+
+        if (!activityInRange && !launchInRange) continue
+
         rows.push({
           client: (project as any).client || '—',
           projectName: (project as any).name,
