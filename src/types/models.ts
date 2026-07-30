@@ -26,7 +26,7 @@ export interface Allocation {
   user: string
   created: string
   updated: string
-  expand?: { project?: Project }
+  expand?: { project?: Project; user?: any }
 }
 
 export function normalizeDate(dateStr: string | null | undefined): string {
@@ -308,17 +308,31 @@ export function isUserAllocatedToProject(
 ): boolean {
   if (!userId) return false
 
+  const lowerEmail = userEmail ? userEmail.toLowerCase() : ''
+
   const hasAllocation = allocations.some((a) => {
     const allocUser =
       typeof a.user === 'string' ? a.user : (a as any)?.user?.id || a.expand?.user?.id
     const allocProject =
       typeof a.project === 'string' ? a.project : (a as any)?.project?.id || a.expand?.project?.id
-    return allocUser === userId && allocProject === projectId
+
+    if (allocProject !== projectId) return false
+
+    if (allocUser && allocUser === userId) return true
+
+    if (lowerEmail && a.expand?.user) {
+      const allocEmail =
+        typeof (a.expand.user as any)?.email === 'string'
+          ? (a.expand.user as any).email.toLowerCase()
+          : ''
+      if (allocEmail && allocEmail === lowerEmail) return true
+    }
+
+    return false
   })
   if (hasAllocation) return true
 
-  if (!userEmail) return false
-  const lowerEmail = userEmail.toLowerCase()
+  if (!lowerEmail) return false
 
   const projectTaskIds = new Set(
     tasks
@@ -332,7 +346,7 @@ export function isUserAllocatedToProject(
       .map((t) => t.id),
   )
 
-  return taskAssignments.some((ta) => {
+  const hasTaskAssignment = taskAssignments.some((ta) => {
     const tm = ta.expand?.team_member
     const tmEmail = typeof tm?.email === 'string' ? tm.email.toLowerCase() : ''
     if (!tmEmail || tmEmail !== lowerEmail) return false
@@ -344,6 +358,26 @@ export function isUserAllocatedToProject(
         : taskFromExpand?.project?.id
     return taskProject === projectId || projectTaskIds.has(ta.task)
   })
+  if (hasTaskAssignment) return true
+
+  const hasTaskMember = tasks.some((t) => {
+    const pId =
+      typeof t.project === 'string' ? t.project : (t.project as any)?.id || t.expand?.project?.id
+    if (pId !== projectId) return false
+
+    const expandedMembers = t.expand?.members
+    if (expandedMembers) {
+      const members = Array.isArray(expandedMembers) ? expandedMembers : [expandedMembers]
+      return members.some((m: any) => {
+        const email = typeof m?.email === 'string' ? m.email.toLowerCase() : ''
+        return email && email === lowerEmail
+      })
+    }
+    return false
+  })
+  if (hasTaskMember) return true
+
+  return false
 }
 
 import { differenceInDays } from 'date-fns'
