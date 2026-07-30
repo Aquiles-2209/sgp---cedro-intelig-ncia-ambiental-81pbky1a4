@@ -13,6 +13,7 @@ import {
   normalizeDate,
   filterAllocationsByProject,
   getUniqueAllocatedCount,
+  isUserAllocatedToProject,
 } from '@/types/models'
 import { exportProjectReport } from '@/lib/export-report'
 
@@ -32,11 +33,14 @@ export default function Projects() {
   const visibleProjects = isAdmin
     ? projects
     : projects.filter((p) =>
-        allocations.some((a) => {
-          const allocUser =
-            typeof a.user === 'string' ? a.user : (a as any)?.user?.id || a.expand?.user?.id
-          return allocUser === user?.id && filterAllocationsByProject(allocations, p.id).length > 0
-        }),
+        isUserAllocatedToProject(
+          user?.id,
+          user?.email,
+          p.id,
+          allocations,
+          taskAssignments || [],
+          tasks,
+        ),
       )
 
   const filtered = visibleProjects.filter((p) => {
@@ -124,11 +128,14 @@ export default function Projects() {
           })
           const allocCount = getUniqueAllocatedCount(projAllocs, projTasks, projAssignments)
           const handleExport = () => exportProjectReport(project, projAllocs, projTasks)
-          const isUserAllocated = projAllocs.some((a) => {
-            const allocUser =
-              typeof a.user === 'string' ? a.user : (a as any)?.user?.id || a.expand?.user?.id
-            return allocUser === user?.id
-          })
+          const isUserAllocated = isUserAllocatedToProject(
+            user?.id,
+            user?.email,
+            project.id,
+            allocations,
+            taskAssignments || [],
+            tasks,
+          )
           return (
             <Card
               key={project.id}

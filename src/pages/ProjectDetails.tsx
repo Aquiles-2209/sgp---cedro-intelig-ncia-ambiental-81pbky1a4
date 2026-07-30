@@ -32,6 +32,7 @@ import {
   safeFormatDate,
   TaskStatus,
   formatDuration,
+  isUserAllocatedToProject,
 } from '@/types/models'
 import { ExportDialog } from '@/components/export-dialog'
 import { TaskDialog } from '@/components/task-dialog'
@@ -70,9 +71,17 @@ export default function ProjectDetails() {
   const isAdmin = user?.role === 'admin'
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [localTaskAssignments, setLocalTaskAssignments] = useState<TaskAssignment[]>([])
+  const [assignmentsLoaded, setAssignmentsLoaded] = useState(false)
   const [savingAssignmentKey, setSavingAssignmentKey] = useState<string>('')
   const project = projects.find((p) => p.id === id)
-  const userAllocated = allocations.some((a) => a.project === id && a.user === user?.id)
+  const userAllocated = isUserAllocatedToProject(
+    user?.id,
+    user?.email,
+    id!,
+    allocations,
+    localTaskAssignments,
+    tasks,
+  )
 
   const loadTeamMembers = useCallback(async () => {
     try {
@@ -89,6 +98,8 @@ export default function ProjectDetails() {
       setLocalTaskAssignments(data)
     } catch {
       /* silent */
+    } finally {
+      setAssignmentsLoaded(true)
     }
   }, [])
 
@@ -101,12 +112,12 @@ export default function ProjectDetails() {
   useRealtime('task_assignments', () => loadTaskAssignments())
 
   useEffect(() => {
-    if (loading || isAdmin || !project) return
+    if (loading || isAdmin || !project || !assignmentsLoaded) return
     if (!userAllocated) {
       toast({ title: 'Você não está alocado neste projeto.' })
       navigate('/projetos', { replace: true })
     }
-  }, [loading, project, isAdmin, userAllocated, toast, navigate])
+  }, [loading, project, isAdmin, userAllocated, assignmentsLoaded, toast, navigate])
 
   if (!project) {
     if (loading) return <div className="p-8 text-center text-slate-500">Carregando projeto...</div>
@@ -114,7 +125,8 @@ export default function ProjectDetails() {
   }
 
   if (!isAdmin && !userAllocated) {
-    if (loading) return <div className="p-8 text-center text-slate-500">Carregando projeto...</div>
+    if (loading || !assignmentsLoaded)
+      return <div className="p-8 text-center text-slate-500">Carregando projeto...</div>
     return <div className="p-8 text-center text-slate-500">Redirecionando...</div>
   }
 

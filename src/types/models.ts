@@ -298,4 +298,52 @@ export function getUniqueAllocatedCount(
   return groups.size
 }
 
+export function isUserAllocatedToProject(
+  userId: string | undefined,
+  userEmail: string | undefined,
+  projectId: string,
+  allocations: Allocation[],
+  taskAssignments: TaskAssignment[],
+  tasks: Task[] = [],
+): boolean {
+  if (!userId) return false
+
+  const hasAllocation = allocations.some((a) => {
+    const allocUser =
+      typeof a.user === 'string' ? a.user : (a as any)?.user?.id || a.expand?.user?.id
+    const allocProject =
+      typeof a.project === 'string' ? a.project : (a as any)?.project?.id || a.expand?.project?.id
+    return allocUser === userId && allocProject === projectId
+  })
+  if (hasAllocation) return true
+
+  if (!userEmail) return false
+  const lowerEmail = userEmail.toLowerCase()
+
+  const projectTaskIds = new Set(
+    tasks
+      .filter((t) => {
+        const pId =
+          typeof t.project === 'string'
+            ? t.project
+            : (t.project as any)?.id || t.expand?.project?.id
+        return pId === projectId
+      })
+      .map((t) => t.id),
+  )
+
+  return taskAssignments.some((ta) => {
+    const tm = ta.expand?.team_member
+    const tmEmail = typeof tm?.email === 'string' ? tm.email.toLowerCase() : ''
+    if (!tmEmail || tmEmail !== lowerEmail) return false
+
+    const taskFromExpand = ta.expand?.task
+    const taskProject =
+      typeof taskFromExpand?.project === 'string'
+        ? taskFromExpand.project
+        : taskFromExpand?.project?.id
+    return taskProject === projectId || projectTaskIds.has(ta.task)
+  })
+}
+
 import { differenceInDays } from 'date-fns'
