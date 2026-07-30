@@ -1,5 +1,39 @@
 import { useState, useEffect, useCallback } from 'react'
 import { FileSpreadsheet, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableFooter,
+} from '@/components/ui/table'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { useToast } from '@/hooks/use-toast'
+import { fetchReportData, type ReportRow } from '@/services/reports'
+import { exportExcelReport } from '@/lib/export-excel-report'
+import { getProjects } from '@/services/projects'
+import { normalizeDate } from '@/types/models'
+import type { Project } from '@/types/models'
+import { cn } from '@/lib/utils'
+
+function formatDateBR(dateStr: string): string {
+  const normalized = normalizeDate(dateStr)
+  if (!normalized) return '—'
+  const [year, month, day] = normalized.split('-')
+  return `${day}/${month}/${year}`
+}
 
 function formatLaunchDate(dateStr: string): string {
   if (!dateStr) return '—'
@@ -13,30 +47,6 @@ function formatLaunchDate(dateStr: string): string {
     minute: '2-digit',
   })
 }
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { useToast } from '@/hooks/use-toast'
-import { fetchReportData, type ReportRow } from '@/services/reports'
-import { exportExcelReport } from '@/lib/export-excel-report'
-import { getProjects } from '@/services/projects'
-import type { Project } from '@/types/models'
 
 export default function ReportPage() {
   const { toast } = useToast()
@@ -88,6 +98,17 @@ export default function ReportPage() {
     exportExcelReport(rows)
     toast({ title: 'Relatório exportado com sucesso!' })
   }
+
+  const totals = rows.reduce(
+    (acc, r) => ({
+      planned: acc.planned + r.plannedHours,
+      allocated: acc.allocated + r.allocatedHours,
+      worked: acc.worked + r.hoursWorked,
+    }),
+    { planned: 0, allocated: 0, worked: 0 },
+  )
+  const totalAll = totals.allocated + totals.worked
+  const totalBalance = totals.planned - totalAll
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12 animate-fade-in-up">
@@ -155,36 +176,86 @@ export default function ReportPage() {
                 Exportar Excel
               </Button>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome do Cliente</TableHead>
-                  <TableHead>Nome do Projeto</TableHead>
-                  <TableHead>Setor do Usuário CEDRO</TableHead>
-                  <TableHead>Nome do Usuário CEDRO da equipe</TableHead>
-                  <TableHead>Nome da Atividade</TableHead>
-                  <TableHead>Data de Lançamento da Atividade</TableHead>
-                  <TableHead>Data de Lançamento</TableHead>
-                  <TableHead className="text-right">Total da Hora Prevista</TableHead>
-                  <TableHead className="text-right">Total de horas</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-medium">{row.client}</TableCell>
-                    <TableCell>{row.projectName}</TableCell>
-                    <TableCell>{row.memberSector}</TableCell>
-                    <TableCell>{row.memberName}</TableCell>
-                    <TableCell>{row.activityTitle}</TableCell>
-                    <TableCell>{row.activityLaunchDate}</TableCell>
-                    <TableCell>{formatLaunchDate(row.launchDate)}</TableCell>
-                    <TableCell className="text-right">{row.plannedHours.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">{row.hoursWorked.toFixed(2)}</TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Projeto</TableHead>
+                    <TableHead>Setor</TableHead>
+                    <TableHead>Membro</TableHead>
+                    <TableHead>Atividade</TableHead>
+                    <TableHead>Data Atividade</TableHead>
+                    <TableHead>Data Lançamento</TableHead>
+                    <TableHead className="text-right">Horas Previstas</TableHead>
+                    <TableHead className="text-right">Horas Alocadas</TableHead>
+                    <TableHead className="text-right">Horas Trabalhadas</TableHead>
+                    <TableHead className="text-right">Total Horas</TableHead>
+                    <TableHead className="text-right">Saldo Horas</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((row, i) => {
+                    const totalHours = row.allocatedHours + row.hoursWorked
+                    const balance = row.plannedHours - totalHours
+                    return (
+                      <TableRow key={i}>
+                        <TableCell className="font-medium">{row.client}</TableCell>
+                        <TableCell>{row.projectName}</TableCell>
+                        <TableCell>{row.memberSector}</TableCell>
+                        <TableCell>{row.memberName}</TableCell>
+                        <TableCell>{row.activityTitle}</TableCell>
+                        <TableCell>{formatDateBR(row.activityLaunchDate)}</TableCell>
+                        <TableCell>{formatLaunchDate(row.launchDate)}</TableCell>
+                        <TableCell className="text-right">{row.plannedHours.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">
+                          {row.allocatedHours.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">{row.hoursWorked.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{totalHours.toFixed(2)}</TableCell>
+                        <TableCell
+                          className={cn(
+                            'text-right font-medium',
+                            balance < 0 ? 'text-red-600' : balance > 0 ? 'text-green-600' : '',
+                          )}
+                        >
+                          {balance.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell colSpan={7} className="font-bold">
+                      TOTAL GERAL
+                    </TableCell>
+                    <TableCell className="text-right font-bold">
+                      {totals.planned.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right font-bold">
+                      {totals.allocated.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right font-bold">
+                      {totals.worked.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right font-bold">{totalAll.toFixed(2)}</TableCell>
+                    <TableCell
+                      className={cn(
+                        'text-right font-bold',
+                        totalBalance < 0
+                          ? 'text-red-600'
+                          : totalBalance > 0
+                            ? 'text-green-600'
+                            : '',
+                      )}
+                    >
+                      {totalBalance.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}
