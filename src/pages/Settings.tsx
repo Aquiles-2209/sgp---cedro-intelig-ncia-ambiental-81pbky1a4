@@ -25,6 +25,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { getUsers, updateUserRole, getUserLastActivity, type SimpleUser } from '@/services/users'
 import { InviteUserDialog } from '@/components/invite-user-dialog'
 import { UserDeleteDialog } from '@/components/user-delete-dialog'
+import { ChangePasswordDialog } from '@/components/change-password-dialog'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { useToast } from '@/hooks/use-toast'
@@ -214,9 +215,12 @@ export default function Settings() {
 
       <Card className="border-slate-200 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-slate-500" /> Sua Conta
-          </CardTitle>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-slate-500" /> Sua Conta
+            </CardTitle>
+            <ChangePasswordDialog />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
