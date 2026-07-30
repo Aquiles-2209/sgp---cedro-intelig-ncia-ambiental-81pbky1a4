@@ -57,7 +57,8 @@ export function ChangePasswordDialog({ trigger }: ChangePasswordDialogProps) {
     return Object.keys(errs).length === 0
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     if (!user) return
     if (!validate()) return
 
@@ -120,13 +121,29 @@ export function ChangePasswordDialog({ trigger }: ChangePasswordDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="user-email-context">Usuário / E-mail</Label>
+            <Input
+              id="user-email-context"
+              type="email"
+              name="username"
+              autoComplete="username"
+              value={user?.email || ''}
+              readOnly
+              tabIndex={-1}
+              className="bg-slate-100 text-slate-600 cursor-not-allowed font-medium"
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="current-pwd">Senha Atual</Label>
             <div className="relative">
               <Input
                 id="current-pwd"
+                name="current-password"
                 type={show.current ? 'text' : 'password'}
+                autoComplete="current-password"
                 value={form.current}
                 onChange={(e) => update('current', e.target.value)}
                 placeholder="••••••••"
@@ -151,7 +168,9 @@ export function ChangePasswordDialog({ trigger }: ChangePasswordDialogProps) {
             <div className="relative">
               <Input
                 id="next-pwd"
+                name="new-password"
                 type={show.next ? 'text' : 'password'}
+                autoComplete="new-password"
                 value={form.next}
                 onChange={(e) => update('next', e.target.value)}
                 placeholder="••••••••"
@@ -173,7 +192,9 @@ export function ChangePasswordDialog({ trigger }: ChangePasswordDialogProps) {
             <div className="relative">
               <Input
                 id="confirm-pwd"
+                name="confirm-password"
                 type={show.confirm ? 'text' : 'password'}
+                autoComplete="new-password"
                 value={form.confirm}
                 onChange={(e) => update('confirm', e.target.value)}
                 placeholder="••••••••"
@@ -192,16 +213,16 @@ export function ChangePasswordDialog({ trigger }: ChangePasswordDialogProps) {
             </div>
             {errors.confirm && <p className="text-xs text-red-500">{errors.confirm}</p>}
           </div>
-        </div>
 
-        <DialogFooter className="gap-2 sm:gap-2">
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSubmit} disabled={saving}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar'}
-          </Button>
-        </DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )
