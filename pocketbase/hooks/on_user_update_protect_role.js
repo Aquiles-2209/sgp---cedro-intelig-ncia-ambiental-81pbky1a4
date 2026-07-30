@@ -1,8 +1,7 @@
-onRecordUpdateRequest((e) => {
-  const auth = e.requestInfo().auth
-  if (!auth || auth.getString('role') !== 'admin') {
-    const originalRole = e.record.original().getString('role')
-    e.record.set('role', originalRole || 'user')
+onRecordUpdate((e) => {
+  const originalRole = e.record.original().getString('role')
+  if (e.record.getString('role') !== originalRole) {
+    e.record.set('role', originalRole)
   }
   e.next()
 }, 'users')

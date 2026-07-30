@@ -75,16 +75,24 @@ export function ChangePasswordDialog({ trigger }: ChangePasswordDialogProps) {
       reset()
     } catch (err) {
       const msg = getErrorMessage(err)
+      const lowerMsg = msg.toLowerCase()
       const isCurrentWrong =
-        msg.toLowerCase().includes('invalid login') ||
-        msg.toLowerCase().includes('incorrect') ||
-        msg.toLowerCase().includes('senha') ||
-        msg.toLowerCase().includes('credentials')
+        lowerMsg.includes('invalid login') ||
+        lowerMsg.includes('incorrect') ||
+        lowerMsg.includes('credentials') ||
+        lowerMsg.includes('senha atual')
+      const isBlankError = lowerMsg.includes('cannot be blank')
       toast({
-        title: isCurrentWrong ? 'Senha atual incorreta' : 'Erro ao alterar senha',
+        title: isCurrentWrong
+          ? 'Senha atual incorreta'
+          : isBlankError
+            ? 'Erro de validação'
+            : 'Erro ao alterar senha',
         description: isCurrentWrong
           ? 'A senha atual informada está incorreta.'
-          : msg || 'Tente novamente.',
+          : isBlankError
+            ? 'Verifique se todos os campos foram preenchidos corretamente.'
+            : msg || 'Tente novamente.',
         variant: 'destructive',
       })
     } finally {
