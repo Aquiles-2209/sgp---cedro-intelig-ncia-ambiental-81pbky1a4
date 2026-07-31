@@ -58,7 +58,7 @@ export function AppSidebar() {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 p-1 shrink-0 shadow-sm">
             <img src={logoImg} alt="CEDRO Logo" className="h-full w-full object-contain" />
           </div>
-          <span className="text-lg font-bold tracking-tight">GestãoPro</span>
+          <span className="text-lg font-bold tracking-tight">SGP - CEDRO</span>
         </div>
       </SidebarHeader>
       <SidebarContent>
