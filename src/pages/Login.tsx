@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import bgImage from '@/assets/4-e4dcd.jpeg'
+import bgImage from '@/assets/chatgpt-image-31-de-jul.de-2026-155002-78bb2.png'
 
 const schema = z.object({
   email: z.string().email({ message: 'E-mail inválido.' }),
