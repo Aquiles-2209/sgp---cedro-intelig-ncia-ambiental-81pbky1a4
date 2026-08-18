@@ -24,6 +24,13 @@ import { DatePicker } from '@/components/date-picker'
 import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import {
+  createTaskAssignment,
+  updateTaskAssignment,
+  deleteTaskAssignment,
+} from '@/services/task-assignments'
+import { createTask, updateTask } from '@/services/tasks'
+import { getTaskAssignmentsByTask } from '@/services/task-assignments'
 
 const statusOptions: TaskStatus[] = ['Pendente', 'Em Andamento', 'Concluído']
 
