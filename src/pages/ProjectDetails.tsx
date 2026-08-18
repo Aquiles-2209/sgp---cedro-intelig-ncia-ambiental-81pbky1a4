@@ -161,11 +161,25 @@ export default function ProjectDetails() {
   const projTasks = tasks.filter((t) => t.project === id)
   const userAllocIds = projAllocs.filter((a) => a.user === user?.id).map((a) => a.id)
 
+  const allocationMap = new Map(allocations.map((a) => [a.id, a]))
+  const validTasks = projTasks.filter((task) => {
+    const taskAllocIds: string[] = Array.isArray(task.allocation)
+      ? task.allocation
+      : task.allocation
+        ? [task.allocation]
+        : []
+    const taskAllocations = taskAllocIds
+      .map((allocId) => allocationMap.get(allocId))
+      .filter(Boolean)
+    const taskTimeEntries = timeEntries.filter((te) => te.task === task.id)
+    return taskAllocations.length > 0 || taskTimeEntries.length > 0
+  })
+
   const totalPlannedHours = projTasks.reduce((sum, t) => sum + (t.planned_hours || 0), 0)
   const totalWorkedSeconds = timeEntries
     .filter((te) => projTasks.some((t) => t.id === te.task))
     .reduce((sum, te) => sum + (te.duration || 0), 0)
-  const totalImportedHours = projTasks.reduce((sum, t) => sum + (t.allocated_hours || 0), 0)
+  const totalImportedHours = validTasks.reduce((sum, t) => sum + (t.allocated_hours || 0), 0)
   const totalWorkedHours = totalImportedHours + totalWorkedSeconds / 3600
   const availableHoursBalance = totalPlannedHours - totalWorkedHours
 
