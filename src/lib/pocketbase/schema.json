@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T20:31:44.168Z",
+  "generatedAt": "2026-08-18T20:35:58.050Z",
   "collections": [
     {
       "name": "users",
@@ -142,9 +142,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.role = 'admin'",
-        "update": "@request.auth.role = 'admin'",
-        "delete": "@request.auth.role = 'admin'"
+        "create": "@request.auth.role = 'admin' || @request.auth.role = 'master'",
+        "update": "@request.auth.role = 'admin' || @request.auth.role = 'master'",
+        "delete": "@request.auth.role = 'admin' || @request.auth.role = 'master'"
       },
       "fields": [
         {
@@ -307,9 +307,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "create": "@request.auth.role = 'admin' || @request.auth.role = 'master'",
+        "update": "@request.auth.role = 'admin' || @request.auth.role = 'master'",
+        "delete": "@request.auth.role = 'admin' || @request.auth.role = 'master'"
       },
       "fields": [
         {
@@ -511,9 +511,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.role = 'admin'",
-        "update": "@request.auth.role = 'admin'",
-        "delete": "@request.auth.role = 'admin'"
+        "create": "@request.auth.role = 'admin' || @request.auth.role = 'master'",
+        "update": "@request.auth.role = 'admin' || @request.auth.role = 'master'",
+        "delete": "@request.auth.role = 'admin' || @request.auth.role = 'master'"
       },
       "fields": [
         {
