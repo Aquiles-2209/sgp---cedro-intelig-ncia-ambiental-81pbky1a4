@@ -58,4 +58,6 @@ export const updateTask = async (id: string, data: Partial<Task>): Promise<Task>
   return normalizeTaskRecord(record)
 }
 
-export const deleteTask = async (id: string): Promise<void> => pb.collection('tasks').delete(id)
+export const deleteTask = async (id: string): Promise<void> => {
+  await pb.collection('tasks').delete(id)
+}

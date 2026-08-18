@@ -20,5 +20,6 @@ export const updateTaskAssignment = async (
   data: Partial<TaskAssignment>,
 ): Promise<TaskAssignment> => pb.collection('task_assignments').update(id, data)
 
-export const deleteTaskAssignment = async (id: string): Promise<void> =>
-  pb.collection('task_assignments').delete(id)
+export const deleteTaskAssignment = async (id: string): Promise<void> => {
+  await pb.collection('task_assignments').delete(id)
+}

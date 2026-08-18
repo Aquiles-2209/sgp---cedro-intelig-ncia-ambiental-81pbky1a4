@@ -37,8 +37,8 @@ const statusOptions: TaskStatus[] = ['Pendente', 'Em Andamento', 'Concluído']
 interface TaskDialogProps {
   projectId: string
   teamMembers: TeamMember[]
-  onAdd?: (data: Partial<Task>) => Promise<void>
-  onEdit?: (id: string, data: Partial<Task>) => Promise<void>
+  onAdd?: (data: Partial<Task>) => Promise<Task | void>
+  onEdit?: (id: string, data: Partial<Task>) => Promise<Task | void>
   task?: Task
   taskAssignments?: TaskAssignment[]
   trigger?: ReactNode
@@ -74,9 +74,14 @@ export function TaskDialog({
 
   useEffect(() => {
     if (open && task) {
-      const assignedMemberIds = (taskAssignmentsRef.current || [])
-        .filter((ta) => ta.task === task.id)
-        .map((ta) => ta.team_member)
+      const assignedMemberIds = Array.from(
+        new Set([
+          ...(taskAssignmentsRef.current || [])
+            .filter((ta) => ta.task === task.id)
+            .map((ta) => ta.team_member),
+          ...(task.members || []),
+        ]),
+      )
       setForm({
         title: task.title || '',
         description: task.description || '',
@@ -136,10 +141,57 @@ export function TaskDialog({
         due_date: form.due_date,
         planned_hours: form.planned_hours ? Number(form.planned_hours) : 0,
       }
+      let taskId = task?.id
       if (isEdit && onEdit) {
         await onEdit(task!.id, data)
       } else if (onAdd) {
-        await onAdd(data)
+        const result: any = await onAdd(data)
+        if (result && result.id) {
+          taskId = result.id
+        }
+      }
+
+      // Sincronizar task_assignments
+      if (taskId) {
+        const currentAssignments = (taskAssignmentsRef.current || []).filter(
+          (ta) => ta.task === taskId,
+        )
+        const currentMemberIds = currentAssignments.map((ta) => ta.team_member)
+        const selectedMemberIds = form.members
+
+        // Removidos
+        const toRemove = currentAssignments.filter(
+          (ta) => !selectedMemberIds.includes(ta.team_member),
+        )
+        for (const ta of toRemove) {
+          await deleteTaskAssignment(ta.id)
+        }
+
+        // Adicionados
+        const toAdd = selectedMemberIds.filter((id) => !currentMemberIds.includes(id))
+        for (const memberId of toAdd) {
+          await createTaskAssignment({
+            task: taskId,
+            team_member: memberId,
+            start_date: form.start_date || undefined,
+            end_date: form.due_date || undefined,
+          })
+        }
+
+        // Atualizados (se as datas de início/término da tarefa mudaram e o assignment já existe)
+        const toKeep = currentAssignments.filter((ta) => selectedMemberIds.includes(ta.team_member))
+        for (const ta of toKeep) {
+          const updateData: Partial<TaskAssignment> = {}
+          if (form.start_date && !ta.start_date) {
+            updateData.start_date = form.start_date
+          }
+          if (form.due_date && !ta.end_date) {
+            updateData.end_date = form.due_date
+          }
+          if (Object.keys(updateData).length > 0) {
+            await updateTaskAssignment(ta.id, updateData)
+          }
+        }
       }
       setOpen(false)
     } catch (err) {

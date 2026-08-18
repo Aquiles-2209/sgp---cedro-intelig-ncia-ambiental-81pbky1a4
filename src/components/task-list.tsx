@@ -37,7 +37,7 @@ interface TaskListProps {
   teamMembers: TeamMember[]
   isAdmin: boolean
   userAllocIds: string[]
-  onEdit: (id: string, data: Partial<Task>) => Promise<void>
+  onEdit: (id: string, data: Partial<Task>) => Promise<Task | void>
   onEditStatus: (id: string, status: TaskStatus) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onStartTimer: (taskId: string, memberId: string) => Promise<void>

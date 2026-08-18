@@ -30,14 +30,14 @@ interface AppStateType {
   timeEntries: TimeEntry[]
   taskAssignments: TaskAssignment[]
   loading: boolean
-  addProject: (data: Partial<Project>) => Promise<void>
-  editProject: (id: string, data: Partial<Project>) => Promise<void>
+  addProject: (data: Partial<Project>) => Promise<Project>
+  editProject: (id: string, data: Partial<Project>) => Promise<Project>
   removeProject: (id: string) => Promise<void>
   addAllocation: (data: Partial<Allocation>) => Promise<void>
   editAllocation: (id: string, data: Partial<Allocation>) => Promise<void>
   removeAllocation: (id: string) => Promise<void>
-  addTask: (data: Partial<Task>) => Promise<void>
-  editTask: (id: string, data: Partial<Task>) => Promise<void>
+  addTask: (data: Partial<Task>) => Promise<Task>
+  editTask: (id: string, data: Partial<Task>) => Promise<Task>
   removeTask: (id: string) => Promise<void>
   addTimeEntry: (data: Partial<TimeEntry>) => Promise<void>
   editTimeEntry: (id: string, data: Partial<TimeEntry>) => Promise<void>
@@ -97,13 +97,15 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   useRealtime('time_entries', () => loadData())
   useRealtime('task_assignments', () => loadData())
 
-  const addProject = async (data: Partial<Project>) => {
+  const addProject = async (data: Partial<Project>): Promise<Project> => {
     const created = await createProject(data)
     setProjects((prev) => [created, ...prev])
+    return created
   }
-  const editProject = async (id: string, data: Partial<Project>) => {
+  const editProject = async (id: string, data: Partial<Project>): Promise<Project> => {
     const updated = await updateProject(id, data)
     setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)))
+    return updated
   }
   const removeProject = async (id: string) => {
     await deleteProject(id)
@@ -121,13 +123,15 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     await deleteAllocation(id)
     setAllocations((prev) => prev.filter((a) => a.id !== id))
   }
-  const addTask = async (data: Partial<Task>) => {
+  const addTask = async (data: Partial<Task>): Promise<Task> => {
     const created = await createTask(data)
     setTasks((prev) => [created, ...prev])
+    return created
   }
-  const editTask = async (id: string, data: Partial<Task>) => {
+  const editTask = async (id: string, data: Partial<Task>): Promise<Task> => {
     const updated = await updateTask(id, data)
     setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)))
+    return updated
   }
   const removeTask = async (id: string) => {
     await deleteTask(id)

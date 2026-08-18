@@ -17,5 +17,6 @@ export const updateAllocation = async (
   data: Partial<Allocation>,
 ): Promise<Allocation> => pb.collection('allocations').update(id, data)
 
-export const deleteAllocation = async (id: string): Promise<void> =>
-  pb.collection('allocations').delete(id)
+export const deleteAllocation = async (id: string): Promise<void> => {
+  await pb.collection('allocations').delete(id)
+}
