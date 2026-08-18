@@ -3,6 +3,7 @@ import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
 import { useAuth } from '@/hooks/use-auth'
+import { getUsers, SimpleUser } from '@/services/users'
 import { ProjectStatus, normalizeDate } from '@/types/models'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -54,9 +55,17 @@ export default function ProjectEdit() {
     end_date: '',
     status: 'Planejado' as ProjectStatus,
     description: '',
+    project_manager: '',
   })
   const [localAllocs, setLocalAllocs] = useState<LocalAlloc[]>([])
   const [saving, setSaving] = useState(false)
+  const [adminUsers, setAdminUsers] = useState<SimpleUser[]>([])
+
+  useEffect(() => {
+    getUsers()
+      .then((users) => setAdminUsers(users.filter((u) => u.role === 'admin')))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (project) {
@@ -68,6 +77,7 @@ export default function ProjectEdit() {
         end_date: normalizeDate(project.end_date),
         status: project.status,
         description: project.description,
+        project_manager: (project as any).project_manager || '',
       })
     }
   }, [project])
@@ -216,6 +226,25 @@ export default function ProjectEdit() {
               onChange={(e) => update('description', e.target.value)}
               rows={4}
             />
+          </div>
+          <div className="space-y-2">
+            <Label>Gerente do Projeto</Label>
+            <Select
+              value={form.project_manager || '__none__'}
+              onValueChange={(val) => update('project_manager', val === '__none__' ? '' : val)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione um Admin" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Nenhum —</SelectItem>
+                {adminUsers.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.name || u.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>

@@ -12,8 +12,16 @@ export interface Project {
   end_date: string
   status: ProjectStatus
   setor: ProjectSetor
+  project_manager: string
   created: string
   updated: string
+  expand?: { project_manager?: SimpleUserRef }
+}
+
+export interface SimpleUserRef {
+  id: string
+  name: string
+  email: string
 }
 
 export interface Allocation {

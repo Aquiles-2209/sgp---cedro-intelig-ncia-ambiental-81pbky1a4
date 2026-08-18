@@ -13,6 +13,7 @@ import {
 import { useAppState } from '@/hooks/use-app-state'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getTeamMembers, type TeamMember } from '@/services/team-members'
+import { getUsers, type SimpleUser } from '@/services/users'
 import { getTaskAssignments } from '@/services/task-assignments'
 import type { TaskAssignment } from '@/types/models'
 import { Button } from '@/components/ui/button'
@@ -70,6 +71,7 @@ export default function ProjectDetails() {
   const { user } = useAuth()
   const isMaster = user?.role === 'master'
   const isAdmin = user?.role === 'admin' || isMaster
+  const [managerName, setManagerName] = useState<string>('')
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [localTaskAssignments, setLocalTaskAssignments] = useState<TaskAssignment[]>([])
   const [assignmentsLoaded, setAssignmentsLoaded] = useState(false)
@@ -92,6 +94,29 @@ export default function ProjectDetails() {
       /* silent */
     }
   }, [])
+
+  useEffect(() => {
+    if (!project) {
+      setManagerName('')
+      return
+    }
+    const managerId = (project as any).project_manager
+    const expanded = (project.expand as any)?.project_manager
+    if (expanded && (expanded.name || expanded.email)) {
+      setManagerName(expanded.name || expanded.email)
+      return
+    }
+    if (!managerId) {
+      setManagerName('')
+      return
+    }
+    getUsers()
+      .then((users) => {
+        const found = users.find((u: SimpleUser) => u.id === managerId)
+        setManagerName(found ? found.name || found.email : '')
+      })
+      .catch(() => setManagerName(''))
+  }, [project])
 
   const loadTaskAssignments = useCallback(async () => {
     try {
