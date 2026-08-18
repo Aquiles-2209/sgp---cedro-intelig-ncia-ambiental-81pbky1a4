@@ -11,7 +11,7 @@ onRecordAfterCreateSuccess((e) => {
 
   var name = e.record.getString('name')
   var role = e.record.getString('role') || 'user'
-  if (role !== 'admin' && role !== 'user') {
+  if (role !== 'admin' && role !== 'user' && role !== 'master') {
     role = 'user'
   }
   var tempPassword = $security.randomString(12)

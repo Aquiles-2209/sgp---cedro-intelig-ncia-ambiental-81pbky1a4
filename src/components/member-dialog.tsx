@@ -28,12 +28,14 @@ import {
   type TeamMember,
 } from '@/services/team-members'
 import { CredentialPanel } from '@/components/credential-panel'
+import { useAuth } from '@/hooks/use-auth'
 
 const sectorOptions = ['Meio-Ambiente', 'Desenvolvimento Urbano', 'Administrativo']
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const roleOptions = [
   { value: 'user', label: 'Usuário' },
   { value: 'admin', label: 'Administrador' },
+  { value: 'master', label: 'Master' },
 ]
 
 interface MemberDialogProps {
@@ -47,6 +49,8 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
   const [saving, setSaving] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const { toast } = useToast()
+  const { user } = useAuth()
+  const isMaster = user?.role === 'master'
   const isEdit = !!member
   const [form, setForm] = useState({
     name: '',
@@ -270,8 +274,12 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
               {fieldErrors.setor && <p className="text-xs text-red-500">{fieldErrors.setor}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Usuário</Label>
-              <Select value={form.role} onValueChange={(v) => update('role', v)}>
+              <Label>Tipo de Usuário</Label>
+              <Select
+                value={form.role}
+                onValueChange={(v) => update('role', v)}
+                disabled={!isMaster}
+              >
                 <SelectTrigger
                   className={cn(fieldErrors.role && 'border-red-500 focus-visible:ring-red-500')}
                 >
@@ -285,8 +293,13 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
                   ))}
                 </SelectContent>
               </Select>
+              {!isMaster && (
+                <p className="text-xs text-slate-400">
+                  Apenas usuários Master podem alterar o tipo de usuário.
+                </p>
+              )}
               {fieldErrors.role && <p className="text-xs text-red-500">{fieldErrors.role}</p>}
-            </div>
+            </div>{' '}
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setOpen(false)}>
                 Cancelar

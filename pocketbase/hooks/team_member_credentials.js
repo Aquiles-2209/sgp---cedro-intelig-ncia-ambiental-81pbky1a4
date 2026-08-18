@@ -23,7 +23,7 @@ routerAdd(
 
     var name = tmRecord.getString('name')
     var role = tmRecord.getString('role') || 'user'
-    if (role !== 'admin' && role !== 'user') {
+    if (role !== 'admin' && role !== 'user' && role !== 'master') {
       role = 'user'
     }
 

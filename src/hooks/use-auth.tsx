@@ -1,12 +1,14 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import pb from '@/lib/pocketbase/client'
 
+export type UserRole = 'admin' | 'user' | 'master'
+
 interface AuthUser {
   id: string
   name: string
   email: string
   avatar: string
-  role: 'admin' | 'user'
+  role: UserRole
 }
 
 interface AuthContextType {
@@ -36,7 +38,7 @@ function mapUser(record: any): AuthUser | null {
     name: record.name || '',
     email: record.email || '',
     avatar,
-    role: (record.role as 'admin' | 'user') || 'user',
+    role: (record.role as UserRole) || 'user',
   }
 }
 

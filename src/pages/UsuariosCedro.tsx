@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Users2, Briefcase, Search, Mail, ShieldCheck, UserRound } from 'lucide-react'
+import { Users2, Briefcase, Search, Mail, ShieldCheck, UserRound, Crown } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { getTeamMembers, type TeamMember } from '@/services/team-members'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/hooks/use-auth'
+import { cn } from '@/lib/utils'
 import { MemberDialog } from '@/components/member-dialog'
 import { MemberDeleteDialog } from '@/components/member-delete-dialog'
 import { RegeneratePasswordButton } from '@/components/regenerate-password-button'
@@ -15,6 +16,8 @@ import { RegeneratePasswordButton } from '@/components/regenerate-password-butto
 export default function UsuariosCedro() {
   const { isAuthenticated, user } = useAuth()
   const isAdmin = user?.role === 'admin'
+  const isMaster = user?.role === 'master'
+  const canManage = isAdmin || isMaster
   const [members, setMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -50,7 +53,7 @@ export default function UsuariosCedro() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Usuários CEDRO</h1>
           <p className="text-slate-500 mt-1">Gerencie os Usuários CEDRO.</p>
         </div>
-        {isAdmin && <MemberDialog onCreated={loadMembers} />}
+        {canManage && <MemberDialog onCreated={loadMembers} />}
       </div>
 
       <div className="relative max-w-md">
@@ -111,18 +114,28 @@ export default function UsuariosCedro() {
                     {member.role && (
                       <Badge
                         variant={member.role === 'admin' ? 'default' : 'secondary'}
-                        className="mt-1 flex items-center gap-1.5 w-fit text-xs"
+                        className={cn(
+                          'mt-1 flex items-center gap-1.5 w-fit text-xs',
+                          member.role === 'master' &&
+                            'bg-purple-100 text-purple-700 hover:bg-purple-100 border border-purple-200',
+                        )}
                       >
                         {member.role === 'admin' ? (
                           <ShieldCheck className="h-3 w-3" />
+                        ) : member.role === 'master' ? (
+                          <Crown className="h-3 w-3" />
                         ) : (
                           <UserRound className="h-3 w-3" />
                         )}
-                        {member.role === 'admin' ? 'Administrador' : 'Usuário'}
+                        {member.role === 'admin'
+                          ? 'Administrador'
+                          : member.role === 'master'
+                            ? 'Master'
+                            : 'Usuário'}
                       </Badge>
                     )}
                   </div>
-                  {isAdmin && (
+                  {canManage && (
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <RegeneratePasswordButton member={member} />
                       <MemberDialog member={member} onCreated={loadMembers} />

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T14:53:21.222Z",
+  "generatedAt": "2026-08-18T16:32:19.644Z",
   "collections": [
     {
       "name": "users",
@@ -8,8 +8,8 @@
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
         "create": "",
-        "update": "id = @request.auth.id || @request.auth.role = 'admin'",
-        "delete": "id = @request.auth.id || @request.auth.role = 'admin'"
+        "update": "id = @request.auth.id || @request.auth.role = 'admin' || @request.auth.role = 'master'",
+        "delete": "id = @request.auth.id || @request.auth.role = 'admin' || @request.auth.role = 'master'"
       },
       "fields": [
         {
@@ -43,7 +43,7 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["admin", "user"]
+          "selectValues": ["admin", "user", "master"]
         }
       ],
       "indexes": [
@@ -203,11 +203,11 @@
       "name": "tasks",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.role = 'admin' || (@collection.allocations.project ?= project && @collection.allocations.user ?= @request.auth.id)",
-        "view": "@request.auth.role = 'admin' || (@collection.allocations.project ?= project && @collection.allocations.user ?= @request.auth.id)",
-        "create": "@request.auth.role = 'admin'",
-        "update": "@request.auth.role = 'admin'",
-        "delete": "@request.auth.role = 'admin'"
+        "list": "@request.auth.role = 'admin' || @request.auth.role = 'master' || (@collection.allocations.project ?= project && @collection.allocations.user ?= @request.auth.id)",
+        "view": "@request.auth.role = 'admin' || @request.auth.role = 'master' || (@collection.allocations.project ?= project && @collection.allocations.user ?= @request.auth.id)",
+        "create": "@request.auth.role = 'admin' || @request.auth.role = 'master'",
+        "update": "@request.auth.role = 'admin' || @request.auth.role = 'master'",
+        "delete": "@request.auth.role = 'admin' || @request.auth.role = 'master'"
       },
       "fields": [
         {
@@ -435,9 +435,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.role = 'admin'",
-        "update": "@request.auth.role = 'admin'",
-        "delete": "@request.auth.role = 'admin'"
+        "create": "@request.auth.role = 'admin' || @request.auth.role = 'master'",
+        "update": "@request.auth.role = 'admin' || @request.auth.role = 'master'",
+        "delete": "@request.auth.role = 'admin' || @request.auth.role = 'master'"
       },
       "fields": [
         {
@@ -490,7 +490,7 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["admin", "user"]
+          "selectValues": ["admin", "user", "master"]
         }
       ],
       "indexes": [

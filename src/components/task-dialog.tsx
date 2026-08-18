@@ -31,6 +31,7 @@ import {
 } from '@/services/task-assignments'
 import { createTask, updateTask } from '@/services/tasks'
 import { getTaskAssignmentsByTask } from '@/services/task-assignments'
+import { useAuth } from '@/hooks/use-auth'
 
 const statusOptions: TaskStatus[] = ['Pendente', 'Em Andamento', 'Concluído']
 
@@ -57,6 +58,8 @@ export function TaskDialog({
   const [saving, setSaving] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const { toast } = useToast()
+  const { user } = useAuth()
+  const isMaster = user?.role === 'master'
   const isEdit = !!task
 
   const [form, setForm] = useState({
@@ -314,6 +317,7 @@ export function TaskDialog({
               value={form.planned_hours}
               onChange={(e) => update('planned_hours', e.target.value)}
               placeholder="0"
+              disabled={isEdit && !isMaster}
             />
           </div>
           <div className="space-y-2">
