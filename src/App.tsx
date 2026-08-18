@@ -22,6 +22,9 @@ import AuditLogs from './pages/AuditLogs'
 import TotalHours from './pages/TotalHours'
 import Settings from './pages/Settings'
 import Importar from './pages/Importar'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
+import Profile from './pages/Profile'
 
 const App = () => (
   <AuthProvider>
@@ -32,6 +35,8 @@ const App = () => (
           <Sonner />
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/esqueci-senha" element={<ForgotPassword />} />
+            <Route path="/resetar-senha" element={<ResetPassword />} />
             <Route
               element={
                 <AuthGuard>
@@ -85,6 +90,7 @@ const App = () => (
                 }
               />
               <Route path="/configuracoes" element={<Settings />} />
+              <Route path="/perfil" element={<Profile />} />
               <Route
                 path="/importar"
                 element={

@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useNavigate } from 'react-router-dom'
 import { Search, Bell } from 'lucide-react'
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/app-sidebar'
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 
 export default function Layout() {
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   return (
     <SidebarProvider>
@@ -42,7 +43,10 @@ export default function Layout() {
                         : 'Usuário(a) CEDRO'}
                   </span>
                 </div>
-                <Avatar className="h-9 w-9 border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
+                <Avatar
+                  className="h-9 w-9 border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => navigate('/perfil')}
+                >
                   <AvatarImage src={user?.avatar} alt={user?.name} />
                   <AvatarFallback className="bg-primary text-white font-medium">
                     {user?.name?.charAt(0).toUpperCase()}

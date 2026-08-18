@@ -10,6 +10,7 @@ import {
   ScrollText,
   Clock,
   Upload,
+  UserCircle,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -34,6 +35,7 @@ const adminNavigation = [
   { name: 'Total de Horas', href: '/total-horas', icon: Clock },
   { name: 'Logs', href: '/logs', icon: ScrollText },
   { name: 'Importar', href: '/importar', icon: Upload },
+  { name: 'Meu Perfil', href: '/perfil', icon: UserCircle },
   { name: 'Configurações', href: '/configuracoes', icon: Settings },
 ]
 
@@ -41,6 +43,7 @@ const userNavigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Meus Projetos', href: '/projetos', icon: Briefcase },
   { name: 'Usuário(a)s CEDRO', href: '/usuarios-cedro', icon: CalendarRange },
+  { name: 'Meu Perfil', href: '/perfil', icon: UserCircle },
   { name: 'Configurações', href: '/configuracoes', icon: Settings },
 ]
 

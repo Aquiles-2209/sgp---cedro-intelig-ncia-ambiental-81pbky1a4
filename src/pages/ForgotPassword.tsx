@@ -1,28 +1,24 @@
 import { useState } from 'react'
-import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Briefcase } from 'lucide-react'
-import { useAuth } from '@/hooks/use-auth'
+import { Loader2, Briefcase, ArrowLeft } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
+import pb from '@/lib/pocketbase/client'
 import bgImage from '@/assets/chatgpt-image-31-de-jul.de-2026-155002-78bb2.png'
 
 const schema = z.object({
   email: z.string().email({ message: 'E-mail inválido.' }),
-  password: z.string().min(6, { message: 'Mínimo 6 caracteres.' }),
 })
 type FormValues = z.infer<typeof schema>
 
-export default function Login() {
+export default function ForgotPassword() {
   const [isLoading, setIsLoading] = useState(false)
-  const [isSignUp, setIsSignUp] = useState(false)
-  const { signIn, signUp } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
   const { toast } = useToast()
 
   const {
@@ -31,19 +27,25 @@ export default function Login() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: '' },
   })
 
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true)
-    const result = isSignUp
-      ? await signUp(data.email, data.password)
-      : await signIn(data.email, data.password)
-    setIsLoading(false)
-    if (result.error) {
-      toast({ title: 'Erro', description: 'Verifique suas credenciais.', variant: 'destructive' })
-    } else {
-      navigate('/', { replace: true })
+    try {
+      await pb.collection('users').requestPasswordReset(data.email)
+      toast({
+        title: 'E-mail de recuperação enviado!',
+        description: 'Verifique sua caixa de entrada.',
+      })
+    } catch (err) {
+      toast({
+        title: 'Erro ao enviar e-mail',
+        description: getErrorMessage(err),
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -59,11 +61,9 @@ export default function Login() {
           <div className="h-12 w-12 bg-primary text-white rounded-xl flex items-center justify-center mb-4 shadow-md">
             <Briefcase className="h-6 w-6" />
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-            {isSignUp ? 'Criar Conta' : 'Acesse sua conta'}
-          </h2>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Esqueceu sua senha?</h2>
           <p className="text-sm text-slate-500 mt-2">
-            {isSignUp ? 'Cadastre-se para começar.' : 'Insira suas credenciais para continuar.'}
+            Informe seu e-mail corporativo e enviaremos um link de recuperação.
           </p>
         </div>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 mt-8">
@@ -81,20 +81,6 @@ export default function Login() {
             />
             {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-slate-700 font-medium">
-              Senha
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              autoComplete="new-password"
-              className={`h-11 bg-white ${errors.password ? 'border-red-500' : 'border-slate-200'}`}
-              {...register('password')}
-            />
-            {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
-          </div>
           <Button
             type="submit"
             className="w-full h-11 text-base font-medium transition-transform active:scale-[0.98] shadow-md"
@@ -102,29 +88,18 @@ export default function Login() {
           >
             {isLoading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
-            ) : isSignUp ? (
-              'Cadastrar'
             ) : (
-              'Entrar na Plataforma'
+              'Enviar link de recuperação'
             )}
           </Button>
         </form>
-        <div className="flex flex-col items-center gap-3 text-sm mt-6">
-          {!isSignUp && (
-            <Link
-              to="/esqueci-senha"
-              className="text-slate-500 hover:text-primary transition-colors"
-            >
-              Esqueceu sua senha?
-            </Link>
-          )}
-          <button
-            type="button"
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="text-primary hover:underline font-medium"
+        <div className="text-center text-sm mt-6">
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
           >
-            {isSignUp ? 'Já tem conta? Entrar' : 'Não tem conta? Cadastre-se'}
-          </button>
+            <ArrowLeft className="h-4 w-4" /> Voltar para o login
+          </Link>
         </div>
       </div>
     </div>
