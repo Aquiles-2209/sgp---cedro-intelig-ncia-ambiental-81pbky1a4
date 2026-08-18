@@ -12,7 +12,7 @@ export const getUsers = async (): Promise<SimpleUser[]> => {
   const records = await pb.collection('users').getFullList({ sort: 'name' })
   return records.map((r: any) => ({
     id: r.id,
-    name: r.name || r.email || 'Usuário',
+    name: r.name || r.email || 'Usuário(a)',
     email: r.email || '',
     avatar: r.avatar
       ? `${import.meta.env.VITE_POCKETBASE_URL}/api/files/users/${r.id}/${r.avatar}`
@@ -34,7 +34,7 @@ export const createUser = async (data: {
   })
   return {
     id: record.id,
-    name: record.name || record.email || 'Usuário',
+    name: record.name || record.email || 'Usuário(a)',
     email: record.email || '',
     avatar: '',
     role: 'user',

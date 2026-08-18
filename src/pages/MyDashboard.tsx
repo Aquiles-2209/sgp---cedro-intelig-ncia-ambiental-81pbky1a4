@@ -99,7 +99,7 @@ export default function MyDashboard() {
     <div className="space-y-6 animate-fade-in-up">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Olá, {user?.name?.split(' ')[0] || 'Usuário'}!
+          Olá, {user?.name?.split(' ')[0] || 'Usuário(a)'}!
         </h1>
         <p className="text-slate-500 mt-1">Acompanhe suas horas trabalhadas e tarefas recentes.</p>
       </div>

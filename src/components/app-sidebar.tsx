@@ -28,7 +28,7 @@ import logoImg from '@/assets/image-c5b1f.png'
 const adminNavigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Projetos', href: '/projetos', icon: Briefcase },
-  { name: 'Usuários CEDRO', href: '/usuarios-cedro', icon: Users2 },
+  { name: 'Usuário(a)s CEDRO', href: '/usuarios-cedro', icon: Users2 },
   { name: 'Mapa de Alocação', href: '/allocation-map', icon: CalendarRange },
   { name: 'Relatórios', href: '/relatorios', icon: FileBarChart },
   { name: 'Total de Horas', href: '/total-horas', icon: Clock },
@@ -40,7 +40,7 @@ const adminNavigation = [
 const userNavigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Meus Projetos', href: '/projetos', icon: Briefcase },
-  { name: 'Usuários CEDRO', href: '/usuarios-cedro', icon: CalendarRange },
+  { name: 'Usuário(a)s CEDRO', href: '/usuarios-cedro', icon: CalendarRange },
   { name: 'Configurações', href: '/configuracoes', icon: Settings },
 ]
 

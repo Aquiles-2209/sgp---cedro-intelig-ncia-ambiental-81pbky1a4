@@ -31,7 +31,7 @@ export function UserDeleteDialog({ user, onDeleted, trigger }: UserDeleteDialogP
     setDeleting(true)
     try {
       await deleteUser(user.id)
-      toast({ title: 'Usuário removido com sucesso!' })
+      toast({ title: 'Usuário(a) removido(a) com sucesso!' })
       setOpen(false)
       onDeleted?.()
     } catch (err) {

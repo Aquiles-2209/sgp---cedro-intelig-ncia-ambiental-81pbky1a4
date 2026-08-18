@@ -33,7 +33,7 @@ import { useAuth } from '@/hooks/use-auth'
 const sectorOptions = ['Meio-Ambiente', 'Desenvolvimento Urbano', 'Administrativo']
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const roleOptions = [
-  { value: 'user', label: 'Usuário' },
+  { value: 'user', label: 'Usuário(a)' },
   { value: 'admin', label: 'Administrador' },
   { value: 'master', label: 'Master' },
 ]
@@ -121,7 +121,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
       }
       if (isEdit && member) {
         await updateTeamMember(member.id, payload)
-        toast({ title: 'Usuário CEDRO atualizado com sucesso!' })
+        toast({ title: 'Usuário(a) CEDRO atualizado(a) com sucesso!' })
         setOpen(false)
       } else {
         const result = await createTeamMember(payload)
@@ -134,8 +134,9 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
           })
         } catch {
           toast({
-            title: 'Usuário CEDRO cadastrado, mas houve erro ao gerar credenciais',
-            description: 'O Usuário CEDRO foi criado, mas as credenciais não puderam ser obtidas.',
+            title: 'Usuário(a) CEDRO cadastrado(a), mas houve erro ao gerar credenciais',
+            description:
+              'O(a) Usuário(a) CEDRO foi criado(a), mas as credenciais não puderam ser obtidas.',
             variant: 'destructive',
           })
           setOpen(false)
@@ -148,7 +149,9 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
         setFieldErrors(pbErrors)
       } else {
         toast({
-          title: isEdit ? 'Erro ao atualizar Usuário CEDRO' : 'Erro ao cadastrar Usuário CEDRO',
+          title: isEdit
+            ? 'Erro ao atualizar Usuário(a) CEDRO'
+            : 'Erro ao cadastrar Usuário(a) CEDRO',
           description: getErrorMessage(err),
           variant: 'destructive',
         })
@@ -172,7 +175,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
     </Button>
   ) : (
     <Button size="sm">
-      <UserPlus className="h-4 w-4 mr-2" /> Cadastrar Novo Usuário CEDRO
+      <UserPlus className="h-4 w-4 mr-2" /> Cadastrar Novo(a) Usuário(a) CEDRO
     </Button>
   )
 
@@ -183,10 +186,10 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
         <DialogHeader>
           <DialogTitle>
             {credentials
-              ? 'Credenciais do Novo Usuário CEDRO'
+              ? 'Credenciais do Novo(a) Usuário(a) CEDRO'
               : isEdit
-                ? 'Editar Usuário CEDRO'
-                : 'Cadastrar Novo Usuário CEDRO'}
+                ? 'Editar Usuário(a) CEDRO'
+                : 'Cadastrar Novo(a) Usuário(a) CEDRO'}
           </DialogTitle>
         </DialogHeader>
         {credentials ? (
@@ -274,7 +277,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
               {fieldErrors.setor && <p className="text-xs text-red-500">{fieldErrors.setor}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Tipo de Usuário</Label>
+              <Label>Tipo de Usuário(a)</Label>
               <Select
                 value={form.role}
                 onValueChange={(v) => update('role', v)}
@@ -310,7 +313,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
                 ) : isEdit ? (
                   'Salvar Alterações'
                 ) : (
-                  'Cadastrar Usuário CEDRO'
+                  'Cadastrar Usuário(a) CEDRO'
                 )}
               </Button>
             </div>

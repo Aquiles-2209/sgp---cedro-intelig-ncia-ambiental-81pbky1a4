@@ -88,7 +88,7 @@ export function MemberTimer({
         onClick={handleStart}
       >
         <Play className="h-3 w-3 mr-1" />
-        <span className="text-xs">Iniciar</span>
+        <span className="text-xs">Play</span>
       </Button>
       {totalTimeLabel}
     </div>

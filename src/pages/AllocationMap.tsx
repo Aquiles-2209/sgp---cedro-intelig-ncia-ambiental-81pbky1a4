@@ -71,7 +71,7 @@ export default function AllocationMap() {
           <CalendarRange className="h-8 w-8 text-primary" /> Mapa de Alocação
         </h1>
         <p className="text-slate-500 mt-1">
-          Visualize a disponibilidade de Usuários CEDRO e prazos próximos.
+          Visualize a disponibilidade de Usuário(a)s CEDRO e prazos próximos.
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
@@ -88,7 +88,7 @@ export default function AllocationMap() {
         <Card className="border-slate-200 shadow-sm">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-500">Usuários CEDRO Únicos</p>
+              <p className="text-sm text-slate-500">Usuário(a)s CEDRO Únicos</p>
               <p className="text-2xl font-bold text-slate-900">{allocations.length}</p>
             </div>
             <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -99,7 +99,7 @@ export default function AllocationMap() {
         <Card className="border-slate-200 shadow-sm">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-500">Usuários CEDRO Únicos</p>
+              <p className="text-sm text-slate-500">Usuário(a)s CEDRO Únicos</p>
               <p className="text-2xl font-bold text-slate-900">
                 {new Set(allocations.map((a) => a.member_name)).size}
               </p>
@@ -131,7 +131,7 @@ export default function AllocationMap() {
         <CardHeader>
           <CardTitle className="text-xl">Timeline de Alocações</CardTitle>
           <CardDescription>
-            Períodos ativos de cada Usuário CEDRO. Barras em vermelho indicam prazo próximo.
+            Períodos ativos de cada Usuário(a) CEDRO. Barras em vermelho indicam prazo próximo.
           </CardDescription>
         </CardHeader>
         <CardContent>

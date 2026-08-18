@@ -219,8 +219,8 @@ export default function PerformanceDashboard() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg">Esforço por Usuário CEDRO</CardTitle>
-            <CardDescription>Horas trabalhadas por Usuário CEDRO</CardDescription>
+            <CardTitle className="text-lg">Esforço por Usuário(a) CEDRO</CardTitle>
+            <CardDescription>Horas trabalhadas por Usuário(a) CEDRO</CardDescription>
           </CardHeader>
           <CardContent>
             {effortByMember.length === 0 ? (

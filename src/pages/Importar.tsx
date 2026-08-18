@@ -261,7 +261,7 @@ export default function Importar() {
           <Tabs defaultValue="Projetos">
             <TabsList>
               <TabsTrigger value="Projetos">Projetos ({parsed.projects.length})</TabsTrigger>
-              <TabsTrigger value="Usuários">Usuários ({parsed.members.length})</TabsTrigger>
+              <TabsTrigger value="Usuários">Usuário(a)s ({parsed.members.length})</TabsTrigger>
               <TabsTrigger value="Alocações">Alocações ({parsed.allocations.length})</TabsTrigger>
               <TabsTrigger value="Tarefas">Tarefas ({parsed.tasks.length})</TabsTrigger>
             </TabsList>

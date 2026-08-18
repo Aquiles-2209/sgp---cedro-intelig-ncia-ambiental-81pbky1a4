@@ -26,10 +26,10 @@ export const getAuditLogs = async (): Promise<AuditLog[]> =>
 
 export function resolveAuditUser(log: Pick<AuditLog, 'user' | 'expand'>): string {
   const expanded = log.expand?.user
-  if (!expanded) return 'Usuário desconhecido'
+  if (!expanded) return 'Usuário(a) desconhecido(a)'
 
   const userRecord = Array.isArray(expanded) ? expanded[0] : expanded
-  if (!userRecord) return 'Usuário desconhecido'
+  if (!userRecord) return 'Usuário(a) desconhecido(a)'
 
   const name = userRecord.name
   if (name && String(name).trim()) return String(name).trim()
@@ -37,5 +37,5 @@ export function resolveAuditUser(log: Pick<AuditLog, 'user' | 'expand'>): string
   const email = userRecord.email
   if (email && String(email).trim()) return String(email).trim()
 
-  return 'Usuário desconhecido'
+  return 'Usuário(a) desconhecido(a)'
 }

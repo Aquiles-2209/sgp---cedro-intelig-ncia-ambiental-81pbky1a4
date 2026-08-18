@@ -31,12 +31,12 @@ export function MemberDeleteDialog({ member, onDeleted, trigger }: MemberDeleteD
     setDeleting(true)
     try {
       await deleteTeamMember(member.id)
-      toast({ title: 'Usuário CEDRO removido com sucesso!' })
+      toast({ title: 'Usuário(a) CEDRO removido(a) com sucesso!' })
       setOpen(false)
       onDeleted?.()
     } catch (err) {
       toast({
-        title: 'Erro ao remover Usuário CEDRO',
+        title: 'Erro ao remover Usuário(a) CEDRO',
         description: getErrorMessage(err),
         variant: 'destructive',
       })
@@ -56,7 +56,7 @@ export function MemberDeleteDialog({ member, onDeleted, trigger }: MemberDeleteD
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Remover Usuário CEDRO</AlertDialogTitle>
+          <AlertDialogTitle>Remover Usuário(a) CEDRO</AlertDialogTitle>
           <AlertDialogDescription>
             Tem certeza que deseja remover <strong>{member.name}</strong> da equipe? Esta ação não
             pode ser desfeita.

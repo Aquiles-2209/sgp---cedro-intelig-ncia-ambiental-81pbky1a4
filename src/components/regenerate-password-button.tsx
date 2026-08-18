@@ -105,7 +105,9 @@ export function RegeneratePasswordButton({ member }: RegeneratePasswordButtonPro
           {credentials && (
             <div className="space-y-4 py-2">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-500">E-mail do Usuário</Label>
+                <Label className="text-xs font-semibold text-slate-500">
+                  E-mail do(a) Usuário(a)
+                </Label>
                 <Input value={credentials.email} readOnly className="bg-slate-50 font-medium" />
               </div>
 

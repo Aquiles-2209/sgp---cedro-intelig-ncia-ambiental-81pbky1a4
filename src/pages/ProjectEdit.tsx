@@ -222,13 +222,15 @@ export default function ProjectEdit() {
       <Card className="border-slate-200 shadow-sm">
         <CardContent className="p-6">
           <div className="flex justify-between items-center border-b border-slate-100 pb-2 mb-4">
-            <h3 className="font-semibold text-lg text-slate-800">Alocações de Usuários CEDRO</h3>
+            <h3 className="font-semibold text-lg text-slate-800">Alocações de Usuário(a)s CEDRO</h3>
             <Button type="button" variant="outline" size="sm" onClick={addAllocRow}>
-              <Plus className="h-4 w-4 mr-2" /> Adicionar Usuário CEDRO
+              <Plus className="h-4 w-4 mr-2" /> Adicionar Usuário(a) CEDRO
             </Button>
           </div>
           {localAllocs.length === 0 && (
-            <p className="text-sm text-slate-500 text-center py-8">Nenhum Usuário CEDRO alocado.</p>
+            <p className="text-sm text-slate-500 text-center py-8">
+              Nenhum(a) Usuário(a) CEDRO alocado(a).
+            </p>
           )}
           {localAllocs.length > 0 && (
             <Table>
@@ -247,7 +249,7 @@ export default function ProjectEdit() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome do Usuário CEDRO</TableHead>
+                  <TableHead>Nome do(a) Usuário(a) CEDRO</TableHead>
                   <TableHead>Função</TableHead>
                   <TableHead className="w-36">Início</TableHead>
                   <TableHead className="w-36">Término</TableHead>

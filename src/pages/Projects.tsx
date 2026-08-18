@@ -200,7 +200,9 @@ export default function Projects() {
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center">
                       <Users2 className="mr-2 h-4 w-4 text-slate-400" />
-                      <span className="text-sm text-slate-600">{allocCount} Usuário(s) CEDRO</span>
+                      <span className="text-sm text-slate-600">
+                        {allocCount} Usuário(a)(s) CEDRO
+                      </span>
                     </div>
                   </div>
                 </div>

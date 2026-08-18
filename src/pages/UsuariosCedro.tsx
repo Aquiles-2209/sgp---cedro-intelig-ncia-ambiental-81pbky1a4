@@ -50,8 +50,8 @@ export default function UsuariosCedro() {
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Usuários CEDRO</h1>
-          <p className="text-slate-500 mt-1">Gerencie os Usuários CEDRO.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Usuário(a)s CEDRO</h1>
+          <p className="text-slate-500 mt-1">Gerencie os Usuário(a)s CEDRO.</p>
         </div>
         {canManage && <MemberDialog onCreated={loadMembers} />}
       </div>
@@ -59,7 +59,7 @@ export default function UsuariosCedro() {
       <div className="relative max-w-md">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
         <Input
-          placeholder="Buscar Usuários CEDRO..."
+          placeholder="Buscar Usuário(a)s CEDRO..."
           className="pl-9 h-10 bg-white"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -131,7 +131,7 @@ export default function UsuariosCedro() {
                           ? 'Administrador'
                           : member.role === 'master'
                             ? 'Master'
-                            : 'Usuário'}
+                            : 'Usuário(a)'}
                       </Badge>
                     )}
                   </div>
@@ -148,7 +148,7 @@ export default function UsuariosCedro() {
         {filtered.length === 0 && !loading && (
           <div className="col-span-full flex flex-col items-center justify-center p-12 text-slate-500 bg-white rounded-xl border border-dashed border-slate-200">
             <Users2 className="h-10 w-10 text-slate-300 mb-3" />
-            <p>Nenhum Usuário CEDRO encontrado.</p>
+            <p>Nenhum(a) Usuário(a) CEDRO encontrado(a).</p>
           </div>
         )}
       </div>

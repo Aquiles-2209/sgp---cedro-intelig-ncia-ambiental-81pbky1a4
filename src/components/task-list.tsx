@@ -263,7 +263,7 @@ export function TaskList({
                 })}
               </div>
             ) : (
-              <p className="text-xs text-slate-400 mt-2">Sem Usuários CEDRO atribuídos</p>
+              <p className="text-xs text-slate-400 mt-2">Sem Usuário(a)s CEDRO atribuído(a)s</p>
             )}
 
             <div className="flex items-center gap-3 mt-2 text-xs text-slate-400 flex-wrap">

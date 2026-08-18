@@ -39,7 +39,7 @@ export default function Layout() {
                       ? 'Master'
                       : user?.role === 'admin'
                         ? 'Administrador'
-                        : 'Usuário CEDRO'}
+                        : 'Usuário(a) CEDRO'}
                   </span>
                 </div>
                 <Avatar className="h-9 w-9 border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity">

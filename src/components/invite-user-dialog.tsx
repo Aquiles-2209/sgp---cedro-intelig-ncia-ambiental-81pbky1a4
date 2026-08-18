@@ -57,7 +57,7 @@ export function InviteUserDialog({ onInvited, trigger }: InviteUserDialogProps) 
         role: form.role,
       })
       toast({
-        title: 'Usuário convidado com sucesso!',
+        title: 'Usuário(a) convidado(a) com sucesso!',
         description: `Senha temporária: ${result.tempPassword}`,
       })
       setOpen(false)
@@ -79,13 +79,13 @@ export function InviteUserDialog({ onInvited, trigger }: InviteUserDialogProps) 
       <DialogTrigger asChild>
         {trigger || (
           <Button size="sm">
-            <UserPlus className="h-4 w-4 mr-2" /> Convidar Usuário
+            <UserPlus className="h-4 w-4 mr-2" /> Convidar Usuário(a)
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Convidar Novo Usuário</DialogTitle>
+          <DialogTitle>Convidar Novo(a) Usuário(a)</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -116,7 +116,7 @@ export function InviteUserDialog({ onInvited, trigger }: InviteUserDialogProps) 
                 <SelectValue placeholder="Selecione a função" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="user">Usuário</SelectItem>
+                <SelectItem value="user">Usuário(a)</SelectItem>
                 <SelectItem value="admin">Administrador</SelectItem>
               </SelectContent>
             </Select>

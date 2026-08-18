@@ -117,7 +117,7 @@ export default function Dashboard() {
                   <Progress value={progress} className="h-2" />
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-xs text-slate-600">
-                      {projAllocs.length} Usuários CEDRO alocados
+                      {projAllocs.length} Usuário(a)s CEDRO alocado(a)s
                     </span>
                     <span className="text-xs text-slate-500 font-medium">
                       Prazo:{' '}
@@ -137,7 +137,7 @@ export default function Dashboard() {
         <Card className="md:col-span-3 border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle className="text-xl">Alertas de Prazo</CardTitle>
-            <CardDescription>Usuários CEDRO com prazo próximo (7 dias).</CardDescription>
+            <CardDescription>Usuário(a)s CEDRO com prazo próximo (7 dias).</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {upcomingDeadlines.map((a) => {

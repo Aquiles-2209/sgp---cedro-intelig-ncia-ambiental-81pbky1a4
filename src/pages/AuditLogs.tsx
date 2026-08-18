@@ -78,7 +78,7 @@ export default function AuditLogs() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Usuário</TableHead>
+                  <TableHead>Usuário(a)</TableHead>
                   <TableHead>Ação</TableHead>
                   <TableHead>Tipo de Recurso</TableHead>
                   <TableHead>Nome do Recurso</TableHead>
