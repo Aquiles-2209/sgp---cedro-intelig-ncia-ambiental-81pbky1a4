@@ -68,6 +68,16 @@ async function createThrottled(
   return rec
 }
 
+async function updateThrottled(
+  collection: string,
+  id: string,
+  data: Record<string, unknown>,
+  sheetName: string,
+): Promise<void> {
+  await withRetry(() => pb.collection(collection).update(id, data), sheetName)
+  await delay(THROTTLE_MS)
+}
+
 export async function executeImport(data: ParsedData): Promise<ImportResult> {
   const created = {
     projects: [] as string[],
@@ -94,16 +104,51 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
       if (u.email) userCache.set(u.email, u.id)
     }
 
+    // Mapa de tarefas existentes por projeto + título, para permitir atualizar
+    // tarefas já cadastradas em vez de duplicá-las ao reimportar um projeto.
+    const taskByProjectTitle = new Map<string, Map<string, string>>()
+    const allTasks = await withRetry(() => pb.collection('tasks').getFullList(), 'Tarefas')
+    for (const t of allTasks as any[]) {
+      const pid = typeof t.project === 'string' ? t.project : (t.project as any)?.id
+      if (!pid) continue
+      if (!taskByProjectTitle.has(pid)) taskByProjectTitle.set(pid, new Map<string, string>())
+      taskByProjectTitle.get(pid)!.set(t.title, t.id)
+    }
+
     let skipP = 0,
       skipM = 0,
       cntP = 0,
       cntM = 0,
       cntA = 0,
-      cntT = 0
+      cntT = 0,
+      updP = 0,
+      updT = 0
 
     for (const p of data.projects) {
-      if (projByName.has(p.name)) {
-        skipP++
+      const existingProjectId = projByName.get(p.name)
+      if (existingProjectId) {
+        // Projeto já existe: atualiza as informações em vez de pular.
+        try {
+          await updateThrottled(
+            'projects',
+            existingProjectId,
+            {
+              name: p.name,
+              description: p.description,
+              contract_id: p.contract_id,
+              client: p.client,
+              start_date: p.start_date,
+              end_date: p.end_date,
+              status: p.status,
+              setor: p.setor,
+            },
+            'Projetos',
+          )
+          updP++
+        } catch (err) {
+          if (isRateLimitMessage(err)) throw err
+          throw new Error(`Linha ${p._row} da aba Projetos: ${getErrorMessage(err)}`)
+        }
         continue
       }
       try {
@@ -194,6 +239,56 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
         throw new Error(`Linha ${t._row} de Tarefas: Projeto '${t.projectName}' não encontrado.`)
       const memberId = t.memberName ? memberByName.get(t.memberName) : undefined
       const allocationId = memberId ? allocKey.get(`${projectId}:${t.memberName}`) : undefined
+
+      // Se já existe uma tarefa com o mesmo título neste projeto, atualiza em
+      // vez de criar duplicata.
+      const titleMap = taskByProjectTitle.get(projectId)
+      const existingTaskId = titleMap ? titleMap.get(t.title) : undefined
+      if (existingTaskId) {
+        try {
+          const updateData: Record<string, unknown> = {
+            description: t.description,
+            status: t.status,
+            start_date: t.start_date,
+            due_date: t.due_date,
+            planned_hours: t.planned_hours,
+          }
+          if (t.allocated_hours !== null) updateData.allocated_hours = t.allocated_hours
+          if (allocationId) updateData.allocation = allocationId
+          if (memberId) updateData.members = [memberId]
+          await updateThrottled('tasks', existingTaskId, updateData, 'Tarefas')
+          // Garante a atribuição do membro sem duplicar.
+          if (memberId) {
+            let alreadyAssigned = false
+            try {
+              await withRetry(
+                () =>
+                  pb
+                    .collection('task_assignments')
+                    .getFirstListItem(`task = "${existingTaskId}" && team_member = "${memberId}"`),
+                'Tarefas',
+              )
+              alreadyAssigned = true
+            } catch {
+              /* intentionally ignored */
+            }
+            if (!alreadyAssigned) {
+              const ta = await createThrottled(
+                'task_assignments',
+                { task: existingTaskId, team_member: memberId },
+                'Tarefas',
+              )
+              created.assignments.push(ta.id)
+            }
+          }
+          updT++
+        } catch (err) {
+          if (isRateLimitMessage(err)) throw err
+          throw new Error(`Linha ${t._row} da aba Tarefas: ${getErrorMessage(err)}`)
+        }
+        continue
+      }
+
       const taskData: Record<string, unknown> = {
         project: projectId,
         title: t.title,
@@ -209,6 +304,9 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
       try {
         const rec = await createThrottled('tasks', taskData, 'Tarefas')
         created.tasks.push(rec.id)
+        if (!taskByProjectTitle.has(projectId))
+          taskByProjectTitle.set(projectId, new Map<string, string>())
+        taskByProjectTitle.get(projectId)!.set(t.title, rec.id)
         if (memberId) {
           const ta = await createThrottled(
             'task_assignments',
@@ -225,17 +323,18 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
     }
 
     const parts: string[] = []
-    if (cntP) parts.push(`${cntP} projeto${cntP > 1 ? 's' : ''}`)
-    if (cntM) parts.push(`${cntM} usuário${cntM > 1 ? 's' : ''}`)
-    if (cntA) parts.push(`${cntA} alocação${cntA > 1 ? 'ões' : ''}`)
-    if (cntT) parts.push(`${cntT} tarefa${cntT > 1 ? 's' : ''}`)
-    const total = cntP + cntM + cntA + cntT
+    if (cntP) parts.push(`${cntP} projeto${cntP > 1 ? 's' : ''} importado${cntP > 1 ? 's' : ''}`)
+    if (updP) parts.push(`${updP} projeto${updP > 1 ? 's' : ''} atualizado${updP > 1 ? 's' : ''}`)
+    if (cntM) parts.push(`${cntM} usuário${cntM > 1 ? 's' : ''} importado${cntM > 1 ? 's' : ''}`)
+    if (cntA) parts.push(`${cntA} alocação${cntA > 1 ? 'ões' : ''} importada${cntA > 1 ? 's' : ''}`)
+    if (cntT) parts.push(`${cntT} tarefa${cntT > 1 ? 's' : ''} importada${cntT > 1 ? 's' : ''}`)
+    if (updT) parts.push(`${updT} tarefa${updT > 1 ? 's' : ''} atualizada${updT > 1 ? 's' : ''}`)
+    const total = cntP + cntM + cntA + cntT + updP + updT
     let msg = parts.length
-      ? parts.join(', ') + ' importado' + (total > 1 ? 's' : '') + ' com sucesso!'
+      ? parts.join(', ') + ' com sucesso!'
       : 'Nenhum registro novo para importar.'
-    const skipTotal = skipP + skipM
-    if (skipTotal > 0)
-      msg += ` (${skipP} projeto${skipP > 1 ? 's' : ''} e ${skipM} usuário${skipM > 1 ? 's' : ''} duplicado${skipTotal > 1 ? 's' : ''} ignorado${skipTotal > 1 ? 's' : ''}.)`
+    if (skipM > 0)
+      msg += ` (${skipM} usuário${skipM > 1 ? 's' : ''} duplicado${skipM > 1 ? 's' : ''} ignorado${skipM > 1 ? 's' : ''}.)`
 
     return {
       success: true,
