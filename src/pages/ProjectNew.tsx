@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
+import { useToast } from '@/hooks/use-toast'
 import { ProjectStatus, ProjectSetor } from '@/types/models'
 import { getUsers, SimpleUser } from '@/services/users'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ import {
 
 export default function ProjectNew() {
   const navigate = useNavigate()
+  const { toast } = useToast()
   const { addProject } = useAppState()
   const [saving, setSaving] = useState(false)
   const [adminUsers, setAdminUsers] = useState<SimpleUser[]>([])
@@ -46,10 +48,20 @@ export default function ProjectNew() {
     if (!form.name) return
     setSaving(true)
     try {
-      const project = await addProject(form)
+      const { project_manager, ...rest } = form
+      const payload = {
+        ...rest,
+        ...(project_manager ? { project_manager } : {}),
+      }
+      const project = await addProject(payload)
       navigate(`/projetos/${project.id}/editar`)
-    } catch {
+    } catch (err) {
       setSaving(false)
+      toast({
+        title: 'Erro ao salvar projeto',
+        description: 'Verifique suas permissões.',
+        variant: 'destructive',
+      })
     }
   }
 

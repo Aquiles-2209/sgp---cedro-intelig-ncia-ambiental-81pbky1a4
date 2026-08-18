@@ -3,6 +3,7 @@ import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
 import { useAuth } from '@/hooks/use-auth'
+import { useToast } from '@/hooks/use-toast'
 import { getUsers, SimpleUser } from '@/services/users'
 import { ProjectStatus, normalizeDate } from '@/types/models'
 import { Button } from '@/components/ui/button'
@@ -43,6 +44,7 @@ export default function ProjectEdit() {
   const navigate = useNavigate()
   const { projects, allocations, editProject, addAllocation, editAllocation, removeAllocation } =
     useAppState()
+  const { toast } = useToast()
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin' || user?.role === 'master'
   const project = projects.find((p) => p.id === id)
@@ -123,7 +125,12 @@ export default function ProjectEdit() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      await editProject(id!, form)
+      const { project_manager, ...rest } = form
+      const payload = {
+        ...rest,
+        ...(project_manager ? { project_manager } : {}),
+      }
+      await editProject(id!, payload)
       for (const alloc of localAllocs) {
         if (alloc.isNew && alloc.member_name) {
           await addAllocation({
@@ -158,8 +165,13 @@ export default function ProjectEdit() {
         await removeAllocation(r.id)
       }
       navigate(`/projetos/${id}`)
-    } catch {
+    } catch (err) {
       setSaving(false)
+      toast({
+        title: 'Erro ao salvar projeto',
+        description: 'Verifique suas permissões.',
+        variant: 'destructive',
+      })
     }
   }
 
