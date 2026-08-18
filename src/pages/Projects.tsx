@@ -127,7 +127,15 @@ export default function Projects() {
             return pId === project.id || projTasks.some((t) => t.id === ta.task)
           })
           const allocCount = getUniqueAllocatedCount(projAllocs, projTasks, projAssignments)
-          const handleExport = () => exportProjectReport(project, projAllocs, projTasks)
+          const handleExport = () =>
+            exportProjectReport(
+              project,
+              projAllocs,
+              projTasks,
+              [],
+              project.start_date,
+              project.end_date,
+            )
           const isUserAllocated = isUserAllocatedToProject(
             user?.id,
             user?.email,

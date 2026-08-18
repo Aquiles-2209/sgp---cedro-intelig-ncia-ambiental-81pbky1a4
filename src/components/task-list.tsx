@@ -36,6 +36,7 @@ interface TaskListProps {
   projectId: string
   teamMembers: TeamMember[]
   isAdmin: boolean
+  isMaster?: boolean
   userAllocIds: string[]
   onEdit: (id: string, data: Partial<Task>) => Promise<Task | void>
   onEditStatus: (id: string, status: TaskStatus) => Promise<void>
@@ -59,6 +60,7 @@ export function TaskList({
   projectId,
   teamMembers,
   isAdmin,
+  isMaster = false,
   userAllocIds,
   onEdit,
   onEditStatus,
@@ -69,6 +71,7 @@ export function TaskList({
   onSetAssignmentDate,
   savingAssignmentKey,
 }: TaskListProps) {
+  const todayStr = new Date().toISOString().split('T')[0]
   if (tasks.length === 0) {
     return (
       <p className="text-sm text-slate-500 text-center py-8">
@@ -158,6 +161,46 @@ export function TaskList({
                   const hasActiveTimer = timeEntries.some(
                     (te) => te.task === task.id && te.team_member === member.id && !te.end_time,
                   )
+
+                  // Compute worked hours for this task
+                  const taskEntries = timeEntries.filter((te) => te.task === task.id)
+                  const workedSeconds = taskEntries.reduce((sum, te) => sum + (te.duration || 0), 0)
+                  const workedHours = (task.allocated_hours || 0) + workedSeconds / 3600
+                  const plannedHours = task.planned_hours || 0
+
+                  let canStartMember = canStartTimer
+                  let disabledReason = ''
+
+                  if (!isMaster) {
+                    if (plannedHours > 0 && workedHours >= plannedHours) {
+                      canStartMember = false
+                      disabledReason =
+                        'Saldo de horas esgotado (horas trabalhadas >= horas previstas).'
+                    } else if (assignment?.start_date || assignment?.end_date) {
+                      const startDate = assignment.start_date
+                        ? assignment.start_date.split('T')[0]
+                        : ''
+                      const endDate = assignment.end_date ? assignment.end_date.split('T')[0] : ''
+                      if (startDate && todayStr < startDate) {
+                        canStartMember = false
+                        disabledReason = 'A data atual é anterior à data de início da alocação.'
+                      } else if (endDate && todayStr > endDate) {
+                        canStartMember = false
+                        disabledReason =
+                          'A data atual é posterior à data de finalização da alocação.'
+                      }
+                    } else if (task.start_date || task.due_date) {
+                      const startDate = task.start_date ? task.start_date.split('T')[0] : ''
+                      const dueDate = task.due_date ? task.due_date.split('T')[0] : ''
+                      if (startDate && todayStr < startDate) {
+                        canStartMember = false
+                        disabledReason = 'A data atual é anterior à data de início da tarefa.'
+                      } else if (dueDate && todayStr > dueDate) {
+                        canStartMember = false
+                        disabledReason = 'A data atual é posterior à data de término da tarefa.'
+                      }
+                    }
+                  }
                   return (
                     <div
                       key={member.id}
@@ -201,7 +244,8 @@ export function TaskList({
                           timeEntries={timeEntries}
                           onStart={onStartTimer}
                           onStop={onStopTimer}
-                          canStart={canStartTimer}
+                          canStart={canStartMember}
+                          disabledReason={disabledReason}
                         />
                       </div>
                       <div className="flex items-center gap-4 mt-2 ml-5">

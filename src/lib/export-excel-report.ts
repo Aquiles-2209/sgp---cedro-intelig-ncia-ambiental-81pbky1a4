@@ -32,8 +32,8 @@ export function exportExcelReport(rows: ReportRow[]): void {
     'Data',
     'Data de Lançamento',
     'Horas Previstas',
-    'Horas Alocadas',
-    'Horas Trabalhadas',
+    'Horas Importadas',
+    'Horas Trabalhadas (Timer)',
     'Total Horas',
     'Saldo Horas',
   ]

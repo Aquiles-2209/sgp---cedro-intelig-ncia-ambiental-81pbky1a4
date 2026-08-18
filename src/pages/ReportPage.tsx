@@ -102,12 +102,12 @@ export default function ReportPage() {
   const totals = rows.reduce(
     (acc, r) => ({
       planned: acc.planned + r.plannedHours,
-      allocated: acc.allocated + r.allocatedHours,
+      imported: acc.imported + r.allocatedHours,
       worked: acc.worked + r.hoursWorked,
     }),
-    { planned: 0, allocated: 0, worked: 0 },
+    { planned: 0, imported: 0, worked: 0 },
   )
-  const totalAll = totals.allocated + totals.worked
+  const totalAll = totals.imported + totals.worked
   const totalBalance = totals.planned - totalAll
 
   return (
@@ -188,8 +188,8 @@ export default function ReportPage() {
                     <TableHead>Data Atividade</TableHead>
                     <TableHead>Data Lançamento</TableHead>
                     <TableHead className="text-right">Horas Previstas</TableHead>
-                    <TableHead className="text-right">Horas Alocadas</TableHead>
-                    <TableHead className="text-right">Horas Trabalhadas</TableHead>
+                    <TableHead className="text-right">Horas Importadas</TableHead>
+                    <TableHead className="text-right">Horas Trabalhadas (Timer)</TableHead>
                     <TableHead className="text-right">Total Horas</TableHead>
                     <TableHead className="text-right">Saldo Horas</TableHead>
                   </TableRow>
@@ -234,7 +234,7 @@ export default function ReportPage() {
                       {totals.planned.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right font-bold">
-                      {totals.allocated.toFixed(2)}
+                      {totals.imported.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right font-bold">
                       {totals.worked.toFixed(2)}

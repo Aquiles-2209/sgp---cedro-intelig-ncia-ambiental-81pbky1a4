@@ -11,6 +11,7 @@ interface MemberTimerProps {
   onStart: (taskId: string, memberId: string) => Promise<void>
   onStop: (entryId: string) => Promise<void>
   canStart?: boolean
+  disabledReason?: string
 }
 
 export function MemberTimer({
@@ -20,6 +21,7 @@ export function MemberTimer({
   onStart,
   onStop,
   canStart = true,
+  disabledReason,
 }: MemberTimerProps) {
   const [elapsed, setElapsed] = useState(0)
 
@@ -79,13 +81,17 @@ export function MemberTimer({
   const startDisabled = !canStart
 
   return (
-    <div className="flex items-center gap-2">
+    <div
+      className="flex items-center gap-2"
+      title={startDisabled && disabledReason ? disabledReason : undefined}
+    >
       <Button
         size="sm"
         variant="outline"
         className={cn('h-7', startDisabled && 'opacity-50 cursor-not-allowed')}
         disabled={startDisabled}
         onClick={handleStart}
+        title={startDisabled && disabledReason ? disabledReason : undefined}
       >
         <Play className="h-3 w-3 mr-1" />
         <span className="text-xs">Play</span>

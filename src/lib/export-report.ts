@@ -50,8 +50,8 @@ export function exportProjectReport(
     'Nome da Atividade',
     'Data de Lançamento da Atividade',
     'Total da Hora Prevista',
-    'Total da Hora Alocada',
-    'Total de horas trabalhadas no período selecionado',
+    'Total da Hora Importada',
+    'Total de horas trabalhadas no período selecionado (Timer)',
     'Total Horas',
     'Saldo Horas',
   ]

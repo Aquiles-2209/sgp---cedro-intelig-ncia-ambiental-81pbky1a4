@@ -68,7 +68,8 @@ export default function ProjectDetails() {
   } = useAppState()
   const { toast } = useToast()
   const { user } = useAuth()
-  const isAdmin = user?.role === 'admin' || user?.role === 'master'
+  const isMaster = user?.role === 'master'
+  const isAdmin = user?.role === 'admin' || isMaster
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [localTaskAssignments, setLocalTaskAssignments] = useState<TaskAssignment[]>([])
   const [assignmentsLoaded, setAssignmentsLoaded] = useState(false)
@@ -133,6 +134,14 @@ export default function ProjectDetails() {
   const projAllocs = allocations.filter((a) => a.project === id)
   const projTasks = tasks.filter((t) => t.project === id)
   const userAllocIds = projAllocs.filter((a) => a.user === user?.id).map((a) => a.id)
+
+  const totalPlannedHours = projTasks.reduce((sum, t) => sum + (t.planned_hours || 0), 0)
+  const totalWorkedSeconds = timeEntries
+    .filter((te) => projTasks.some((t) => t.id === te.task))
+    .reduce((sum, te) => sum + (te.duration || 0), 0)
+  const totalImportedHours = projTasks.reduce((sum, t) => sum + (t.allocated_hours || 0), 0)
+  const totalWorkedHours = totalImportedHours + totalWorkedSeconds / 3600
+  const availableHoursBalance = totalPlannedHours - totalWorkedHours
 
   const handleTaskStatusChange = async (taskId: string, status: TaskStatus) => {
     await editTask(taskId, { status })
@@ -342,13 +351,19 @@ export default function ProjectDetails() {
                   <span className="font-medium">{projTasks.length}</span>
                 </div>
                 <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Total de Horas Alocadas</span>
+                  <span className="font-medium">{formatDuration(totalPlannedHours * 3600)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Tempo total trabalhado</span>
-                  <span className="font-medium">
-                    {formatDuration(
-                      timeEntries
-                        .filter((te) => projTasks.some((t) => t.id === te.task))
-                        .reduce((sum, te) => sum + (te.duration || 0), 0),
-                    )}
+                  <span className="font-medium">{formatDuration(totalWorkedHours * 3600)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Saldo de horas disponíveis</span>
+                  <span
+                    className={`font-medium ${availableHoursBalance < 0 ? 'text-red-600' : 'text-slate-900'}`}
+                  >
+                    {formatDuration(availableHoursBalance * 3600)}
                   </span>
                 </div>
               </div>
@@ -420,6 +435,7 @@ export default function ProjectDetails() {
             projectId={id!}
             teamMembers={teamMembers}
             isAdmin={isAdmin}
+            isMaster={isMaster}
             userAllocIds={userAllocIds}
             onEdit={editTask}
             onEditStatus={handleTaskStatusChange}

@@ -43,8 +43,7 @@ export default function Login() {
     if (result.error) {
       toast({ title: 'Erro', description: 'Verifique suas credenciais.', variant: 'destructive' })
     } else {
-      const from = location.state?.from?.pathname || '/'
-      navigate(from, { replace: true })
+      navigate('/', { replace: true })
     }
   }
 
