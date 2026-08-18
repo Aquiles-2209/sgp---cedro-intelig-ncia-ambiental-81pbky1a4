@@ -43,6 +43,7 @@ import { ProjectDeleteDialog } from '@/components/project-delete-dialog'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
 import { getTodaysTimeEntriesByTeamMember } from '@/services/time-entries'
+import { fetchReportData, type ReportRow } from '@/services/reports'
 
 const statusColors: Record<string, string> = {
   'Em Andamento': 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -77,6 +78,15 @@ export default function ProjectDetails() {
   const [localTaskAssignments, setLocalTaskAssignments] = useState<TaskAssignment[]>([])
   const [assignmentsLoaded, setAssignmentsLoaded] = useState(false)
   const [savingAssignmentKey, setSavingAssignmentKey] = useState<string>('')
+  const [reportTotals, setReportTotals] = useState<{
+    planned: number
+    imported: number
+    worked: number
+  }>({
+    planned: 0,
+    imported: 0,
+    worked: 0,
+  })
   const project = projects.find((p) => p.id === id)
   const userAllocated = isUserAllocatedToProject(
     user?.id,
@@ -130,13 +140,35 @@ export default function ProjectDetails() {
     }
   }, [])
 
+  const loadReportTotals = useCallback(async () => {
+    if (!id) return
+    try {
+      const data: ReportRow[] = await fetchReportData([id], '2000-01-01', '2099-12-31')
+      const totals = data.reduce(
+        (acc, r) => ({
+          planned: acc.planned + r.plannedHours,
+          imported: acc.imported + r.allocatedHours,
+          worked: acc.worked + r.hoursWorked,
+        }),
+        { planned: 0, imported: 0, worked: 0 },
+      )
+      setReportTotals(totals)
+    } catch {
+      /* silent */
+    }
+  }, [id])
+
   useEffect(() => {
     loadTeamMembers()
     loadTaskAssignments()
-  }, [loadTeamMembers, loadTaskAssignments])
+    loadReportTotals()
+  }, [loadTeamMembers, loadTaskAssignments, loadReportTotals])
 
   useRealtime('team_members', () => loadTeamMembers())
   useRealtime('task_assignments', () => loadTaskAssignments())
+  useRealtime('time_entries', () => loadReportTotals())
+  useRealtime('tasks', () => loadReportTotals())
+  useRealtime('allocations', () => loadReportTotals())
 
   useEffect(() => {
     if (loading || isAdmin || !project || !assignmentsLoaded) return
@@ -160,28 +192,6 @@ export default function ProjectDetails() {
   const projAllocs = allocations.filter((a) => a.project === id)
   const projTasks = tasks.filter((t) => t.project === id)
   const userAllocIds = projAllocs.filter((a) => a.user === user?.id).map((a) => a.id)
-
-  const allocationMap = new Map(allocations.map((a) => [a.id, a]))
-  const validTasks = projTasks.filter((task) => {
-    const taskAllocIds: string[] = Array.isArray(task.allocation)
-      ? task.allocation
-      : task.allocation
-        ? [task.allocation]
-        : []
-    const taskAllocations = taskAllocIds
-      .map((allocId) => allocationMap.get(allocId))
-      .filter(Boolean)
-    const taskTimeEntries = timeEntries.filter((te) => te.task === task.id)
-    return taskAllocations.length > 0 || taskTimeEntries.length > 0
-  })
-
-  const totalPlannedHours = projTasks.reduce((sum, t) => sum + (t.planned_hours || 0), 0)
-  const totalWorkedSeconds = timeEntries
-    .filter((te) => projTasks.some((t) => t.id === te.task))
-    .reduce((sum, te) => sum + (te.duration || 0), 0)
-  const totalImportedHours = validTasks.reduce((sum, t) => sum + (t.allocated_hours || 0), 0)
-  const totalWorkedHours = totalImportedHours + totalWorkedSeconds / 3600
-  const availableHoursBalance = totalPlannedHours - totalWorkedHours
 
   const handleTaskStatusChange = async (taskId: string, status: TaskStatus) => {
     await editTask(taskId, { status })
@@ -401,18 +411,22 @@ export default function ProjectDetails() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Total de Horas Alocadas</span>
-                  <span className="font-medium">{formatDuration(totalPlannedHours * 3600)}</span>
+                  <span className="font-medium">{formatDuration(reportTotals.planned * 3600)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Tempo total trabalhado</span>
-                  <span className="font-medium">{formatDuration(totalWorkedHours * 3600)}</span>
+                  <span className="font-medium">
+                    {formatDuration((reportTotals.imported + reportTotals.worked) * 3600)}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Saldo de horas disponíveis</span>
                   <span
-                    className={`font-medium ${availableHoursBalance < 0 ? 'text-red-600' : 'text-slate-900'}`}
+                    className={`font-medium ${reportTotals.planned - (reportTotals.imported + reportTotals.worked) < 0 ? 'text-red-600' : 'text-slate-900'}`}
                   >
-                    {formatDuration(availableHoursBalance * 3600)}
+                    {formatDuration(
+                      (reportTotals.planned - (reportTotals.imported + reportTotals.worked)) * 3600,
+                    )}
                   </span>
                 </div>
               </div>
