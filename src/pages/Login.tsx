@@ -118,12 +118,6 @@ export default function Login() {
             {isSignUp ? 'Já tem conta? Entrar' : 'Não tem conta? Cadastre-se'}
           </button>
         </div>
-        {!isSignUp && (
-          <div className="mt-4 text-center text-xs text-slate-400 border-t border-slate-100 pt-4">
-            Dica: <span className="font-semibold text-slate-600">aquilessouza1@hotmail.com</span> /{' '}
-            <span className="font-semibold text-slate-600">Skip@Pass</span>
-          </div>
-        )}
       </div>
     </div>
   )
