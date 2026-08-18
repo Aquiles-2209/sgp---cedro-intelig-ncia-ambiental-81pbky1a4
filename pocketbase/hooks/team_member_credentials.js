@@ -3,8 +3,8 @@ routerAdd(
   '/backend/v1/team-members/{id}/credentials',
   (e) => {
     var auth = e.auth
-    if (!auth || auth.getString('role') !== 'admin') {
-      return e.forbiddenError('Only admins can access credentials')
+    if (!auth || (auth.getString('role') !== 'admin' && auth.getString('role') !== 'master')) {
+      return e.forbiddenError('Only admins or masters can access credentials')
     }
 
     var tmId = e.request.pathValue('id')
