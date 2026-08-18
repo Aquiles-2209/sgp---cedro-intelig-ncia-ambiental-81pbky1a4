@@ -48,7 +48,7 @@ export function AppSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { signOut, user } = useAuth()
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = user?.role === 'admin' || user?.role === 'master'
   const navigation = isAdmin ? adminNavigation : userNavigation
 
   return (

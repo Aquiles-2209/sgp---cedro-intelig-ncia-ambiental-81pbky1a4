@@ -68,7 +68,7 @@ export default function ProjectDetails() {
   } = useAppState()
   const { toast } = useToast()
   const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = user?.role === 'admin' || user?.role === 'master'
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [localTaskAssignments, setLocalTaskAssignments] = useState<TaskAssignment[]>([])
   const [assignmentsLoaded, setAssignmentsLoaded] = useState(false)

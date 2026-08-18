@@ -43,7 +43,7 @@ export default function ProjectEdit() {
   const { projects, allocations, editProject, addAllocation, editAllocation, removeAllocation } =
     useAppState()
   const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = user?.role === 'admin' || user?.role === 'master'
   const project = projects.find((p) => p.id === id)
 
   const [form, setForm] = useState({

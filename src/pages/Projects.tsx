@@ -26,7 +26,7 @@ const statusColors: Record<ProjectStatus, string> = {
 export default function Projects() {
   const { projects, allocations, tasks, taskAssignments, loading } = useAppState()
   const { user, loading: authLoading } = useAuth()
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = user?.role === 'admin' || user?.role === 'master'
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('todos')
 

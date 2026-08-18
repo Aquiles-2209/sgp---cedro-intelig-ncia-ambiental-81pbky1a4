@@ -14,6 +14,6 @@ export default function Home() {
     )
   }
 
-  if (user?.role === 'admin') return <Dashboard />
+  if (user?.role === 'admin' || user?.role === 'master') return <Dashboard />
   return <MyDashboard />
 }

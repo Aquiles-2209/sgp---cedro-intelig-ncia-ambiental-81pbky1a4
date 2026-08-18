@@ -45,7 +45,7 @@ function formatLastActivity(dateStr: string | undefined): string {
 
 export default function Settings() {
   const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = user?.role === 'admin' || user?.role === 'master'
   const [users, setUsers] = useState<SimpleUser[]>([])
   const [lastActivity, setLastActivity] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)

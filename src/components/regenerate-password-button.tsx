@@ -22,7 +22,7 @@ interface RegeneratePasswordButtonProps {
 
 export function RegeneratePasswordButton({ member }: RegeneratePasswordButtonProps) {
   const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = user?.role === 'admin' || user?.role === 'master'
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
   const [copiedPass, setCopiedPass] = useState(false)
