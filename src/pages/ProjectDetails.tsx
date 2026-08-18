@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Clock,
   CheckSquare,
+  User,
 } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -331,7 +332,7 @@ export default function ProjectDetails() {
               <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
                 {project.description || 'Nenhuma descrição fornecida.'}
               </p>
-              <div className="mt-8 grid grid-cols-2 gap-4 pt-6 border-t border-slate-100">
+              <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-slate-100">
                 <div>
                   <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Início
@@ -348,6 +349,15 @@ export default function ProjectDetails() {
                   <p className="font-medium text-slate-900 mt-1 flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-slate-400" />
                     {safeFormatDate(project.end_date)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Gerente do Projeto
+                  </p>
+                  <p className="font-medium text-slate-900 mt-1 flex items-center gap-2">
+                    <User className="h-4 w-4 text-slate-400" />
+                    {managerName || 'Não atribuído'}
                   </p>
                 </div>
               </div>
