@@ -227,5 +227,9 @@ export async function fetchReportData(
     }
   }
 
-  return rows.sort((a, b) => (a.activityLaunchDate || '').localeCompare(b.activityLaunchDate || ''))
+  return rows.sort((a, b) => {
+    const dateA = a.launchDate || a.activityLaunchDate || ''
+    const dateB = b.launchDate || b.activityLaunchDate || ''
+    return dateA.localeCompare(dateB)
+  })
 }

@@ -31,7 +31,7 @@ export default function Login() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: 'aquilessouza1@hotmail.com', password: 'Skip@Pass' },
+    defaultValues: { email: '', password: '' },
   })
 
   const onSubmit = async (data: FormValues) => {
@@ -76,6 +76,7 @@ export default function Login() {
               id="email"
               type="email"
               placeholder="nome@empresa.com"
+              autoComplete="off"
               className={`h-11 bg-white ${errors.email ? 'border-red-500' : 'border-slate-200'}`}
               {...register('email')}
             />
@@ -89,6 +90,7 @@ export default function Login() {
               id="password"
               type="password"
               placeholder="••••••••"
+              autoComplete="new-password"
               className={`h-11 bg-white ${errors.password ? 'border-red-500' : 'border-slate-200'}`}
               {...register('password')}
             />

@@ -39,9 +39,9 @@ export function exportExcelReport(rows: ReportRow[]): void {
   ]
 
   const sortedRows = [...rows].sort((a, b) => {
-    const taskCmp = (a.activityTitle || '').localeCompare(b.activityTitle || '')
-    if (taskCmp !== 0) return taskCmp
-    return (a.memberName || '').localeCompare(b.memberName || '')
+    const dateA = a.launchDate || a.activityLaunchDate || ''
+    const dateB = b.launchDate || b.activityLaunchDate || ''
+    return dateA.localeCompare(dateB)
   })
 
   const xlsxRows = sortedRows.map((row, idx) => {
@@ -63,7 +63,12 @@ export function exportExcelReport(rows: ReportRow[]): void {
       {
         type: 'number' as const,
         value: balance,
-        style: balance > 0 ? 'positive' : balance < 0 ? 'negative' : 'normal',
+        style:
+          balance > 0
+            ? ('positive' as const)
+            : balance < 0
+              ? ('negative' as const)
+              : ('normal' as const),
       },
     ]
   })
@@ -89,7 +94,12 @@ export function exportExcelReport(rows: ReportRow[]): void {
     {
       type: 'number' as const,
       value: totalBalance,
-      style: totalBalance > 0 ? 'positive' : totalBalance < 0 ? 'negative' : 'normal',
+      style:
+        totalBalance > 0
+          ? ('positive' as const)
+          : totalBalance < 0
+            ? ('negative' as const)
+            : ('normal' as const),
     },
   ])
 

@@ -163,9 +163,9 @@ export function exportProjectReport(
   }
 
   const sortedGroups = [...groupMap.values()].sort((a, b) => {
-    const taskCmp = (a.taskTitle || '').localeCompare(b.taskTitle || '')
-    if (taskCmp !== 0) return taskCmp
-    return (a.memberName || '').localeCompare(b.memberName || '')
+    const dateA = a.launchDate || a.activityDate || ''
+    const dateB = b.launchDate || b.activityDate || ''
+    return dateA.localeCompare(dateB)
   })
 
   const filteredGroups = sortedGroups.filter((group) => {
