@@ -155,6 +155,10 @@ function valEmail(val: string, row: number, col: string, sheet: string, errors: 
     })
 }
 
+function normalizeName(str: string): string {
+  return str.trim().replace(/\s+/g, ' ')
+}
+
 export function validateImport(sheets: SheetData[]): {
   data: ParsedData | null
   errors: ValidationError[]
@@ -203,7 +207,8 @@ export function validateImport(sheets: SheetData[]): {
       skippedRows.push({ sheet: 'Projetos', row: rn, reason: 'linha vazia ignorada' })
       continue
     }
-    const name = String(gv(pSheet, row, 'Nome do Projeto')).trim()
+    const rawName = String(gv(pSheet, row, 'Nome do Projeto'))
+    const name = normalizeName(rawName)
     if (!name) {
       skippedRows.push({
         sheet: 'Projetos',
@@ -248,7 +253,8 @@ export function validateImport(sheets: SheetData[]): {
       skippedRows.push({ sheet: 'Usuários (Equipe)', row: rn, reason: 'linha vazia ignorada' })
       continue
     }
-    const name = String(gv(mSheet, row, 'Nome')).trim()
+    const rawName = String(gv(mSheet, row, 'Nome'))
+    const name = normalizeName(rawName)
     if (!name) {
       skippedRows.push({
         sheet: 'Usuários (Equipe)',
@@ -295,7 +301,7 @@ export function validateImport(sheets: SheetData[]): {
       skippedRows.push({ sheet: 'Alocações', row: rn, reason: 'linha vazia ignorada' })
       continue
     }
-    const pn = String(gv(aSheet, row, 'Projeto (Nome)')).trim()
+    const pn = normalizeName(String(gv(aSheet, row, 'Projeto (Nome)')))
     if (!pn) {
       skippedRows.push({
         sheet: 'Alocações',
@@ -304,7 +310,7 @@ export function validateImport(sheets: SheetData[]): {
       })
       continue
     }
-    const mn = String(gv(aSheet, row, 'Membro (Nome)')).trim()
+    const mn = normalizeName(String(gv(aSheet, row, 'Membro (Nome)')))
     const func = String(gv(aSheet, row, 'Função')).trim()
     const ue = String(gv(aSheet, row, 'Usuário (Email)')).trim()
     const start = normDate(gv(aSheet, row, 'Data Início'))
@@ -372,11 +378,11 @@ export function validateImport(sheets: SheetData[]): {
       skippedRows.push({ sheet: 'Tarefas', row: rn, reason: 'linha vazia ignorada' })
       continue
     }
-    const mn = String(gv(tSheet, row, 'Alocação (Nome do Membro)')).trim()
+    const mn = normalizeName(String(gv(tSheet, row, 'Alocação (Nome do Membro)')))
     if (!mn) {
       continue
     }
-    const pn = String(gv(tSheet, row, 'Projeto (Nome)')).trim()
+    const pn = normalizeName(String(gv(tSheet, row, 'Projeto (Nome)')))
     if (!pn) {
       skippedRows.push({
         sheet: 'Tarefas',
@@ -385,7 +391,7 @@ export function validateImport(sheets: SheetData[]): {
       })
       continue
     }
-    let title = String(gv(tSheet, row, 'Título')).trim()
+    let title = normalizeName(String(gv(tSheet, row, 'Título')))
     const status = String(gv(tSheet, row, 'Status')).trim()
     const start = normDate(gv(tSheet, row, 'Data Início'))
     const due = normDate(gv(tSheet, row, 'Data Fim (Prazo)'))

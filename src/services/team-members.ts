@@ -67,5 +67,6 @@ export interface TeamMemberCredentials {
 export const getTeamMemberCredentials = async (id: string): Promise<TeamMemberCredentials> =>
   pb.send(`/backend/v1/team-members/${id}/credentials`, { method: 'POST' })
 
-export const deleteTeamMember = async (id: string): Promise<void> =>
-  pb.collection('team_members').delete(id)
+export const deleteTeamMember = async (id: string): Promise<void> => {
+  await pb.collection('team_members').delete(id)
+}

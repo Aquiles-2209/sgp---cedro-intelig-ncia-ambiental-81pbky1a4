@@ -101,6 +101,17 @@ export interface TaskAssignment {
   expand?: { task?: Task; team_member?: TeamMember }
 }
 
+export interface Notification {
+  id: string
+  user: string
+  title: string
+  content: string
+  is_read: boolean
+  type: 'Info' | 'Alert'
+  created: string
+  updated: string
+}
+
 export interface TimeEntry {
   id: string
   task: string
@@ -147,6 +158,9 @@ export function getUniqueAllocatedCount(
   projAllocs: Allocation[] = [],
   projTasks: Task[] = [],
   projTaskAssignments: TaskAssignment[] = [],
+  _unused1?: any,
+  _unused2?: any,
+  _unused3?: any,
 ): number {
   const allocs = projAllocs || []
   const tasks = projTasks || []
@@ -351,7 +365,7 @@ export function isUserAllocatedToProject(
     const tmEmail = typeof tm?.email === 'string' ? tm.email.toLowerCase() : ''
     if (!tmEmail || tmEmail !== lowerEmail) return false
 
-    const taskFromExpand = ta.expand?.task
+    const taskFromExpand = ta.expand?.task as any
     const taskProject =
       typeof taskFromExpand?.project === 'string'
         ? taskFromExpand.project

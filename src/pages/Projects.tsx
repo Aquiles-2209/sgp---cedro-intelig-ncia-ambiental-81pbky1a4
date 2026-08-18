@@ -121,7 +121,7 @@ export default function Projects() {
             return pId === project.id
           })
           const projAssignments = (taskAssignments || []).filter((ta) => {
-            const taskObj = ta.expand?.task
+            const taskObj = ta.expand?.task as any
             const pId =
               typeof taskObj?.project === 'string' ? taskObj.project : taskObj?.project?.id
             return pId === project.id || projTasks.some((t) => t.id === ta.task)

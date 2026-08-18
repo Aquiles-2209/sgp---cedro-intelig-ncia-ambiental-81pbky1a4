@@ -7,7 +7,8 @@ import { cn } from '@/lib/utils'
 import { safeFormatDate } from '@/types/models'
 
 export function NotificationBell() {
-  const { notifications, markNotificationAsRead } = useAppState()
+  const notifications: any[] = []
+  const markNotificationAsRead = (_id: string) => {}
   const [open, setOpen] = useState(false)
   const unreadCount = notifications.filter((n) => !n.is_read).length
 

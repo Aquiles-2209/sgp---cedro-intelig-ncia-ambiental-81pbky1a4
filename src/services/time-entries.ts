@@ -45,8 +45,9 @@ export const createTimeEntry = async (data: Partial<TimeEntry>): Promise<TimeEnt
 export const updateTimeEntry = async (id: string, data: Partial<TimeEntry>): Promise<TimeEntry> =>
   pb.collection('time_entries').update(id, data)
 
-export const deleteTimeEntry = async (id: string): Promise<void> =>
-  pb.collection('time_entries').delete(id)
+export const deleteTimeEntry = async (id: string): Promise<void> => {
+  await pb.collection('time_entries').delete(id)
+}
 
 export const getTodaysTimeEntriesByTeamMember = async (memberId: string): Promise<TimeEntry[]> => {
   const now = new Date()

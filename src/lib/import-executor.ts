@@ -90,29 +90,40 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
   try {
     const existingProjects = await getProjects()
     const existingMembers = await getTeamMembers()
-    const projByName = new Map<string, string>(existingProjects.map((p: Project) => [p.name, p.id]))
+
+    // Helper to normalize names/titles for matching
+    const norm = (s: string) => s.trim().replace(/\s+/g, ' ')
+
+    const projByName = new Map<string, string>()
+    for (const p of existingProjects) {
+      if (p.name) projByName.set(norm(p.name), p.id)
+    }
+
     const memberByEmail = new Map<string, string>(
-      existingMembers.filter((m: TeamMember) => m.email).map((m: TeamMember) => [m.email, m.id]),
+      existingMembers
+        .filter((m: TeamMember) => m.email)
+        .map((m: TeamMember) => [m.email.trim(), m.id]),
     )
-    const memberByName = new Map<string, string>(
-      existingMembers.map((m: TeamMember) => [m.name, m.id]),
-    )
+    const memberByName = new Map<string, string>()
+    for (const m of existingMembers) {
+      if (m.name) memberByName.set(norm(m.name), m.id)
+    }
 
     const userCache = new Map<string, string>()
     const allUsers = await withRetry(() => pb.collection('users').getFullList(), 'Alocações')
     for (const u of allUsers as any[]) {
-      if (u.email) userCache.set(u.email, u.id)
+      if (u.email) userCache.set(u.email.trim(), u.id)
     }
 
-    // Mapa de tarefas existentes por projeto + título, para permitir atualizar
+    // Mapa de tarefas existentes por projeto + título (normalizado), para permitir atualizar
     // tarefas já cadastradas em vez de duplicá-las ao reimportar um projeto.
     const taskByProjectTitle = new Map<string, Map<string, string>>()
     const allTasks = await withRetry(() => pb.collection('tasks').getFullList(), 'Tarefas')
     for (const t of allTasks as any[]) {
       const pid = typeof t.project === 'string' ? t.project : (t.project as any)?.id
-      if (!pid) continue
+      if (!pid || !t.title) continue
       if (!taskByProjectTitle.has(pid)) taskByProjectTitle.set(pid, new Map<string, string>())
-      taskByProjectTitle.get(pid)!.set(t.title, t.id)
+      taskByProjectTitle.get(pid)!.set(norm(t.title), t.id)
     }
 
     let skipP = 0,
@@ -125,9 +136,12 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
       updT = 0
 
     for (const p of data.projects) {
-      const existingProjectId = projByName.get(p.name)
+      const normProjName = norm(p.name)
+      const existingProjectId = projByName.get(normProjName)
+      let projectSuccess = false
+
       if (existingProjectId) {
-        // Projeto já existe: atualiza as informações em vez de pular.
+        // Tenta atualizar projeto existente
         try {
           await updateThrottled(
             'projects',
@@ -145,33 +159,46 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
             'Projetos',
           )
           updP++
+          projectSuccess = true
+        } catch (err) {
+          if (isRateLimitMessage(err)) throw err
+          const errMsg = getErrorMessage(err)
+          // Se falhou com "not found" ou 404, faz fallback criando o projeto
+          const isNotFound =
+            errMsg.toLowerCase().includes("wasn't found") ||
+            errMsg.toLowerCase().includes('not found') ||
+            (err && typeof err === 'object' && 'status' in err && (err as any).status === 404)
+
+          if (!isNotFound) {
+            throw new Error(`Linha ${p._row} da aba Projetos: ${errMsg}`)
+          }
+          // Fallback: se update falhou porque não foi encontrado, tenta criar abaixo
+        }
+      }
+
+      if (!projectSuccess) {
+        try {
+          const rec = await createThrottled(
+            'projects',
+            {
+              name: p.name,
+              description: p.description,
+              contract_id: p.contract_id,
+              client: p.client,
+              start_date: p.start_date,
+              end_date: p.end_date,
+              status: p.status,
+              setor: p.setor,
+            },
+            'Projetos',
+          )
+          created.projects.push(rec.id)
+          projByName.set(normProjName, rec.id)
+          cntP++
         } catch (err) {
           if (isRateLimitMessage(err)) throw err
           throw new Error(`Linha ${p._row} da aba Projetos: ${getErrorMessage(err)}`)
         }
-        continue
-      }
-      try {
-        const rec = await createThrottled(
-          'projects',
-          {
-            name: p.name,
-            description: p.description,
-            contract_id: p.contract_id,
-            client: p.client,
-            start_date: p.start_date,
-            end_date: p.end_date,
-            status: p.status,
-            setor: p.setor,
-          },
-          'Projetos',
-        )
-        created.projects.push(rec.id)
-        projByName.set(p.name, rec.id)
-        cntP++
-      } catch (err) {
-        if (isRateLimitMessage(err)) throw err
-        throw new Error(`Linha ${p._row} da aba Projetos: ${getErrorMessage(err)}`)
       }
     }
 
@@ -205,10 +232,12 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
     const allocKey = new Map<string, string>()
     for (const a of data.allocations) {
       if (!a.projectName) continue
-      const projectId = projByName.get(a.projectName)
+      const normProjName = norm(a.projectName)
+      const projectId = projByName.get(normProjName)
       if (!projectId)
         throw new Error(`Linha ${a._row} de Alocações: Projeto '${a.projectName}' não encontrado.`)
-      const userId = a.userEmail ? userCache.get(a.userEmail) : undefined
+      const userId = a.userEmail ? userCache.get(a.userEmail.trim()) : undefined
+      const normMemberName = norm(a.memberName)
       try {
         const rec = await createThrottled(
           'allocations',
@@ -223,7 +252,7 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
           'Alocações',
         )
         created.allocations.push(rec.id)
-        allocKey.set(`${projectId}:${a.memberName}`, rec.id)
+        allocKey.set(`${projectId}:${normMemberName}`, rec.id)
         cntA++
       } catch (err) {
         if (isRateLimitMessage(err)) throw err
@@ -234,16 +263,21 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
     for (const t of data.tasks) {
       if (t.hadEmptyTitle) emptyTitleRows.push(t._row)
       if (!t.projectName) continue
-      const projectId = projByName.get(t.projectName)
+      const normProjName = norm(t.projectName)
+      const projectId = projByName.get(normProjName)
       if (!projectId)
         throw new Error(`Linha ${t._row} de Tarefas: Projeto '${t.projectName}' não encontrado.`)
-      const memberId = t.memberName ? memberByName.get(t.memberName) : undefined
-      const allocationId = memberId ? allocKey.get(`${projectId}:${t.memberName}`) : undefined
+      const normMemberName = t.memberName ? norm(t.memberName) : ''
+      const memberId = normMemberName ? memberByName.get(normMemberName) : undefined
+      const allocationId = memberId ? allocKey.get(`${projectId}:${normMemberName}`) : undefined
 
       // Se já existe uma tarefa com o mesmo título neste projeto, atualiza em
       // vez de criar duplicata.
+      const normTitle = norm(t.title)
       const titleMap = taskByProjectTitle.get(projectId)
-      const existingTaskId = titleMap ? titleMap.get(t.title) : undefined
+      const existingTaskId = titleMap ? titleMap.get(normTitle) : undefined
+      let taskSuccess = false
+
       if (existingTaskId) {
         try {
           const updateData: Record<string, unknown> = {
@@ -282,43 +316,54 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
             }
           }
           updT++
+          taskSuccess = true
+        } catch (err) {
+          if (isRateLimitMessage(err)) throw err
+          const errMsg = getErrorMessage(err)
+          const isNotFound =
+            errMsg.toLowerCase().includes("wasn't found") ||
+            errMsg.toLowerCase().includes('not found') ||
+            (err && typeof err === 'object' && 'status' in err && (err as any).status === 404)
+
+          if (!isNotFound) {
+            throw new Error(`Linha ${t._row} da aba Tarefas: ${errMsg}`)
+          }
+          // Fallback se a tarefa não foi encontrada no banco durante update
+        }
+      }
+
+      if (!taskSuccess) {
+        const taskData: Record<string, unknown> = {
+          project: projectId,
+          title: t.title,
+          description: t.description,
+          status: t.status,
+          start_date: t.start_date,
+          due_date: t.due_date,
+          planned_hours: t.planned_hours,
+        }
+        if (t.allocated_hours !== null) taskData.allocated_hours = t.allocated_hours
+        if (allocationId) taskData.allocation = allocationId
+        if (memberId) taskData.members = [memberId]
+        try {
+          const rec = await createThrottled('tasks', taskData, 'Tarefas')
+          created.tasks.push(rec.id)
+          if (!taskByProjectTitle.has(projectId))
+            taskByProjectTitle.set(projectId, new Map<string, string>())
+          taskByProjectTitle.get(projectId)!.set(normTitle, rec.id)
+          if (memberId) {
+            const ta = await createThrottled(
+              'task_assignments',
+              { task: rec.id, team_member: memberId },
+              'Tarefas',
+            )
+            created.assignments.push(ta.id)
+          }
+          cntT++
         } catch (err) {
           if (isRateLimitMessage(err)) throw err
           throw new Error(`Linha ${t._row} da aba Tarefas: ${getErrorMessage(err)}`)
         }
-        continue
-      }
-
-      const taskData: Record<string, unknown> = {
-        project: projectId,
-        title: t.title,
-        description: t.description,
-        status: t.status,
-        start_date: t.start_date,
-        due_date: t.due_date,
-        planned_hours: t.planned_hours,
-      }
-      if (t.allocated_hours !== null) taskData.allocated_hours = t.allocated_hours
-      if (allocationId) taskData.allocation = allocationId
-      if (memberId) taskData.members = [memberId]
-      try {
-        const rec = await createThrottled('tasks', taskData, 'Tarefas')
-        created.tasks.push(rec.id)
-        if (!taskByProjectTitle.has(projectId))
-          taskByProjectTitle.set(projectId, new Map<string, string>())
-        taskByProjectTitle.get(projectId)!.set(t.title, rec.id)
-        if (memberId) {
-          const ta = await createThrottled(
-            'task_assignments',
-            { task: rec.id, team_member: memberId },
-            'Tarefas',
-          )
-          created.assignments.push(ta.id)
-        }
-        cntT++
-      } catch (err) {
-        if (isRateLimitMessage(err)) throw err
-        throw new Error(`Linha ${t._row} da aba Tarefas: ${getErrorMessage(err)}`)
       }
     }
 

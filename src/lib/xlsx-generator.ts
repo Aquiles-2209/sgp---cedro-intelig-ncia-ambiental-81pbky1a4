@@ -79,7 +79,7 @@ function createZip(entries: ZipEntry[]): Blob {
   ev.setUint32(12, centralSize, true)
   ev.setUint32(16, offset, true)
 
-  return new Blob([...parts, ...centralDir, eocd], {
+  return new Blob([...parts, ...centralDir, eocd] as BlobPart[], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   })
 }
