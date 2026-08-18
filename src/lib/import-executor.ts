@@ -102,7 +102,7 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
     const memberByEmail = new Map<string, string>(
       existingMembers
         .filter((m: TeamMember) => m.email)
-        .map((m: TeamMember) => [m.email.trim(), m.id]),
+        .map((m: TeamMember) => [m.email.trim().toLowerCase(), m.id]),
     )
     const memberByName = new Map<string, string>()
     for (const m of existingMembers) {
@@ -112,7 +112,7 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
     const userCache = new Map<string, string>()
     const allUsers = await withRetry(() => pb.collection('users').getFullList(), 'Alocações')
     for (const u of allUsers as any[]) {
-      if (u.email) userCache.set(u.email.trim(), u.id)
+      if (u.email) userCache.set(u.email.trim().toLowerCase(), u.id)
     }
 
     // Mapa de tarefas existentes por projeto + título (normalizado), para permitir atualizar
@@ -170,6 +170,7 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
             (err && typeof err === 'object' && 'status' in err && (err as any).status === 404)
 
           if (!isNotFound) {
+            console.error('Erro na aba Projetos:', err, (err as any)?.data)
             throw new Error(`Linha ${p._row} da aba Projetos: ${errMsg}`)
           }
           // Fallback: se update falhou porque não foi encontrado, tenta criar abaixo
@@ -197,13 +198,15 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
           cntP++
         } catch (err) {
           if (isRateLimitMessage(err)) throw err
+          console.error('Erro na aba Projetos ao criar:', err, (err as any)?.data)
           throw new Error(`Linha ${p._row} da aba Projetos: ${getErrorMessage(err)}`)
         }
       }
     }
 
     for (const m of data.members) {
-      if (m.email && memberByEmail.has(m.email)) {
+      const emailKey = m.email ? m.email.trim().toLowerCase() : ''
+      if (emailKey && memberByEmail.has(emailKey)) {
         skipM++
         continue
       }
@@ -220,42 +223,65 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
           'Usuários (Equipe)',
         )
         created.members.push(rec.id)
-        memberByEmail.set(m.email, rec.id)
-        memberByName.set(m.name, rec.id)
+        if (emailKey) memberByEmail.set(emailKey, rec.id)
+        memberByName.set(norm(m.name), rec.id)
         cntM++
       } catch (err) {
         if (isRateLimitMessage(err)) throw err
+        console.error('Erro na aba Usuários (Equipe):', err, (err as any)?.data)
         throw new Error(`Linha ${m._row} da aba Usuários (Equipe): ${getErrorMessage(err)}`)
       }
     }
 
+    // Carregar alocações existentes por projeto + member_name para reuso / de-duplicação
     const allocKey = new Map<string, string>()
+    const existingAllocations = await withRetry(
+      () => pb.collection('allocations').getFullList(),
+      'Alocações',
+    )
+    for (const alloc of existingAllocations as any[]) {
+      const pid = typeof alloc.project === 'string' ? alloc.project : alloc.project?.id
+      if (pid && alloc.member_name) {
+        allocKey.set(`${pid}:${norm(alloc.member_name)}`, alloc.id)
+      }
+    }
+
     for (const a of data.allocations) {
       if (!a.projectName) continue
       const normProjName = norm(a.projectName)
       const projectId = projByName.get(normProjName)
       if (!projectId)
         throw new Error(`Linha ${a._row} de Alocações: Projeto '${a.projectName}' não encontrado.`)
-      const userId = a.userEmail ? userCache.get(a.userEmail.trim()) : undefined
+
+      const userEmailKey = a.userEmail ? a.userEmail.trim().toLowerCase() : ''
+      const userId = userEmailKey ? userCache.get(userEmailKey) : undefined
       const normMemberName = norm(a.memberName)
+      const key = `${projectId}:${normMemberName}`
+
+      // Se a alocação já foi criada para este projeto + membro (ou já existia no banco de dados), reutilizar o ID
+      if (allocKey.has(key)) {
+        continue
+      }
+
       try {
-        const rec = await createThrottled(
-          'allocations',
-          {
-            project: projectId,
-            member_name: a.memberName,
-            function: a.function,
-            start_date: a.start_date,
-            end_date: a.end_date,
-            ...(userId ? { user: userId } : {}),
-          },
-          'Alocações',
-        )
+        const allocData: Record<string, unknown> = {
+          project: projectId,
+          member_name: a.memberName,
+          function: a.function,
+          start_date: a.start_date,
+          end_date: a.end_date,
+        }
+        if (userId) {
+          allocData.user = userId
+        }
+
+        const rec = await createThrottled('allocations', allocData, 'Alocações')
         created.allocations.push(rec.id)
-        allocKey.set(`${projectId}:${normMemberName}`, rec.id)
+        allocKey.set(key, rec.id)
         cntA++
       } catch (err) {
         if (isRateLimitMessage(err)) throw err
+        console.error(`Erro ao criar alocação (linha ${a._row}):`, err, (err as any)?.data)
         throw new Error(`Linha ${a._row} da aba Alocações: ${getErrorMessage(err)}`)
       }
     }
@@ -326,6 +352,7 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
             (err && typeof err === 'object' && 'status' in err && (err as any).status === 404)
 
           if (!isNotFound) {
+            console.error('Erro na aba Tarefas:', err, (err as any)?.data)
             throw new Error(`Linha ${t._row} da aba Tarefas: ${errMsg}`)
           }
           // Fallback se a tarefa não foi encontrada no banco durante update
@@ -362,6 +389,7 @@ export async function executeImport(data: ParsedData): Promise<ImportResult> {
           cntT++
         } catch (err) {
           if (isRateLimitMessage(err)) throw err
+          console.error('Erro na aba Tarefas ao criar:', err, (err as any)?.data)
           throw new Error(`Linha ${t._row} da aba Tarefas: ${getErrorMessage(err)}`)
         }
       }
