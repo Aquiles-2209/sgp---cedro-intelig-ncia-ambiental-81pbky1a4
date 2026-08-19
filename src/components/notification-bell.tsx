@@ -1,16 +1,48 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Bell, Check, AlertCircle, Info } from 'lucide-react'
-import { useAppState } from '@/hooks/use-app-state'
+import { useAuth } from '@/hooks/use-auth'
+import { useRealtime } from '@/hooks/use-realtime'
+import { getNotifications, markNotificationAsRead } from '@/services/notifications'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { safeFormatDate } from '@/types/models'
+import { safeFormatDate, type Notification } from '@/types/models'
 
 export function NotificationBell() {
-  const notifications: any[] = []
-  const markNotificationAsRead = (_id: string) => {}
+  const { user } = useAuth()
   const [open, setOpen] = useState(false)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+
+  const load = useCallback(async () => {
+    if (!user) {
+      setNotifications([])
+      return
+    }
+    try {
+      const list = await getNotifications(user.id)
+      setNotifications(list)
+    } catch (err) {
+      console.error('Failed to load notifications:', err)
+    }
+  }, [user])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  useRealtime('notifications', () => load(), !!user)
+
   const unreadCount = notifications.filter((n) => !n.is_read).length
+
+  const handleMarkAsRead = async (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)))
+    try {
+      await markNotificationAsRead(id)
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err)
+      load()
+    }
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -60,7 +92,7 @@ export function NotificationBell() {
                     size="icon"
                     variant="ghost"
                     className="h-6 w-6 shrink-0"
-                    onClick={() => markNotificationAsRead(n.id)}
+                    onClick={() => handleMarkAsRead(n.id)}
                   >
                     <Check className="h-3 w-3" />
                   </Button>

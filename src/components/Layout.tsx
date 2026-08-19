@@ -1,7 +1,8 @@
 import { Outlet, useNavigate } from 'react-router-dom'
-import { Search, Bell } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/app-sidebar'
+import { NotificationBell } from '@/components/notification-bell'
 import { useAuth } from '@/hooks/use-auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
@@ -29,10 +30,7 @@ export default function Layout() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <button className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors rounded-full hover:bg-slate-100">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 border border-white"></span>
-              </button>
+              <NotificationBell />
               <HelpDrawer />
               <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
                 <div className="hidden flex-col items-end text-sm md:flex">

@@ -10,6 +10,9 @@ export const getNotifications = async (userId: string): Promise<Notification[]> 
 export const markNotificationAsRead = async (id: string): Promise<Notification> =>
   pb.collection('notifications').update(id, { is_read: true })
 
+export const createNotification = async (data: Partial<Notification>): Promise<Notification> =>
+  pb.collection('notifications').create(data)
+
 export const deleteNotification = async (id: string): Promise<void> => {
   await pb.collection('notifications').delete(id)
 }

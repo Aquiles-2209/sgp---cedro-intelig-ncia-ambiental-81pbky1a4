@@ -25,6 +25,8 @@ import { toast } from '@/hooks/use-toast'
 import { readXlsxFile, type SheetData } from '@/lib/xlsx-reader'
 import { validateImport, type ValidationError, type ParsedData } from '@/lib/import-data'
 import { executeImport, type ImportResult } from '@/lib/import-executor'
+import { useAuth } from '@/hooks/use-auth'
+import { createNotification } from '@/services/notifications'
 
 type State = 'idle' | 'parsing' | 'preview' | 'importing' | 'success' | 'error'
 
@@ -61,6 +63,7 @@ function PreviewTable({ headers, rows }: { headers: string[]; rows: string[][] }
 }
 
 export default function Importar() {
+  const { user } = useAuth()
   const [state, setState] = useState<State>('idle')
   const [sheets, setSheets] = useState<SheetData[]>([])
   const [parsed, setParsed] = useState<ParsedData | null>(null)
@@ -120,6 +123,19 @@ export default function Importar() {
         title: 'Importação concluída com sucesso!',
         description: r.message + emptyTitleSummary,
       })
+      if (user?.id) {
+        try {
+          await createNotification({
+            user: user.id,
+            title: 'Importação concluída',
+            content: r.message,
+            type: 'Info',
+            is_read: false,
+          })
+        } catch (err) {
+          console.error('Failed to create import notification:', err)
+        }
+      }
     } catch (e) {
       const msg = `Erro ao importar: ${(e as Error).message}`
       setErrors([{ sheet: '', row: 0, column: '', message: msg }])
