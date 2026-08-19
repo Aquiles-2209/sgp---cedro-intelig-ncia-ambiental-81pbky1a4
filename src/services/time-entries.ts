@@ -61,12 +61,24 @@ export const getTodaysTimeEntriesByTeamMember = async (memberId: string): Promis
 export const getTotalHoursByProject = async (): Promise<
   Array<{ projectId: string; projectName: string; totalHours: number; entryCount: number }>
 > => {
-  const [timeEntries, projects] = await Promise.all([
+  const [timeEntries, projects, tasks] = await Promise.all([
     pb.collection('time_entries').getFullList({ expand: 'task' }),
     pb.collection('projects').getFullList(),
+    pb.collection('tasks').getFullList(),
   ])
   const projectMap = new Map<string, any>(projects.map((p: any) => [p.id, p]))
   const projectHours = new Map<string, { hours: number; count: number }>()
+
+  // Imported hours (allocated_hours on tasks, already expressed in hours)
+  for (const task of tasks as any[]) {
+    const pid = task.project
+    if (!pid) continue
+    if (!projectHours.has(pid)) projectHours.set(pid, { hours: 0, count: 0 })
+    const entry = projectHours.get(pid)!
+    entry.hours += Number(task.allocated_hours) || 0
+  }
+
+  // Timer hours (time_entries.duration is stored in seconds)
   for (const te of timeEntries as any[]) {
     const task = te.expand?.task
     if (!task?.project) continue
@@ -76,6 +88,7 @@ export const getTotalHoursByProject = async (): Promise<
     entry.hours += (te.duration || 0) / 3600
     entry.count += 1
   }
+
   return Array.from(projectHours.entries())
     .map(([projectId, data]) => ({
       projectId,
