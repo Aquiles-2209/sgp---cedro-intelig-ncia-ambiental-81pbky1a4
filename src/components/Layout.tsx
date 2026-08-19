@@ -5,6 +5,7 @@ import { AppSidebar } from '@/components/app-sidebar'
 import { useAuth } from '@/hooks/use-auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
+import { HelpDrawer } from '@/components/help-drawer'
 
 export default function Layout() {
   const { user } = useAuth()
@@ -32,6 +33,7 @@ export default function Layout() {
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 border border-white"></span>
               </button>
+              <HelpDrawer />
               <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
                 <div className="hidden flex-col items-end text-sm md:flex">
                   <span className="font-medium text-slate-900">{user?.name}</span>
