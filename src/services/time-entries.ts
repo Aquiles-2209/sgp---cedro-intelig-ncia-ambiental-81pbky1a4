@@ -1,5 +1,6 @@
 import pb from '@/lib/pocketbase/client'
 import { TimeEntry } from '@/types/models'
+import { fetchReportData } from '@/services/reports'
 
 export const getTimeEntriesByUser = async (userId: string): Promise<TimeEntry[]> => {
   const allocations = await pb.collection('allocations').getFullList({
@@ -61,40 +62,54 @@ export const getTodaysTimeEntriesByTeamMember = async (memberId: string): Promis
 export const getTotalHoursByProject = async (): Promise<
   Array<{ projectId: string; projectName: string; totalHours: number; entryCount: number }>
 > => {
-  const [timeEntries, projects, tasks] = await Promise.all([
-    pb.collection('time_entries').getFullList({ expand: 'task' }),
+  const [projects, timeEntries] = await Promise.all([
     pb.collection('projects').getFullList(),
-    pb.collection('tasks').getFullList(),
+    pb.collection('time_entries').getFullList({ expand: 'task' }),
   ])
+
+  const projectIds = projects.map((p: any) => p.id)
+  const reportRows = await fetchReportData(projectIds, '2020-01-01', '2030-12-31')
+
   const projectMap = new Map<string, any>(projects.map((p: any) => [p.id, p]))
-  const projectHours = new Map<string, { hours: number; count: number }>()
+  const projectHoursMap = new Map<string, number>()
 
-  // Imported hours (allocated_hours on tasks, already expressed in hours)
-  for (const task of tasks as any[]) {
-    const pid = task.project
-    if (!pid) continue
-    if (!projectHours.has(pid)) projectHours.set(pid, { hours: 0, count: 0 })
-    const entry = projectHours.get(pid)!
-    entry.hours += Number(task.allocated_hours) || 0
+  for (const row of reportRows) {
+    const totalRowHours = (row.allocatedHours || 0) + (row.hoursWorked || 0)
+    // Find project by projectName if needed, or by iterating projects
+    // fetchReportData returns projectName
+    const currentHours = projectHoursMap.get(row.projectName) || 0
+    projectHoursMap.set(row.projectName, currentHours + totalRowHours)
   }
 
-  // Timer hours (time_entries.duration is stored in seconds)
+  // Count real time_entries per project
+  const projectEntryCountMap = new Map<string, number>()
   for (const te of timeEntries as any[]) {
-    const task = te.expand?.task
-    if (!task?.project) continue
-    const pid = task.project
-    if (!projectHours.has(pid)) projectHours.set(pid, { hours: 0, count: 0 })
-    const entry = projectHours.get(pid)!
-    entry.hours += (te.duration || 0) / 3600
-    entry.count += 1
+    const pid = te.expand?.task?.project
+    if (pid) {
+      projectEntryCountMap.set(pid, (projectEntryCountMap.get(pid) || 0) + 1)
+    }
   }
 
-  return Array.from(projectHours.entries())
-    .map(([projectId, data]) => ({
-      projectId,
-      projectName: projectMap.get(projectId)?.name || 'Desconhecido',
-      totalHours: data.hours,
-      entryCount: data.count,
-    }))
-    .sort((a, b) => b.totalHours - a.totalHours)
+  const results: Array<{
+    projectId: string
+    projectName: string
+    totalHours: number
+    entryCount: number
+  }> = []
+
+  for (const proj of projects as any[]) {
+    const totalHours = projectHoursMap.get(proj.name) || 0
+    const entryCount = projectEntryCountMap.get(proj.id) || 0
+
+    if (totalHours > 0 || entryCount > 0) {
+      results.push({
+        projectId: proj.id,
+        projectName: proj.name || 'Desconhecido',
+        totalHours,
+        entryCount,
+      })
+    }
+  }
+
+  return results.sort((a, b) => b.totalHours - a.totalHours)
 }
