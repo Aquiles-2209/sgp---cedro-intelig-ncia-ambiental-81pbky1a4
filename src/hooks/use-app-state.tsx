@@ -21,7 +21,15 @@ import {
   updateTaskAssignment,
   deleteTaskAssignment,
 } from '@/services/task-assignments'
-import type { Project, Allocation, Task, TimeEntry, TaskAssignment } from '@/types/models'
+import { getTeamMembers } from '@/services/team-members'
+import type {
+  Project,
+  Allocation,
+  Task,
+  TimeEntry,
+  TaskAssignment,
+  TeamMember,
+} from '@/types/models'
 
 interface AppStateType {
   projects: Project[]
@@ -29,6 +37,7 @@ interface AppStateType {
   tasks: Task[]
   timeEntries: TimeEntry[]
   taskAssignments: TaskAssignment[]
+  teamMembers: TeamMember[]
   loading: boolean
   addProject: (data: Partial<Project>) => Promise<Project>
   editProject: (id: string, data: Partial<Project>) => Promise<Project>
@@ -62,22 +71,25 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const [tasks, setTasks] = useState<Task[]>([])
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([])
   const [taskAssignments, setTaskAssignments] = useState<TaskAssignment[]>([])
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
 
   const loadData = useCallback(async () => {
     try {
-      const [p, a, t, te, ta] = await Promise.all([
+      const [p, a, t, te, ta, tm] = await Promise.all([
         getProjects(),
         getAllocations(),
         getTasks(),
         getTimeEntries(),
         getTaskAssignments().catch(() => []),
+        getTeamMembers().catch(() => []),
       ])
       setProjects(p)
       setAllocations(a)
       setTasks(t)
       setTimeEntries(te)
       setTaskAssignments(ta)
+      setTeamMembers(tm)
     } catch (err) {
       console.error('Failed to load app state:', err)
     } finally {
@@ -96,6 +108,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   useRealtime('tasks', () => loadData())
   useRealtime('time_entries', () => loadData())
   useRealtime('task_assignments', () => loadData())
+  useRealtime('team_members', () => loadData())
 
   const addProject = async (data: Partial<Project>): Promise<Project> => {
     const created = await createProject(data)
@@ -167,6 +180,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         tasks,
         timeEntries,
         taskAssignments,
+        teamMembers,
         loading,
         addProject,
         editProject,
