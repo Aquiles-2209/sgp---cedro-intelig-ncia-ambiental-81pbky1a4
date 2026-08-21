@@ -77,6 +77,7 @@ export interface TeamMember {
   email: string
   avatar: string
   role: string
+  monthly_capacity?: number
   created: string
   updated: string
 }

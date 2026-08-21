@@ -58,6 +58,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
     setor: '',
     email: '',
     role: 'user',
+    monthly_capacity: 170,
   })
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState('')
@@ -76,6 +77,10 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
         setor: member?.setor || '',
         email: member?.email || '',
         role: member?.role || 'user',
+        monthly_capacity:
+          member?.monthly_capacity !== undefined && member?.monthly_capacity !== null
+            ? member.monthly_capacity
+            : 170,
       })
       setAvatarPreview(member?.avatar || '')
       setAvatarFile(null)
@@ -104,6 +109,14 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
     if (!form.email.trim()) errors.email = 'O email é obrigatório.'
     else if (!emailRegex.test(form.email.trim())) errors.email = 'Informe um email válido.'
     if (!form.role) errors.role = 'O tipo de usuário é obrigatório.'
+    if (
+      form.monthly_capacity === undefined ||
+      form.monthly_capacity === null ||
+      isNaN(form.monthly_capacity) ||
+      form.monthly_capacity < 0
+    ) {
+      errors.monthly_capacity = 'Informe uma capacidade mensal válida (horas >= 0).'
+    }
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors)
       return
@@ -117,6 +130,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
         setor: form.setor,
         email: form.email.trim(),
         role: form.role,
+        monthly_capacity: Number(form.monthly_capacity) || 170,
         avatar: avatarFile,
       }
       if (isEdit && member) {
@@ -302,7 +316,31 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
                 </p>
               )}
               {fieldErrors.role && <p className="text-xs text-red-500">{fieldErrors.role}</p>}
-            </div>{' '}
+            </div>
+            <div className="space-y-2">
+              <Label>Capacidade Mensal (horas/mês)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={form.monthly_capacity}
+                onChange={(e) =>
+                  update(
+                    'monthly_capacity',
+                    e.target.value === '' ? '' : (Number(e.target.value) as any),
+                  )
+                }
+                placeholder="170"
+                className={cn(
+                  fieldErrors.monthly_capacity && 'border-red-500 focus-visible:ring-red-500',
+                )}
+              />
+              {fieldErrors.monthly_capacity ? (
+                <p className="text-xs text-red-500">{fieldErrors.monthly_capacity}</p>
+              ) : (
+                <p className="text-xs text-slate-400">Padrão da empresa: 170 horas/mês</p>
+              )}
+            </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setOpen(false)}>
                 Cancelar

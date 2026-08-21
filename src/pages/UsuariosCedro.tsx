@@ -103,14 +103,20 @@ export default function UsuariosCedro() {
                         <span className="truncate">{member.email}</span>
                       </p>
                     )}
-                    {member.setor && (
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      {member.setor && (
+                        <Badge variant="outline" className="flex items-center gap-1.5 text-xs">
+                          {member.setor}
+                        </Badge>
+                      )}
                       <Badge
                         variant="outline"
-                        className="mt-1 flex items-center gap-1.5 w-fit text-xs"
+                        className="bg-slate-50 text-slate-600 border-slate-200 text-xs"
+                        title="Capacidade Mensal"
                       >
-                        {member.setor}
+                        {member.monthly_capacity ?? 170}h/mês
                       </Badge>
-                    )}
+                    </div>
                     {member.role && (
                       <Badge
                         variant={member.role === 'admin' ? 'default' : 'secondary'}

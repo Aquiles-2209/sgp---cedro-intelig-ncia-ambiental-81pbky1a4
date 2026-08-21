@@ -23,6 +23,7 @@ export const createTeamMember = async (data: {
   setor: string
   email: string
   role: string
+  monthly_capacity?: number
   avatar?: File | null
 }): Promise<TeamMember> => {
   const fd = new FormData()
@@ -31,6 +32,9 @@ export const createTeamMember = async (data: {
   fd.append('setor', data.setor)
   fd.append('email', data.email)
   fd.append('role', data.role)
+  if (data.monthly_capacity !== undefined) {
+    fd.append('monthly_capacity', String(data.monthly_capacity))
+  }
   if (data.avatar) fd.append('avatar', data.avatar)
   const record = await pb.collection('team_members').create(fd)
   return normalizeMember(record)
@@ -44,6 +48,7 @@ export const updateTeamMember = async (
     setor?: string
     email?: string
     role?: string
+    monthly_capacity?: number
     avatar?: File | null
   },
 ): Promise<TeamMember> => {
@@ -53,6 +58,9 @@ export const updateTeamMember = async (
   if (data.setor !== undefined) fd.append('setor', data.setor)
   if (data.email !== undefined) fd.append('email', data.email)
   if (data.role !== undefined) fd.append('role', data.role)
+  if (data.monthly_capacity !== undefined) {
+    fd.append('monthly_capacity', String(data.monthly_capacity))
+  }
   if (data.avatar) fd.append('avatar', data.avatar)
   const record = await pb.collection('team_members').update(id, fd)
   return normalizeMember(record)
