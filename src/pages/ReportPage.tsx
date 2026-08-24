@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { FileSpreadsheet, Loader2 } from 'lucide-react'
+import { FileSpreadsheet, Loader2, Users, FolderKanban } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -24,8 +24,9 @@ import { useToast } from '@/hooks/use-toast'
 import { fetchReportData, type ReportRow } from '@/services/reports'
 import { exportExcelReport } from '@/lib/export-excel-report'
 import { getProjects } from '@/services/projects'
+import { getTeamMembers } from '@/services/team-members'
 import { normalizeDate } from '@/types/models'
-import type { Project } from '@/types/models'
+import type { Project, TeamMember } from '@/types/models'
 import { cn } from '@/lib/utils'
 
 function formatDateBR(dateStr: string): string {
@@ -50,38 +51,83 @@ function formatLaunchDate(dateStr: string): string {
 
 export default function ReportPage() {
   const { toast } = useToast()
+
+  // Projects state
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProject, setSelectedProject] = useState<string>('all')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  const [projectStartDate, setProjectStartDate] = useState('')
+  const [projectEndDate, setProjectEndDate] = useState('')
+
+  // Team members state
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  const [selectedMember, setSelectedMember] = useState<string>('')
+  const [memberStartDate, setMemberStartDate] = useState('')
+  const [memberEndDate, setMemberEndDate] = useState('')
+
+  // Active filter context and results
+  const [activeFilterType, setActiveFilterType] = useState<'project' | 'member' | null>(null)
   const [rows, setRows] = useState<ReportRow[]>([])
   const [loading, setLoading] = useState(false)
 
-  const loadProjects = useCallback(async () => {
+  const loadInitialData = useCallback(async () => {
     try {
-      const data = await getProjects()
-      setProjects(data)
+      const [projectsData, membersData] = await Promise.all([getProjects(), getTeamMembers()])
+      setProjects(projectsData)
+      setTeamMembers(membersData)
     } catch {
       /* silent */
     }
   }, [])
 
   useEffect(() => {
-    loadProjects()
-  }, [loadProjects])
+    loadInitialData()
+  }, [loadInitialData])
 
-  const handleFetch = async () => {
-    if (!startDate || !endDate) {
+  // Handle Project Report Fetch
+  const handleFetchProjectReport = async () => {
+    if (!projectStartDate || !projectEndDate) {
       toast({ title: 'Selecione o período inicial e final.', variant: 'destructive' })
       return
     }
     setLoading(true)
+    setActiveFilterType('project')
     try {
       const projectIds = selectedProject === 'all' ? projects.map((p) => p.id) : [selectedProject]
-      const data = await fetchReportData(projectIds, startDate, endDate)
+      const data = await fetchReportData(projectIds, projectStartDate, projectEndDate)
       setRows(data)
       if (data.length === 0) {
         toast({ title: 'Nenhum dado encontrado para o período selecionado.' })
+      }
+    } catch {
+      toast({ title: 'Erro ao buscar dados do relatório.', variant: 'destructive' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle Member Report Fetch
+  const handleFetchMemberReport = async () => {
+    if (!selectedMember) {
+      toast({ title: 'Selecione um(a) Usuário(a) CEDRO.', variant: 'destructive' })
+      return
+    }
+    if (!memberStartDate || !memberEndDate) {
+      toast({ title: 'Selecione o período inicial e final.', variant: 'destructive' })
+      return
+    }
+    setLoading(true)
+    setActiveFilterType('member')
+    try {
+      const allProjectIds = projects.map((p) => p.id)
+      const data = await fetchReportData(
+        allProjectIds,
+        memberStartDate,
+        memberEndDate,
+        selectedMember,
+      )
+      setRows(data)
+      if (data.length === 0) {
+        toast({ title: 'Nenhum dado encontrado para o usuário no período selecionado.' })
       }
     } catch {
       toast({ title: 'Erro ao buscar dados do relatório.', variant: 'destructive' })
@@ -115,12 +161,20 @@ export default function ReportPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Relatórios</h1>
         <p className="text-slate-500 mt-1">
-          Gere relatórios de produtividade por projeto e período.
+          Gere relatórios de produtividade por projeto ou por usuário e período.
         </p>
       </div>
 
+      {/* 1. Project Productivity Filter Card */}
       <Card className="border-slate-200 shadow-sm">
-        <CardContent className="p-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <FolderKanban className="h-5 w-5 text-primary" />
+            Produtividade por Projeto
+          </CardTitle>
+          <CardDescription>Gere relatórios de produtividade por projeto e período.</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0">
           <div className="grid md:grid-cols-4 gap-4 items-end">
             <div className="space-y-2">
               <Label>Projeto</Label>
@@ -143,8 +197,8 @@ export default function ReportPage() {
               <Input
                 id="report-start"
                 type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                value={projectStartDate}
+                onChange={(e) => setProjectStartDate(e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -152,25 +206,91 @@ export default function ReportPage() {
               <Input
                 id="report-end"
                 type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                value={projectEndDate}
+                onChange={(e) => setProjectEndDate(e.target.value)}
               />
             </div>
-            <Button onClick={handleFetch} disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            <Button onClick={handleFetchProjectReport} disabled={loading}>
+              {loading && activeFilterType === 'project' ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
               Gerar Relatório
             </Button>
           </div>
         </CardContent>
       </Card>
 
+      {/* 2. Team Member Productivity Filter Card */}
+      <Card className="border-slate-200 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            Produtividade por Usuário(a)
+          </CardTitle>
+          <CardDescription>Gere relatórios de produtividade por usuário e período.</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="grid md:grid-cols-4 gap-4 items-end">
+            <div className="space-y-2">
+              <Label>Usuário(a) CEDRO</Label>
+              <Select value={selectedMember} onValueChange={setSelectedMember}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um(a) usuário(a)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teamMembers.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name} {m.function ? `(${m.function})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="member-report-start">Data Inicial</Label>
+              <Input
+                id="member-report-start"
+                type="date"
+                value={memberStartDate}
+                onChange={(e) => setMemberStartDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="member-report-end">Data Final</Label>
+              <Input
+                id="member-report-end"
+                type="date"
+                value={memberEndDate}
+                onChange={(e) => setMemberEndDate(e.target.value)}
+              />
+            </div>
+            <Button onClick={handleFetchMemberReport} disabled={loading}>
+              {loading && activeFilterType === 'member' ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
+              Gerar Relatório
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Results Table */}
       {rows.length > 0 && (
         <Card className="border-slate-200 shadow-sm">
           <CardContent className="p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">
-                Resultados ({rows.length} registros)
-              </h3>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800">
+                  Resultados ({rows.length} {rows.length === 1 ? 'registro' : 'registros'})
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {activeFilterType === 'member'
+                    ? `Filtrado por usuário: ${teamMembers.find((m) => m.id === selectedMember)?.name || 'Usuário'}`
+                    : selectedProject === 'all'
+                      ? 'Filtrado por: Todos os projetos'
+                      : `Filtrado por projeto: ${projects.find((p) => p.id === selectedProject)?.name || 'Projeto'}`}
+                </p>
+              </div>
               <Button onClick={handleExport} variant="outline" className="bg-white">
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
                 Exportar Excel
