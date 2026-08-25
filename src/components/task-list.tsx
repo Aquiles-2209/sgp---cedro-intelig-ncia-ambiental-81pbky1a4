@@ -242,6 +242,7 @@ export function TaskList({
                           taskId={task.id}
                           memberId={member.id}
                           timeEntries={timeEntries}
+                          plannedHours={task.planned_hours}
                           onStart={onStartTimer}
                           onStop={onStopTimer}
                           canStart={canStartMember}

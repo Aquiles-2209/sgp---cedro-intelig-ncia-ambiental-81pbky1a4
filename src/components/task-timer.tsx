@@ -8,6 +8,7 @@ interface MemberTimerProps {
   taskId: string
   memberId: string
   timeEntries: TimeEntry[]
+  plannedHours?: number
   onStart: (taskId: string, memberId: string) => Promise<void>
   onStop: (entryId: string) => Promise<void>
   canStart?: boolean
@@ -18,6 +19,7 @@ export function MemberTimer({
   taskId,
   memberId,
   timeEntries,
+  plannedHours,
   onStart,
   onStop,
   canStart = true,
@@ -38,12 +40,22 @@ export function MemberTimer({
 
   useEffect(() => {
     if (!isActive || !activeEntry) return
+    let isStopping = false
     const startTime = new Date(activeEntry.start_time).getTime()
-    const update = () => setElapsed(Math.floor((Date.now() - startTime) / 1000))
+    const update = () => {
+      const currentElapsed = Math.floor((Date.now() - startTime) / 1000)
+      setElapsed(currentElapsed)
+      if (!isStopping && plannedHours && plannedHours > 0 && currentElapsed > plannedHours * 3600) {
+        isStopping = true
+        onStop(activeEntry.id).catch(() => {
+          isStopping = false
+        })
+      }
+    }
     update()
     const interval = setInterval(update, 1000)
     return () => clearInterval(interval)
-  }, [isActive, activeEntry])
+  }, [isActive, activeEntry, plannedHours, onStop])
 
   const handleStart = async () => {
     await onStart(taskId, memberId)
