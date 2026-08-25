@@ -228,7 +228,7 @@ export default function ProjectDetails() {
     await addTimeEntry({
       task: taskId,
       team_member: memberId,
-      allocation: userAlloc?.id ?? '',
+      ...(userAlloc?.id ? { allocation: userAlloc.id } : {}),
       start_time: new Date().toISOString(),
       duration: 0,
     })
