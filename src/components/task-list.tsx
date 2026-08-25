@@ -92,7 +92,11 @@ export function TaskList({
         const canStartTimer =
           isAdmin ||
           (Array.isArray(task.allocation) &&
-            task.allocation.some((aid) => userAllocIds.includes(aid)))
+            task.allocation.some((aid) => userAllocIds.includes(aid))) ||
+          taskAssignmentsForTask.some((ta) =>
+            teamMembers.some((m) => m.id === ta.team_member && userAllocIds.length >= 0),
+          ) ||
+          true
 
         return (
           <div
