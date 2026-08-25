@@ -9,6 +9,7 @@ interface MemberTimerProps {
   memberId: string
   timeEntries: TimeEntry[]
   plannedHours?: number
+  previousSeconds?: number
   onStart: (taskId: string, memberId: string) => Promise<void>
   onStop: (entryId: string) => Promise<void>
   canStart?: boolean
@@ -20,6 +21,7 @@ export function MemberTimer({
   memberId,
   timeEntries,
   plannedHours,
+  previousSeconds = 0,
   onStart,
   onStop,
   canStart = true,
@@ -45,7 +47,12 @@ export function MemberTimer({
     const update = () => {
       const currentElapsed = Math.floor((Date.now() - startTime) / 1000)
       setElapsed(currentElapsed)
-      if (!isStopping && plannedHours && plannedHours > 0 && currentElapsed > plannedHours * 3600) {
+      if (
+        !isStopping &&
+        plannedHours &&
+        plannedHours > 0 &&
+        previousSeconds + currentElapsed >= plannedHours * 3600
+      ) {
         isStopping = true
         onStop(activeEntry.id).catch(() => {
           isStopping = false
@@ -55,7 +62,7 @@ export function MemberTimer({
     update()
     const interval = setInterval(update, 1000)
     return () => clearInterval(interval)
-  }, [isActive, activeEntry, plannedHours, onStop])
+  }, [isActive, activeEntry, plannedHours, previousSeconds, onStop])
 
   const handleStart = async () => {
     await onStart(taskId, memberId)

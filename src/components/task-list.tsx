@@ -167,7 +167,9 @@ export function TaskList({
                   // Compute worked hours for this task
                   const taskEntries = timeEntries.filter((te) => te.task === task.id)
                   const workedSeconds = taskEntries.reduce((sum, te) => sum + (te.duration || 0), 0)
-                  const workedHours = (task.allocated_hours || 0) + workedSeconds / 3600
+                  const totalPreviousSeconds =
+                    Math.round((task.allocated_hours || 0) * 3600) + workedSeconds
+                  const workedHours = totalPreviousSeconds / 3600
                   const plannedHours = task.planned_hours || 0
 
                   let canStartMember = canStartTimer
@@ -222,6 +224,7 @@ export function TaskList({
                           memberId={member.id}
                           timeEntries={timeEntries}
                           plannedHours={task.planned_hours}
+                          previousSeconds={totalPreviousSeconds}
                           onStart={onStartTimer}
                           onStop={onStopTimer}
                           canStart={canStartMember}
