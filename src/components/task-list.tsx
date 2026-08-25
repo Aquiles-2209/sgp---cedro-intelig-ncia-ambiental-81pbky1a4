@@ -53,6 +53,22 @@ interface TaskListProps {
   savingAssignmentKey?: string
 }
 
+function getLocalTodayStr(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function extractDateOnly(dateStr: string | null | undefined): string {
+  if (!dateStr) return ''
+  const clean = dateStr.trim()
+  if (clean.includes('T')) return clean.split('T')[0]
+  if (clean.includes(' ')) return clean.split(' ')[0]
+  return clean
+}
+
 export function TaskList({
   tasks,
   timeEntries,
@@ -71,7 +87,7 @@ export function TaskList({
   onSetAssignmentDate,
   savingAssignmentKey,
 }: TaskListProps) {
-  const todayStr = new Date().toISOString().split('T')[0]
+  const todayStr = getLocalTodayStr()
   if (tasks.length === 0) {
     return (
       <p className="text-sm text-slate-500 text-center py-8">
@@ -89,14 +105,13 @@ export function TaskList({
         const taskMembers = allMemberIds
           .map((id) => teamMembers.find((m) => m.id === id))
           .filter(Boolean) as TeamMember[]
-        const canStartTimer =
-          isAdmin ||
-          (Array.isArray(task.allocation) &&
-            task.allocation.some((aid) => userAllocIds.includes(aid))) ||
-          taskAssignmentsForTask.some((ta) =>
-            teamMembers.some((m) => m.id === ta.team_member && userAllocIds.length >= 0),
-          ) ||
-          true
+        const hasTaskAllocation =
+          Array.isArray(task.allocation) &&
+          task.allocation.length > 0 &&
+          task.allocation.some((aid) => userAllocIds.includes(aid))
+        const hasProjectAllocation = userAllocIds.length > 0
+        const isTaskMember = taskMembers.length > 0
+        const canStartTimer = isAdmin || hasTaskAllocation || hasProjectAllocation || isTaskMember
 
         return (
           <div
@@ -181,25 +196,25 @@ export function TaskList({
                       disabledReason =
                         'Saldo de horas esgotado (horas trabalhadas >= horas previstas).'
                     } else if (assignment?.start_date || assignment?.end_date) {
-                      const startDate = assignment.start_date
-                        ? assignment.start_date.split('T')[0]
-                        : ''
-                      const endDate = assignment.end_date ? assignment.end_date.split('T')[0] : ''
+                      const startDate = extractDateOnly(assignment.start_date)
+                      const endDate = extractDateOnly(assignment.end_date)
                       if (startDate && todayStr < startDate) {
                         canStartMember = false
                         disabledReason = 'A data atual é anterior à data de início da alocação.'
                       } else if (endDate && todayStr > endDate) {
+                        // Inclusive until 23:59:59 of end_date: only blocked when todayStr strictly > endDate
                         canStartMember = false
                         disabledReason =
                           'A data atual é posterior à data de finalização da alocação.'
                       }
                     } else if (task.start_date || task.due_date) {
-                      const startDate = task.start_date ? task.start_date.split('T')[0] : ''
-                      const dueDate = task.due_date ? task.due_date.split('T')[0] : ''
+                      const startDate = extractDateOnly(task.start_date)
+                      const dueDate = extractDateOnly(task.due_date)
                       if (startDate && todayStr < startDate) {
                         canStartMember = false
                         disabledReason = 'A data atual é anterior à data de início da tarefa.'
                       } else if (dueDate && todayStr > dueDate) {
+                        // Inclusive until 23:59:59 of due_date: only blocked when todayStr strictly > dueDate
                         canStartMember = false
                         disabledReason = 'A data atual é posterior à data de término da tarefa.'
                       }
