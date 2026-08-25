@@ -103,12 +103,12 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     loadData()
   }, [user, loadData])
 
-  useRealtime('projects', () => loadData())
-  useRealtime('allocations', () => loadData())
-  useRealtime('tasks', () => loadData())
-  useRealtime('time_entries', () => loadData())
-  useRealtime('task_assignments', () => loadData())
-  useRealtime('team_members', () => loadData())
+  useRealtime('projects', () => loadData(), !!user)
+  useRealtime('allocations', () => loadData(), !!user)
+  useRealtime('tasks', () => loadData(), !!user)
+  useRealtime('time_entries', () => loadData(), !!user)
+  useRealtime('task_assignments', () => loadData(), !!user)
+  useRealtime('team_members', () => loadData(), !!user)
 
   const addProject = async (data: Partial<Project>): Promise<Project> => {
     const created = await createProject(data)
