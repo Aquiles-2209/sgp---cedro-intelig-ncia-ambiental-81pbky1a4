@@ -131,7 +131,7 @@ onRecordAfterCreateSuccess((e) => {
 
   var totalWorkedHours = totalSeconds / 3600 + allocatedHours
 
-  // Destinatários: project_manager + todos os admins e masters
+  // Destinatários: project_manager + todos os admins, masters e users
   var notifCol
   try {
     notifCol = $app.findCollectionByNameOrId('notifications')
@@ -144,15 +144,15 @@ onRecordAfterCreateSuccess((e) => {
     recipientMap[projectManagerId] = true
   }
   try {
-    var adminsAndMasters = $app.findRecordsByFilter(
+    var usersToNotify = $app.findRecordsByFilter(
       '_pb_users_auth_',
-      "role = 'admin' || role = 'master'",
+      "role = 'admin' || role = 'master' || role = 'user'",
       '',
       0,
       0,
     )
-    for (var a = 0; a < adminsAndMasters.length; a++) {
-      recipientMap[adminsAndMasters[a].id] = true
+    for (var a = 0; a < usersToNotify.length; a++) {
+      recipientMap[usersToNotify[a].id] = true
     }
   } catch (_) {}
 
