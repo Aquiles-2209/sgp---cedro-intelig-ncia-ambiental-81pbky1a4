@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Play, Pause } from 'lucide-react'
 import { TimeEntry, formatDuration, formatLiveTimer } from '@/types/models'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,7 @@ interface MemberTimerProps {
   plannedHours?: number
   previousSeconds?: number
   onStart: (taskId: string, memberId: string) => Promise<void>
-  onStop: (entryId: string) => Promise<void>
+  onStop: (entryId: string, endTime?: string, duration?: number) => Promise<void>
   canStart?: boolean
   disabledReason?: string
 }
@@ -28,6 +28,9 @@ export function MemberTimer({
   disabledReason,
 }: MemberTimerProps) {
   const [elapsed, setElapsed] = useState(0)
+  const isStoppingRef = useRef(false)
+  const onStopRef = useRef(onStop)
+  onStopRef.current = onStop
 
   const activeEntry = timeEntries.find(
     (te) => te.task === taskId && te.team_member === memberId && !te.end_time,
@@ -41,28 +44,34 @@ export function MemberTimer({
     memberEntries.reduce((sum, te) => sum + (te.duration || 0), 0) + (isActive ? elapsed : 0)
 
   useEffect(() => {
-    if (!isActive || !activeEntry) return
-    let isStopping = false
+    if (!isActive || !activeEntry) {
+      isStoppingRef.current = false
+      return
+    }
     const startTime = new Date(activeEntry.start_time).getTime()
+    const entryId = activeEntry.id
+
     const update = () => {
-      const currentElapsed = Math.floor((Date.now() - startTime) / 1000)
+      const currentNow = Date.now()
+      const currentElapsed = Math.floor((currentNow - startTime) / 1000)
       setElapsed(currentElapsed)
       if (
-        !isStopping &&
+        !isStoppingRef.current &&
         plannedHours &&
         plannedHours > 0 &&
         previousSeconds + currentElapsed >= plannedHours * 3600
       ) {
-        isStopping = true
-        onStop(activeEntry.id).catch(() => {
-          isStopping = false
+        isStoppingRef.current = true
+        const stopEndTime = new Date(currentNow).toISOString()
+        onStopRef.current(entryId, stopEndTime, currentElapsed).catch(() => {
+          isStoppingRef.current = false
         })
       }
     }
     update()
     const interval = setInterval(update, 1000)
     return () => clearInterval(interval)
-  }, [isActive, activeEntry, plannedHours, previousSeconds, onStop])
+  }, [isActive, activeEntry?.id, activeEntry?.start_time, plannedHours, previousSeconds])
 
   const handleStart = async () => {
     await onStart(taskId, memberId)
@@ -70,7 +79,7 @@ export function MemberTimer({
 
   const handleStop = async () => {
     if (!activeEntry) return
-    await onStop(activeEntry.id)
+    await onStopRef.current(activeEntry.id)
   }
 
   const totalTimeLabel =

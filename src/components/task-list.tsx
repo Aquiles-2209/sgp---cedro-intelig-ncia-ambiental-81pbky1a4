@@ -42,7 +42,7 @@ interface TaskListProps {
   onEditStatus: (id: string, status: TaskStatus) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onStartTimer: (taskId: string, memberId: string) => Promise<void>
-  onStopTimer: (entryId: string) => Promise<void>
+  onStopTimer: (entryId: string, endTime?: string, duration?: number) => Promise<void>
   onRemoveMember: (taskId: string, memberId: string) => Promise<void>
   onSetAssignmentDate: (
     taskId: string,

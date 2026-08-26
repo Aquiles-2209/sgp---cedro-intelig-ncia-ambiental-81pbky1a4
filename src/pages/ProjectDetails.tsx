@@ -235,17 +235,32 @@ export default function ProjectDetails() {
     toast({ title: 'Timer iniciado!' })
   }
 
-  const handleStopTimer = async (entryId: string) => {
+  const handleStopTimer = async (entryId: string, endTime?: string, customDuration?: number) => {
     const entry = timeEntries.find((te) => te.id === entryId)
-    if (!entry) return
-    const now = new Date()
-    const startTime = new Date(entry.start_time)
-    const duration = Math.floor((now.getTime() - startTime.getTime()) / 1000)
-    await editTimeEntry(entryId, {
-      end_time: now.toISOString(),
-      duration,
-    })
-    toast({ title: 'Timer pausado.' })
+    const nowIso = endTime || new Date().toISOString()
+    let duration = customDuration
+
+    if (duration === undefined) {
+      if (entry?.start_time) {
+        const startTime = new Date(entry.start_time)
+        const stopTime = new Date(nowIso)
+        duration = Math.max(0, Math.floor((stopTime.getTime() - startTime.getTime()) / 1000))
+      } else {
+        duration = 0
+      }
+    }
+
+    try {
+      await editTimeEntry(entryId, {
+        end_time: nowIso,
+        duration,
+      })
+      toast({ title: 'Timer pausado.' })
+    } catch (err) {
+      console.error('Failed to stop timer:', err)
+      toast({ title: 'Erro ao pausar o timer.', variant: 'destructive' })
+      throw err
+    }
   }
 
   const handleRemoveMember = async (taskId: string, memberId: string) => {
