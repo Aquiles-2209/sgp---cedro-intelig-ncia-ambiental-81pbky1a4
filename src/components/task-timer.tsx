@@ -32,10 +32,35 @@ export function MemberTimer({
   const onStopRef = useRef(onStop)
   onStopRef.current = onStop
 
+  const startTimeRef = useRef(0)
+  const entryIdRef = useRef('')
+  const plannedHoursRef = useRef(0)
+  const previousSecondsRef = useRef(0)
+  const wasActiveRef = useRef(false)
+
   const activeEntry = timeEntries.find(
     (te) => te.task === taskId && te.team_member === memberId && !te.end_time,
   )
   const isActive = !!activeEntry
+
+  if (isActive) {
+    if (!wasActiveRef.current && activeEntry) {
+      startTimeRef.current = new Date(activeEntry.start_time).getTime()
+      entryIdRef.current = activeEntry.id
+      plannedHoursRef.current = plannedHours || 0
+      previousSecondsRef.current = previousSeconds
+      wasActiveRef.current = true
+    }
+  } else {
+    if (wasActiveRef.current) {
+      startTimeRef.current = 0
+      entryIdRef.current = ''
+      plannedHoursRef.current = 0
+      previousSecondsRef.current = 0
+      isStoppingRef.current = false
+      wasActiveRef.current = false
+    }
+  }
 
   const memberEntries = timeEntries.filter(
     (te) => te.task === taskId && te.team_member === memberId,
@@ -44,26 +69,23 @@ export function MemberTimer({
     memberEntries.reduce((sum, te) => sum + (te.duration || 0), 0) + (isActive ? elapsed : 0)
 
   useEffect(() => {
-    if (!isActive || !activeEntry) {
-      isStoppingRef.current = false
+    if (!isActive) {
+      setElapsed(0)
       return
     }
-    const startTime = new Date(activeEntry.start_time).getTime()
-    const entryId = activeEntry.id
 
     const update = () => {
       const currentNow = Date.now()
-      const currentElapsed = Math.floor((currentNow - startTime) / 1000)
+      const currentElapsed = Math.max(0, Math.floor((currentNow - startTimeRef.current) / 1000))
       setElapsed(currentElapsed)
       if (
         !isStoppingRef.current &&
-        plannedHours &&
-        plannedHours > 0 &&
-        previousSeconds + currentElapsed >= plannedHours * 3600
+        plannedHoursRef.current > 0 &&
+        previousSecondsRef.current + currentElapsed >= plannedHoursRef.current * 3600
       ) {
         isStoppingRef.current = true
         const stopEndTime = new Date(currentNow).toISOString()
-        onStopRef.current(entryId, stopEndTime, currentElapsed).catch(() => {
+        onStopRef.current(entryIdRef.current, stopEndTime, currentElapsed).catch(() => {
           isStoppingRef.current = false
         })
       }
@@ -71,7 +93,7 @@ export function MemberTimer({
     update()
     const interval = setInterval(update, 1000)
     return () => clearInterval(interval)
-  }, [isActive, activeEntry?.id, activeEntry?.start_time, plannedHours, previousSeconds])
+  }, [isActive])
 
   const handleStart = async () => {
     await onStart(taskId, memberId)
