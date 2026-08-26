@@ -44,11 +44,11 @@ export function MemberTimer({
   const isActive = !!activeEntry
 
   if (isActive) {
+    plannedHoursRef.current = plannedHours || 0
+    previousSecondsRef.current = previousSeconds
     if (!wasActiveRef.current && activeEntry) {
       startTimeRef.current = new Date(activeEntry.start_time).getTime()
       entryIdRef.current = activeEntry.id
-      plannedHoursRef.current = plannedHours || 0
-      previousSecondsRef.current = previousSeconds
       wasActiveRef.current = true
     }
   } else {
@@ -77,17 +77,22 @@ export function MemberTimer({
     const update = () => {
       const currentNow = Date.now()
       const currentElapsed = Math.max(0, Math.floor((currentNow - startTimeRef.current) / 1000))
-      setElapsed(currentElapsed)
+
       if (
         !isStoppingRef.current &&
         plannedHoursRef.current > 0 &&
         previousSecondsRef.current + currentElapsed >= plannedHoursRef.current * 3600
       ) {
         isStoppingRef.current = true
-        const stopEndTime = new Date(currentNow).toISOString()
-        onStopRef.current(entryIdRef.current, stopEndTime, currentElapsed).catch(() => {
+        const maxLimitSeconds = plannedHoursRef.current * 3600
+        const clampedDuration = Math.max(0, maxLimitSeconds - previousSecondsRef.current)
+        const stopEndTime = new Date(startTimeRef.current + clampedDuration * 1000).toISOString()
+        setElapsed(clampedDuration)
+        onStopRef.current(entryIdRef.current, stopEndTime, clampedDuration).catch(() => {
           isStoppingRef.current = false
         })
+      } else {
+        setElapsed(currentElapsed)
       }
     }
     update()
