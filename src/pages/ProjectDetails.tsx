@@ -263,6 +263,38 @@ export default function ProjectDetails() {
     }
   }
 
+  const handleAdjustHours = async (
+    taskId: string,
+    memberId: string,
+    hours: number,
+    isAdd: boolean,
+  ) => {
+    const userAlloc = projAllocs.find((a) => a.user === user?.id)
+    const rawSeconds = Math.round(hours * 3600)
+    const finalDuration = isAdd ? rawSeconds : -rawSeconds
+    const nowIso = new Date().toISOString()
+
+    try {
+      await addTimeEntry({
+        task: taskId,
+        team_member: memberId,
+        ...(userAlloc?.id ? { allocation: userAlloc.id } : {}),
+        start_time: nowIso,
+        end_time: nowIso,
+        duration: finalDuration,
+      })
+      toast({
+        title: isAdd
+          ? `Adicionado(s) ${hours}h com sucesso!`
+          : `Subtraído(s) ${hours}h com sucesso!`,
+      })
+    } catch (err) {
+      console.error('Failed to adjust hours:', err)
+      toast({ title: 'Erro ao ajustar horas.', variant: 'destructive' })
+      throw err
+    }
+  }
+
   const handleRemoveMember = async (taskId: string, memberId: string) => {
     const assignment = localTaskAssignments.find(
       (ta) => ta.task === taskId && ta.team_member === memberId,
@@ -520,6 +552,7 @@ export default function ProjectDetails() {
             onDelete={handleTaskDelete}
             onStartTimer={handleStartTimer}
             onStopTimer={handleStopTimer}
+            onAdjustHours={handleAdjustHours}
             onRemoveMember={handleRemoveMember}
             onSetAssignmentDate={handleSetAssignmentDate}
             savingAssignmentKey={savingAssignmentKey}

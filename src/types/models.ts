@@ -136,9 +136,12 @@ export interface TimeEntry {
 }
 
 export function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  return `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m`
+  const isNegative = seconds < 0
+  const absSeconds = Math.abs(seconds)
+  const h = Math.floor(absSeconds / 3600)
+  const m = Math.floor((absSeconds % 3600) / 60)
+  const prefix = isNegative ? '-' : ''
+  return `${prefix}${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m`
 }
 
 export function formatLiveTimer(seconds: number): string {

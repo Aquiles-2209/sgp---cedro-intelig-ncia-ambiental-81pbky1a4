@@ -43,6 +43,7 @@ interface TaskListProps {
   onDelete: (id: string) => Promise<void>
   onStartTimer: (taskId: string, memberId: string) => Promise<void>
   onStopTimer: (entryId: string, endTime?: string, duration?: number) => Promise<void>
+  onAdjustHours?: (taskId: string, memberId: string, hours: number, isAdd: boolean) => Promise<void>
   onRemoveMember: (taskId: string, memberId: string) => Promise<void>
   onSetAssignmentDate: (
     taskId: string,
@@ -67,6 +68,7 @@ export function TaskList({
   onDelete,
   onStartTimer,
   onStopTimer,
+  onAdjustHours,
   onRemoveMember,
   onSetAssignmentDate,
   savingAssignmentKey,
@@ -225,8 +227,10 @@ export function TaskList({
                           timeEntries={timeEntries}
                           plannedHours={task.planned_hours}
                           previousSeconds={totalPreviousSeconds}
+                          activityType={task.activity_type}
                           onStart={onStartTimer}
                           onStop={onStopTimer}
+                          onAdjustHours={onAdjustHours}
                           canStart={canStartMember}
                           disabledReason={disabledReason}
                         />
