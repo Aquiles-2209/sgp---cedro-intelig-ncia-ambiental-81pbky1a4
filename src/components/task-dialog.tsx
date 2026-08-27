@@ -70,6 +70,7 @@ export function TaskDialog({
     due_date: '',
     status: 'Pendente' as TaskStatus,
     planned_hours: '',
+    activity_type: '' as '' | 'Campo' | 'Escritório',
   })
 
   const taskAssignmentsRef = useRef(taskAssignments)
@@ -93,6 +94,7 @@ export function TaskDialog({
         due_date: task.due_date || '',
         status: task.status || 'Pendente',
         planned_hours: task.planned_hours ? String(task.planned_hours) : '',
+        activity_type: task.activity_type || '',
       })
     } else if (open && !task) {
       setForm({
@@ -103,6 +105,7 @@ export function TaskDialog({
         due_date: '',
         status: 'Pendente',
         planned_hours: '',
+        activity_type: '',
       })
     }
     setFieldErrors({})
@@ -134,7 +137,7 @@ export function TaskDialog({
     setSaving(true)
     setFieldErrors({})
     try {
-      const data = {
+      const data: Partial<Task> = {
         project: projectId,
         members: form.members,
         title: form.title,
@@ -143,6 +146,7 @@ export function TaskDialog({
         start_date: form.start_date,
         due_date: form.due_date,
         planned_hours: form.planned_hours ? Number(form.planned_hours) : 0,
+        activity_type: (form.activity_type as 'Campo' | 'Escritório') || undefined,
       }
       let taskId = task?.id
       if (isEdit && onEdit) {
@@ -320,6 +324,18 @@ export function TaskDialog({
               placeholder="0"
               disabled={isEdit && !isMaster}
             />
+          </div>
+          <div className="space-y-2">
+            <Label>Atividades</Label>
+            <Select value={form.activity_type} onValueChange={(v) => update('activity_type', v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo de atividade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Campo">Campo</SelectItem>
+                <SelectItem value="Escritório">Escritório</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label>Status</Label>

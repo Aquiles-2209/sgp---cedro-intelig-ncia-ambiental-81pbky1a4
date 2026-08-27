@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-26T20:12:05.522Z",
+  "generatedAt": "2026-08-27T12:26:57.860Z",
   "collections": [
     {
       "name": "users",
@@ -292,6 +292,12 @@
         {
           "name": "allocated_hours",
           "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "activity_type",
+          "type": "text",
           "required": false,
           "system": false
         }

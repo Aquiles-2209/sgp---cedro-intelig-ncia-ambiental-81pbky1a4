@@ -94,6 +94,7 @@ export interface Task {
   due_date: string
   planned_hours: number
   allocated_hours: number | null
+  activity_type?: 'Campo' | 'Escritório'
   created: string
   updated: string
   expand?: { project?: Project; allocation?: Allocation[]; members?: TeamMember[] }
