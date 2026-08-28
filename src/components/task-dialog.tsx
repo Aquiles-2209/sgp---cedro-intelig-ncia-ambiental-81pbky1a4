@@ -29,6 +29,7 @@ import {
   updateTaskAssignment,
   deleteTaskAssignment,
 } from '@/services/task-assignments'
+import { ensureAllocationForMember } from '@/services/allocations'
 import { createTask, updateTask } from '@/services/tasks'
 import { getTaskAssignmentsByTask } from '@/services/task-assignments'
 import { useAuth } from '@/hooks/use-auth'
@@ -228,6 +229,19 @@ export function TaskDialog({
             end_date: form.due_date || undefined,
             workload_percentage: pct !== undefined && !isNaN(pct) ? pct : undefined,
           })
+
+          const memberObj = teamMembers.find((m) => m.id === memberId)
+          if (memberObj) {
+            await ensureAllocationForMember({
+              projectId,
+              memberId: memberObj.id,
+              memberName: memberObj.name,
+              memberFunction: memberObj.function,
+              memberEmail: memberObj.email,
+              startDate: form.start_date || undefined,
+              endDate: form.due_date || undefined,
+            })
+          }
         }
 
         // Atualizados (datas de início/término ou workload_percentage)
