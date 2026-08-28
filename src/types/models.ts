@@ -106,6 +106,7 @@ export interface TaskAssignment {
   team_member: string
   start_date: string
   end_date: string
+  workload_percentage?: number
   created: string
   updated: string
   expand?: { task?: Task; team_member?: TeamMember }

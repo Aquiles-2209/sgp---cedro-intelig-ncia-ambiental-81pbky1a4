@@ -206,6 +206,21 @@ export function TaskList({
                           )}
                           <span className="text-xs font-medium text-slate-700 truncate">
                             {member.name}
+                            {(() => {
+                              const pct = assignment?.workload_percentage
+                              if (pct !== undefined && pct !== null && task.planned_hours > 0) {
+                                const individualHours = task.planned_hours * (pct / 100)
+                                const formattedHours = Number.isInteger(individualHours)
+                                  ? `${individualHours}h`
+                                  : `${Number(individualHours.toFixed(1))}h`
+                                return (
+                                  <span className="ml-1 text-slate-500 font-normal">
+                                    ({formattedHours})
+                                  </span>
+                                )
+                              }
+                              return null
+                            })()}
                           </span>
                           {hasActiveTimer && (
                             <span className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wide">

@@ -66,6 +66,7 @@ export function TaskDialog({
     title: '',
     description: '',
     members: [] as string[],
+    memberPercentages: {} as Record<string, string>,
     start_date: '',
     due_date: '',
     status: 'Pendente' as TaskStatus,
@@ -78,18 +79,24 @@ export function TaskDialog({
 
   useEffect(() => {
     if (open && task) {
-      const assignedMemberIds = Array.from(
-        new Set([
-          ...(taskAssignmentsRef.current || [])
-            .filter((ta) => ta.task === task.id)
-            .map((ta) => ta.team_member),
-          ...(task.members || []),
-        ]),
+      const currentTaskAssignments = (taskAssignmentsRef.current || []).filter(
+        (ta) => ta.task === task.id,
       )
+      const assignedMemberIds = Array.from(
+        new Set([...currentTaskAssignments.map((ta) => ta.team_member), ...(task.members || [])]),
+      )
+      const percentages: Record<string, string> = {}
+      currentTaskAssignments.forEach((ta) => {
+        if (ta.workload_percentage !== undefined && ta.workload_percentage !== null) {
+          percentages[ta.team_member] = String(ta.workload_percentage)
+        }
+      })
+
       setForm({
         title: task.title || '',
         description: task.description || '',
         members: assignedMemberIds,
+        memberPercentages: percentages,
         start_date: task.start_date || '',
         due_date: task.due_date || '',
         status: task.status || 'Pendente',
@@ -101,6 +108,7 @@ export function TaskDialog({
         title: '',
         description: '',
         members: [],
+        memberPercentages: {},
         start_date: '',
         due_date: '',
         status: 'Pendente',
@@ -116,14 +124,48 @@ export function TaskDialog({
     setFieldErrors((p) => ({ ...p, [field]: '' }))
   }
 
+  const updateMemberPercentage = (memberId: string, value: string) => {
+    setForm((p) => ({
+      ...p,
+      memberPercentages: {
+        ...p.memberPercentages,
+        [memberId]: value,
+      },
+    }))
+  }
+
   const addMember = (memberId: string) => {
     if (!form.members.includes(memberId)) {
-      setForm((p) => ({ ...p, members: [...p.members, memberId] }))
+      setForm((p) => {
+        const nextMembers = [...p.members, memberId]
+        const nextPercentages = { ...p.memberPercentages }
+        if (!nextPercentages[memberId]) {
+          // If 1 member, default 100%, otherwise leave blank or equal share if not set
+          if (nextMembers.length === 1) {
+            nextPercentages[memberId] = '100'
+          } else {
+            nextPercentages[memberId] = ''
+          }
+        }
+        return {
+          ...p,
+          members: nextMembers,
+          memberPercentages: nextPercentages,
+        }
+      })
     }
   }
 
   const removeMember = (memberId: string) => {
-    setForm((p) => ({ ...p, members: p.members.filter((id) => id !== memberId) }))
+    setForm((p) => {
+      const nextPercentages = { ...p.memberPercentages }
+      delete nextPercentages[memberId]
+      return {
+        ...p,
+        members: p.members.filter((id) => id !== memberId),
+        memberPercentages: nextPercentages,
+      }
+    })
   }
 
   const handleSubmit = async () => {
@@ -177,15 +219,18 @@ export function TaskDialog({
         // Adicionados
         const toAdd = selectedMemberIds.filter((id) => !currentMemberIds.includes(id))
         for (const memberId of toAdd) {
+          const rawPct = form.memberPercentages[memberId]
+          const pct = rawPct !== undefined && rawPct !== '' ? Number(rawPct) : undefined
           await createTaskAssignment({
             task: taskId,
             team_member: memberId,
             start_date: form.start_date || undefined,
             end_date: form.due_date || undefined,
+            workload_percentage: pct !== undefined && !isNaN(pct) ? pct : undefined,
           })
         }
 
-        // Atualizados (se as datas de início/término da tarefa mudaram e o assignment já existe)
+        // Atualizados (datas de início/término ou workload_percentage)
         const toKeep = currentAssignments.filter((ta) => selectedMemberIds.includes(ta.team_member))
         for (const ta of toKeep) {
           const updateData: Partial<TaskAssignment> = {}
@@ -194,6 +239,11 @@ export function TaskDialog({
           }
           if (form.due_date && !ta.end_date) {
             updateData.end_date = form.due_date
+          }
+          const rawPct = form.memberPercentages[ta.team_member]
+          const pct = rawPct !== undefined && rawPct !== '' ? Number(rawPct) : 0
+          if (ta.workload_percentage !== pct) {
+            updateData.workload_percentage = pct
           }
           if (Object.keys(updateData).length > 0) {
             await updateTaskAssignment(ta.id, updateData)
@@ -260,24 +310,74 @@ export function TaskDialog({
               </p>
             </div>
             {form.members.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="space-y-2 border border-slate-200 rounded-lg p-2.5 bg-slate-50/50">
+                <div className="text-xs font-semibold text-slate-600 mb-1 flex items-center justify-between">
+                  <span>Membro Alocado</span>
+                  <span>Rateio (%)</span>
+                </div>
                 {form.members.map((memberId) => {
                   const member = teamMembers.find((m) => m.id === memberId)
+                  const pctVal = form.memberPercentages[memberId] ?? ''
+                  const plannedNum = parseFloat(form.planned_hours) || 0
+                  const pctNum = parseFloat(pctVal) || 0
+                  const calculatedHours =
+                    plannedNum > 0 && pctNum > 0 ? (plannedNum * pctNum) / 100 : null
+
                   return (
-                    <Badge
+                    <div
                       key={memberId}
-                      variant="outline"
-                      className="flex items-center gap-1.5 pr-1.5"
+                      className="flex items-center justify-between gap-3 bg-white p-2 rounded border border-slate-200"
                     >
-                      {member?.name}
-                      <button
-                        type="button"
-                        onClick={() => removeMember(memberId)}
-                        className="rounded-full hover:bg-slate-300 p-0.5"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="text-xs font-medium text-slate-800 truncate">
+                          {member?.name || 'Membro'}
+                        </span>
+                        {member?.function && (
+                          <span className="text-[10px] text-slate-400 truncate">
+                            ({member.function})
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {calculatedHours !== null && (
+                          <span className="text-[11px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                            {Number.isInteger(calculatedHours)
+                              ? `${calculatedHours}h`
+                              : `${calculatedHours.toFixed(1)}h`}
+                          </span>
+                        )}
+                        <div className="flex items-center gap-1 w-24">
+                          <Input
+                            type="number"
+                            min="1"
+                            max="100"
+                            placeholder="1-100"
+                            value={pctVal}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              if (val === '') {
+                                updateMemberPercentage(memberId, '')
+                                return
+                              }
+                              const num = Number(val)
+                              if (num >= 0 && num <= 100) {
+                                updateMemberPercentage(memberId, val)
+                              }
+                            }}
+                            className="h-8 text-xs text-right pr-2"
+                          />
+                          <span className="text-xs text-slate-500">%</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeMember(memberId)}
+                          className="rounded-full hover:bg-slate-100 p-1 text-slate-400 hover:text-slate-600"
+                          title="Remover membro"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
                   )
                 })}
               </div>

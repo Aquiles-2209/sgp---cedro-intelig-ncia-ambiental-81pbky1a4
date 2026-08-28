@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-27T13:00:18.547Z",
+  "generatedAt": "2026-08-28T11:36:09.944Z",
   "collections": [
     {
       "name": "users",
@@ -567,6 +567,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "workload_percentage",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
