@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T13:53:44.727Z",
+  "generatedAt": "2026-08-28T14:06:31.857Z",
   "collections": [
     {
       "name": "users",
@@ -29,30 +29,21 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "role",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": [
-            "admin",
-            "user",
-            "master"
-          ]
+          "selectValues": ["admin", "user", "master"]
         }
       ],
       "indexes": [
@@ -112,41 +103,28 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": [
-            "Planejado",
-            "Em Andamento",
-            "Concluído"
-          ]
+          "selectValues": ["Planejado", "Em Andamento", "Concluído"]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "setor",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": [
-            "Mineração",
-            "Geração de Energia",
-            "Infraestrutura"
-          ]
+          "selectValues": ["Mineração", "Geração de Energia", "Infraestrutura"]
         },
         {
           "name": "project_manager",
@@ -156,9 +134,7 @@
           "collectionRef": "users"
         }
       ],
-      "indexes": [
-        "CREATE INDEX idx_projects_status ON projects (status)"
-      ]
+      "indexes": ["CREATE INDEX idx_projects_status ON projects (status)"]
     },
     {
       "name": "allocations",
@@ -207,19 +183,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "user",
@@ -270,11 +241,7 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": [
-            "Pendente",
-            "Em Andamento",
-            "Concluído"
-          ]
+          "selectValues": ["Pendente", "Em Andamento", "Concluído"]
         },
         {
           "name": "due_date",
@@ -287,19 +254,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "start_date",
@@ -393,19 +355,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "team_member",
@@ -463,29 +420,21 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": [
-            "Info",
-            "Alert"
-          ]
+          "selectValues": ["Info", "Alert"]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
       "indexes": [
@@ -521,30 +470,21 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "setor",
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": [
-            "Meio-Ambiente",
-            "Desenvolvimento Urbano",
-            "Administrativo"
-          ]
+          "selectValues": ["Meio-Ambiente", "Desenvolvimento Urbano", "Administrativo"]
         },
         {
           "name": "email",
@@ -563,11 +503,7 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": [
-            "admin",
-            "user",
-            "master"
-          ]
+          "selectValues": ["admin", "user", "master"]
         },
         {
           "name": "monthly_capacity",
@@ -623,19 +559,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "workload_percentage",
@@ -690,24 +621,17 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
-      "indexes": [
-        "CREATE INDEX idx_audit_logs_created ON audit_logs (created DESC)"
-      ]
+      "indexes": ["CREATE INDEX idx_audit_logs_created ON audit_logs (created DESC)"]
     }
   ]
 }
