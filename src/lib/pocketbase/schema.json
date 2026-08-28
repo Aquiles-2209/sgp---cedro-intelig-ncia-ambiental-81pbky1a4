@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T12:19:59.263Z",
+  "generatedAt": "2026-08-28T13:22:42.358Z",
   "collections": [
     {
       "name": "users",
@@ -210,8 +210,8 @@
       "name": "tasks",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.role = 'admin' || @request.auth.role = 'master' || (@collection.allocations.project ?= project && @collection.allocations.user ?= @request.auth.id)",
-        "view": "@request.auth.role = 'admin' || @request.auth.role = 'master' || (@collection.allocations.project ?= project && @collection.allocations.user ?= @request.auth.id)",
+        "list": "@request.auth.role = 'admin' || @request.auth.role = 'master' || (@collection.allocations.project ?= project && @collection.allocations.user ?= @request.auth.id) || (@collection.task_assignments.task ?= id && @collection.task_assignments.team_member.email ?= @request.auth.email)",
+        "view": "@request.auth.role = 'admin' || @request.auth.role = 'master' || (@collection.allocations.project ?= project && @collection.allocations.user ?= @request.auth.id) || (@collection.task_assignments.task ?= id && @collection.task_assignments.team_member.email ?= @request.auth.email)",
         "create": "@request.auth.role = 'admin' || @request.auth.role = 'master'",
         "update": "@request.auth.role = 'admin' || @request.auth.role = 'master'",
         "delete": "@request.auth.role = 'admin' || @request.auth.role = 'master'"
