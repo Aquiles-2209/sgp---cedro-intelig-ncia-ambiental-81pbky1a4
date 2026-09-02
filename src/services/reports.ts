@@ -14,6 +14,13 @@ export interface ReportRow {
   plannedHours: number
   allocatedHours: number
   hoursWorked: number
+  /**
+   * Valor Mensal do membro (hora * 170 ou campo hourly_rate).
+   * Presente APENAS quando o chamador é o usuário autorizado
+   * (aquilessouza1@hotmail.com, master) — nunca é preenchido
+   * a partir de dados comuns da API.
+   */
+  monthlyValue?: number
 }
 
 interface ReportGroup {
@@ -100,8 +107,14 @@ export async function fetchReportData(
   startDate: string,
   endDate: string,
   teamMemberId?: string,
+  valoresMensais?: Record<string, number>,
 ): Promise<ReportRow[]> {
   const rows: ReportRow[] = []
+
+  // Valor Mensal é confidencial: chega pronto, resolvido por um endpoint
+  // de backend que autoriza no servidor (ver src/services/custo-hora.ts).
+  // Quem não é autorizado recebe {} e o relatório sai SEM a Coluna M.
+  const valorMensalPorMembro = valoresMensais || {}
 
   let targetMember: any = null
   if (teamMemberId) {
@@ -307,11 +320,48 @@ export async function fetchReportData(
             plannedHours: task.planned_hours || 0,
             allocatedHours: task.allocated_hours || 0,
             hoursWorked,
+            monthlyValue: valorMensalPorMembro[targetMember.id],
           })
         }
       } else {
         // GENERAL REPORT (ALL OR SPECIFIC PROJECTS)
         const groupMap = new Map<string, ReportGroup>()
+        // Valor Mensal por membro (somente para o usuário autorizado —
+        // ver comentário no início da função).
+        const valorMensalPorNome = new Map<string, number>()
+        try {
+          const memberIds = new Set<string>()
+          for (const alloc of allocations as any[]) {
+            if (alloc.user) memberIds.add(String(alloc.user))
+          }
+          for (const te of timeEntries as any[]) {
+            if (te.expand?.team_member?.id) memberIds.add(te.expand.team_member.id)
+          }
+          for (const ta of taskAssignments as any[]) {
+            const tmId = typeof ta.team_member === 'string' ? ta.team_member : ta.team_member?.id
+            if (tmId) memberIds.add(tmId)
+          }
+          const membersById = new Map<string, any>()
+          for (const id of memberIds) {
+            if (valorMensalPorMembro[id] === undefined) continue
+            try {
+              const rec = await pb.collection('team_members').getOne(id)
+              membersById.set(id, rec)
+            } catch {
+              /* membro removido ou inacessível: sem valor */
+            }
+          }
+          for (const [id, rec] of membersById) {
+            const name = String(rec.name || '')
+              .trim()
+              .toLowerCase()
+            if (name && !valorMensalPorNome.has(name)) {
+              valorMensalPorNome.set(name, valorMensalPorMembro[id])
+            }
+          }
+        } catch (err) {
+          console.error('[fetchReportData] Erro ao resolver valores mensais:', err)
+        }
 
         for (const task of tasks as any[]) {
           const taskTitle = (task.title || '').trim()
@@ -445,6 +495,12 @@ export async function fetchReportData(
             allocatedHours: group.allocatedHours,
             hoursWorked: group.hoursWorked,
           })
+          // Valor Mensal do membro (apenas presente para o usuário
+          // autorizado — ver início da função).
+          const nomeChave = group.memberName.trim().toLowerCase()
+          if (valorMensalPorNome.has(nomeChave)) {
+            rows[rows.length - 1].monthlyValue = valorMensalPorNome.get(nomeChave)
+          }
         }
       }
     } catch (err) {
@@ -464,6 +520,7 @@ export async function fetchReportDataByMember(
   startDate: string,
   endDate: string,
   projectIds?: string[],
+  valoresMensais?: Record<string, number>,
 ): Promise<ReportRow[]> {
-  return fetchReportData(projectIds || [], startDate, endDate, teamMemberId)
+  return fetchReportData(projectIds || [], startDate, endDate, teamMemberId, valoresMensais)
 }

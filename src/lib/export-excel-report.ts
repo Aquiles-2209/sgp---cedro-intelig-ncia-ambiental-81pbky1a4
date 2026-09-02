@@ -1,6 +1,7 @@
 import type { ReportRow } from '@/services/reports'
 import { normalizeDate } from '@/types/models'
 import { generateXlsx } from '@/lib/xlsx-generator'
+import { formatarMoedaBRL, calcularCustoHoraUnitario } from '@/lib/custo-hora'
 
 function formatDateBR(dateStr: string): string {
   const normalized = normalizeDate(dateStr)
@@ -22,7 +23,16 @@ function formatDateTimeBR(dateStr: string): string {
   })
 }
 
-export function exportExcelReport(rows: ReportRow[]): void {
+/**
+ * Exporta o relatório de produtividade em Excel (Colunas A–L).
+ *
+ * `incluirCustoHora`: quando FALSE (padrão), a exportação contém SOMENTE
+ * as colunas até a L — nenhum dado financeiro (Valor Mensal / Custo Hora
+ * Unitário) é incluído, mesmo que os dados estejam presentes na memória.
+ * Apenas o usuário autorizado pelo backend recebe `true` — para qualquer
+ * outro usuário o arquivo nunca contém a Coluna M.
+ */
+export function exportExcelReport(rows: ReportRow[], incluirCustoHora = false): void {
   const headers = [
     'Cliente',
     'Projeto',
@@ -38,6 +48,10 @@ export function exportExcelReport(rows: ReportRow[]): void {
     'Saldo Horas',
   ]
 
+  if (incluirCustoHora) {
+    headers.push('Custo Hora Unitário')
+  }
+
   const sortedRows = [...rows].sort((a, b) => {
     const dateA = a.launchDate || a.activityLaunchDate || ''
     const dateB = b.launchDate || b.activityLaunchDate || ''
@@ -48,7 +62,7 @@ export function exportExcelReport(rows: ReportRow[]): void {
     const totalHours = Number((row.allocatedHours + row.hoursWorked).toFixed(2))
     const balance = Number((row.plannedHours - totalHours).toFixed(2))
     const showTask = idx === 0 || sortedRows[idx - 1].activityTitle !== row.activityTitle
-    return [
+    const cells = [
       { type: 'string' as const, value: row.client },
       { type: 'string' as const, value: row.projectName },
       { type: 'string' as const, value: row.memberSector },
@@ -71,6 +85,19 @@ export function exportExcelReport(rows: ReportRow[]): void {
               : ('normal' as const),
       },
     ]
+
+    if (incluirCustoHora) {
+      // Sem divisão por zero: Total de Horas = 0 ou vazio → "N/A".
+      cells.push({
+        type: 'string' as const,
+        value:
+          totalHours > 0
+            ? formatarMoedaBRL(calcularCustoHoraUnitario(row.monthlyValue ?? 0, totalHours))
+            : 'N/A',
+      })
+    }
+
+    return cells
   })
 
   const totalPlanned = rows.reduce((sum, r) => sum + r.plannedHours, 0)
@@ -79,7 +106,7 @@ export function exportExcelReport(rows: ReportRow[]): void {
   const totalTotal = Number((totalAllocated + totalWorked).toFixed(2))
   const totalBalance = Number((totalPlanned - totalTotal).toFixed(2))
 
-  xlsxRows.push([
+  const totalRow: (typeof xlsxRows)[number] = [
     { type: 'string' as const, value: '' },
     { type: 'string' as const, value: '' },
     { type: 'string' as const, value: '' },
@@ -101,7 +128,13 @@ export function exportExcelReport(rows: ReportRow[]): void {
             ? ('negative' as const)
             : ('normal' as const),
     },
-  ])
+  ]
+
+  if (incluirCustoHora) {
+    totalRow.push({ type: 'string' as const, value: '' })
+  }
+
+  xlsxRows.push(totalRow)
 
   const blob = generateXlsx(headers, xlsxRows)
   const url = URL.createObjectURL(blob)

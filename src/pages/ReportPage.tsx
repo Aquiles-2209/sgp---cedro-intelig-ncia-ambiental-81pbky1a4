@@ -21,10 +21,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/hooks/use-auth'
 import { fetchReportData, type ReportRow } from '@/services/reports'
 import { exportExcelReport } from '@/lib/export-excel-report'
 import { getProjects } from '@/services/projects'
 import { getTeamMembers } from '@/services/team-members'
+import { fetchValoresMensais, temPermissaoCusto } from '@/services/custo-hora'
+import { formatarMoedaBRL, calcularCustoHoraUnitario } from '@/lib/custo-hora'
 import { normalizeDate } from '@/types/models'
 import type { Project, TeamMember } from '@/types/models'
 import { cn } from '@/lib/utils'
@@ -51,6 +54,13 @@ function formatLaunchDate(dateStr: string): string {
 
 export default function ReportPage() {
   const { toast } = useToast()
+  const { user } = useAuth()
+
+  // Coluna M (Custo Hora Unitário): confidencial. A permissão é declarada
+  // aqui apenas para esconder a UI — os DADOS só chegam se o backend
+  // autorizar (ver src/services/custo-hora.ts e hook valores_mensais.js).
+  // Sem permissão, a coluna NEM EXISTE na tabela nem na exportação.
+  const podeVerCustoHora = temPermissaoCusto(user)
 
   // Projects state
   const [projects, setProjects] = useState<Project[]>([])
@@ -68,7 +78,9 @@ export default function ReportPage() {
   const [activeFilterType, setActiveFilterType] = useState<'project' | 'member' | null>(null)
   const [rows, setRows] = useState<ReportRow[]>([])
   const [loading, setLoading] = useState(false)
-
+  // Valores Mensais (confidenciais): vazios para qualquer usuário não
+  // autorizado — fetchValoresMensais() devolve {} sem nem chamar a API.
+  const [valoresMensais, setValoresMensais] = useState<Record<string, number>>({})
   const loadInitialData = useCallback(async () => {
     try {
       const [projectsData, membersData] = await Promise.all([getProjects(), getTeamMembers()])
@@ -83,6 +95,18 @@ export default function ReportPage() {
     loadInitialData()
   }, [loadInitialData])
 
+  // Recarrega os Valores Mensais sempre que o usuário autorizado entra na
+  // página: garante recálculo automático quando o Valor Mensal muda no
+  // cadastro de usuários CEDRO.
+  useEffect(() => {
+    let ativo = true
+    fetchValoresMensais().then((rates) => {
+      if (ativo) setValoresMensais(rates)
+    })
+    return () => {
+      ativo = false
+    }
+  }, [podeVerCustoHora, user?.id])
   // Handle Project Report Fetch
   const handleFetchProjectReport = async () => {
     if (!projectStartDate || !projectEndDate) {
@@ -93,7 +117,13 @@ export default function ReportPage() {
     setActiveFilterType('project')
     try {
       const projectIds = selectedProject === 'all' ? projects.map((p) => p.id) : [selectedProject]
-      const data = await fetchReportData(projectIds, projectStartDate, projectEndDate)
+      const data = await fetchReportData(
+        projectIds,
+        projectStartDate,
+        projectEndDate,
+        undefined,
+        valoresMensais,
+      )
       setRows(data)
       if (data.length === 0) {
         toast({ title: 'Nenhum dado encontrado para o período selecionado.' })
@@ -124,6 +154,7 @@ export default function ReportPage() {
         memberStartDate,
         memberEndDate,
         selectedMember,
+        valoresMensais,
       )
       setRows(data)
       if (data.length === 0) {
@@ -141,7 +172,11 @@ export default function ReportPage() {
       toast({ title: 'Nenhum dado para exportar.', variant: 'destructive' })
       return
     }
-    exportExcelReport(rows)
+    // A exportação segue a MESMA regra de permissão da tela: apenas o
+    // usuário autorizado recebe a Coluna M; os demais recebem o arquivo
+    // somente até a Coluna L (a função ignora qualquer dado financeiro
+    // que não possa ser exibido).
+    exportExcelReport(rows, podeVerCustoHora)
     toast({ title: 'Relatório exportado com sucesso!' })
   }
 
@@ -312,6 +347,9 @@ export default function ReportPage() {
                     <TableHead className="text-right">Horas Trabalhadas (Timer)</TableHead>
                     <TableHead className="text-right">Total Horas</TableHead>
                     <TableHead className="text-right">Saldo Horas</TableHead>
+                    {podeVerCustoHora && (
+                      <TableHead className="text-right">Custo Hora Unitário</TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -341,6 +379,15 @@ export default function ReportPage() {
                         >
                           {balance.toFixed(2)}
                         </TableCell>
+                        {podeVerCustoHora && (
+                          <TableCell className="text-right font-medium">
+                            {totalHours > 0
+                              ? formatarMoedaBRL(
+                                  calcularCustoHoraUnitario(row.monthlyValue ?? 0, totalHours),
+                                )
+                              : 'N/A'}
+                          </TableCell>
+                        )}
                       </TableRow>
                     )
                   })}
@@ -372,6 +419,7 @@ export default function ReportPage() {
                     >
                       {totalBalance.toFixed(2)}
                     </TableCell>
+                    {podeVerCustoHora && <TableCell className="text-right font-bold">—</TableCell>}
                   </TableRow>
                 </TableFooter>
               </Table>
