@@ -179,8 +179,7 @@ export function TaskList({
                   // Compute worked hours for this task
                   const taskEntries = timeEntries.filter((te) => te.task === task.id)
                   const workedSeconds = taskEntries.reduce((sum, te) => sum + (te.duration || 0), 0)
-                  const totalPreviousSeconds =
-                    Math.round((task.allocated_hours || 0) * 3600) + workedSeconds
+                  const totalPreviousSeconds = workedSeconds
                   const workedHours = totalPreviousSeconds / 3600
                   const plannedHours = task.planned_hours || 0
 
