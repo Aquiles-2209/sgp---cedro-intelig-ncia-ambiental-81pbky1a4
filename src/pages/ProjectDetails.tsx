@@ -546,6 +546,7 @@ export default function ProjectDetails() {
             teamMembers={teamMembers}
             isAdmin={isAdmin}
             isMaster={isMaster}
+            currentUserEmail={user?.email}
             userAllocIds={userAllocIds}
             onEdit={editTask}
             onEditStatus={handleTaskStatusChange}

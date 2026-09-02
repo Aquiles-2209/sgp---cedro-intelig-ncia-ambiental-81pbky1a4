@@ -37,6 +37,7 @@ interface TaskListProps {
   teamMembers: TeamMember[]
   isAdmin: boolean
   isMaster?: boolean
+  currentUserEmail?: string
   userAllocIds: string[]
   onEdit: (id: string, data: Partial<Task>) => Promise<Task | void>
   onEditStatus: (id: string, status: TaskStatus) => Promise<void>
@@ -62,6 +63,7 @@ export function TaskList({
   teamMembers,
   isAdmin,
   isMaster = false,
+  currentUserEmail,
   userAllocIds,
   onEdit,
   onEditStatus,
@@ -166,6 +168,14 @@ export function TaskList({
                     (te) => te.task === task.id && te.team_member === member.id && !te.end_time,
                   )
 
+                  const isCurrentUser =
+                    !!currentUserEmail &&
+                    !!member.email &&
+                    member.email.trim().toLowerCase() === currentUserEmail.trim().toLowerCase()
+
+                  // Admin and Master can act on any member. User role can only act on their own row.
+                  const canActOnMember = isAdmin || isMaster || isCurrentUser
+
                   // Compute worked hours for this task
                   const taskEntries = timeEntries.filter((te) => te.task === task.id)
                   const workedSeconds = taskEntries.reduce((sum, te) => sum + (te.duration || 0), 0)
@@ -174,10 +184,12 @@ export function TaskList({
                   const workedHours = totalPreviousSeconds / 3600
                   const plannedHours = task.planned_hours || 0
 
-                  let canStartMember = canStartTimer
+                  let canStartMember = canStartTimer && canActOnMember
                   let disabledReason = ''
 
-                  if (!isMaster) {
+                  if (!canActOnMember) {
+                    disabledReason = 'Você só pode iniciar o cronômetro para o seu próprio usuário.'
+                  } else if (!isMaster) {
                     if (plannedHours > 0 && workedHours >= plannedHours) {
                       canStartMember = false
                       disabledReason =
@@ -247,6 +259,7 @@ export function TaskList({
                           onStop={onStopTimer}
                           onAdjustHours={onAdjustHours}
                           canStart={canStartMember}
+                          canAdjustHours={canActOnMember}
                           disabledReason={disabledReason}
                         />
                       </div>
