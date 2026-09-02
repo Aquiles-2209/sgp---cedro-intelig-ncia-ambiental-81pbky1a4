@@ -61,6 +61,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
     monthly_capacity: 170,
     hourly_rate: '' as string | number,
   })
+  const [monthlyValueDisplay, setMonthlyValueDisplay] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState('')
   const [credentials, setCredentials] = useState<{
@@ -69,9 +70,40 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
     accessUrl: string
   } | null>(null)
 
+  const formatBRLCurrency = (value: number | string | undefined | null): string => {
+    if (value === undefined || value === null || value === '') return ''
+    const num = typeof value === 'number' ? value : Number(value)
+    if (isNaN(num)) return ''
+    return num.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    })
+  }
+
+  const handleMonthlyValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawDigits = e.target.value.replace(/\D/g, '')
+    if (!rawDigits) {
+      setMonthlyValueDisplay('')
+      setForm((p) => ({ ...p, hourly_rate: '' }))
+      setFieldErrors((p) => ({ ...p, hourly_rate: '' }))
+      return
+    }
+    const numericValue = Number(rawDigits) / 100
+    setMonthlyValueDisplay(
+      numericValue.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }),
+    )
+    setForm((p) => ({ ...p, hourly_rate: numericValue }))
+    setFieldErrors((p) => ({ ...p, hourly_rate: '' }))
+  }
+
   useEffect(() => {
     if (open) {
       setCredentials(null)
+      const initialRate =
+        member?.hourly_rate !== undefined && member?.hourly_rate !== null ? member.hourly_rate : ''
       setForm({
         name: member?.name || '',
         function: member?.function || '',
@@ -82,11 +114,9 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
           member?.monthly_capacity !== undefined && member?.monthly_capacity !== null
             ? member.monthly_capacity
             : 170,
-        hourly_rate:
-          member?.hourly_rate !== undefined && member?.hourly_rate !== null
-            ? member.hourly_rate
-            : '',
+        hourly_rate: initialRate,
       })
+      setMonthlyValueDisplay(initialRate !== '' ? formatBRLCurrency(initialRate) : '')
       setAvatarPreview(member?.avatar || '')
       setAvatarFile(null)
       setFieldErrors({})
@@ -129,7 +159,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
       form.hourly_rate !== null
     ) {
       if (isNaN(Number(form.hourly_rate)) || Number(form.hourly_rate) < 0) {
-        errors.hourly_rate = 'Informe um custo horário válido (valor >= 0).'
+        errors.hourly_rate = 'Informe um valor mensal válido (valor >= 0).'
       }
     }
     if (Object.keys(errors).length > 0) {
@@ -373,19 +403,13 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
             </div>
             {isMaster && (
               <div className="space-y-2">
-                <Label>Custo Horário</Label>
+                <Label>Valor Mensal</Label>
                 <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.hourly_rate}
-                  onChange={(e) =>
-                    update(
-                      'hourly_rate',
-                      e.target.value === '' ? '' : (Number(e.target.value) as any),
-                    )
-                  }
-                  placeholder="0.00"
+                  type="text"
+                  inputMode="numeric"
+                  value={monthlyValueDisplay}
+                  onChange={handleMonthlyValueChange}
+                  placeholder="R$ 0,00"
                   className={cn(
                     fieldErrors.hourly_rate && 'border-red-500 focus-visible:ring-red-500',
                   )}
