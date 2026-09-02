@@ -24,6 +24,7 @@ export const createTeamMember = async (data: {
   email: string
   role: string
   monthly_capacity?: number
+  hourly_rate?: number
   avatar?: File | null
 }): Promise<TeamMember> => {
   const fd = new FormData()
@@ -34,6 +35,9 @@ export const createTeamMember = async (data: {
   fd.append('role', data.role)
   if (data.monthly_capacity !== undefined) {
     fd.append('monthly_capacity', String(data.monthly_capacity))
+  }
+  if (data.hourly_rate !== undefined) {
+    fd.append('hourly_rate', String(data.hourly_rate))
   }
   if (data.avatar) fd.append('avatar', data.avatar)
   const record = await pb.collection('team_members').create(fd)
@@ -49,6 +53,7 @@ export const updateTeamMember = async (
     email?: string
     role?: string
     monthly_capacity?: number
+    hourly_rate?: number
     avatar?: File | null
   },
 ): Promise<TeamMember> => {
@@ -60,6 +65,9 @@ export const updateTeamMember = async (
   if (data.role !== undefined) fd.append('role', data.role)
   if (data.monthly_capacity !== undefined) {
     fd.append('monthly_capacity', String(data.monthly_capacity))
+  }
+  if (data.hourly_rate !== undefined) {
+    fd.append('hourly_rate', String(data.hourly_rate))
   }
   if (data.avatar) fd.append('avatar', data.avatar)
   const record = await pb.collection('team_members').update(id, fd)

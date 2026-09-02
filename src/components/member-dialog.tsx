@@ -59,6 +59,7 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
     email: '',
     role: 'user',
     monthly_capacity: 170,
+    hourly_rate: '' as string | number,
   })
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState('')
@@ -81,6 +82,10 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
           member?.monthly_capacity !== undefined && member?.monthly_capacity !== null
             ? member.monthly_capacity
             : 170,
+        hourly_rate:
+          member?.hourly_rate !== undefined && member?.hourly_rate !== null
+            ? member.hourly_rate
+            : '',
       })
       setAvatarPreview(member?.avatar || '')
       setAvatarFile(null)
@@ -112,10 +117,20 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
     if (
       form.monthly_capacity === undefined ||
       form.monthly_capacity === null ||
-      isNaN(form.monthly_capacity) ||
-      form.monthly_capacity < 0
+      isNaN(Number(form.monthly_capacity)) ||
+      Number(form.monthly_capacity) < 0
     ) {
       errors.monthly_capacity = 'Informe uma capacidade mensal válida (horas >= 0).'
+    }
+    if (
+      isMaster &&
+      form.hourly_rate !== '' &&
+      form.hourly_rate !== undefined &&
+      form.hourly_rate !== null
+    ) {
+      if (isNaN(Number(form.hourly_rate)) || Number(form.hourly_rate) < 0) {
+        errors.hourly_rate = 'Informe um custo horário válido (valor >= 0).'
+      }
     }
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors)
@@ -124,7 +139,16 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
     setSaving(true)
     setFieldErrors({})
     try {
-      const payload = {
+      const payload: {
+        name: string
+        function: string
+        setor: string
+        email: string
+        role: string
+        monthly_capacity: number
+        hourly_rate?: number
+        avatar?: File | null
+      } = {
         name: form.name.trim(),
         function: form.function.trim(),
         setor: form.setor,
@@ -132,6 +156,12 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
         role: form.role,
         monthly_capacity: Number(form.monthly_capacity) || 170,
         avatar: avatarFile,
+      }
+      if (isMaster) {
+        payload.hourly_rate =
+          form.hourly_rate !== '' && form.hourly_rate !== undefined && form.hourly_rate !== null
+            ? Number(form.hourly_rate)
+            : 0
       }
       if (isEdit && member) {
         await updateTeamMember(member.id, payload)
@@ -341,6 +371,30 @@ export function MemberDialog({ onCreated, trigger, member }: MemberDialogProps) 
                 <p className="text-xs text-slate-400">Padrão da empresa: 170 horas/mês</p>
               )}
             </div>
+            {isMaster && (
+              <div className="space-y-2">
+                <Label>Custo Horário</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.hourly_rate}
+                  onChange={(e) =>
+                    update(
+                      'hourly_rate',
+                      e.target.value === '' ? '' : (Number(e.target.value) as any),
+                    )
+                  }
+                  placeholder="0.00"
+                  className={cn(
+                    fieldErrors.hourly_rate && 'border-red-500 focus-visible:ring-red-500',
+                  )}
+                />
+                {fieldErrors.hourly_rate && (
+                  <p className="text-xs text-red-500">{fieldErrors.hourly_rate}</p>
+                )}
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setOpen(false)}>
                 Cancelar

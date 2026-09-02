@@ -78,6 +78,7 @@ export interface TeamMember {
   avatar: string
   role: string
   monthly_capacity?: number
+  hourly_rate?: number
   created: string
   updated: string
 }
