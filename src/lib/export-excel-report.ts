@@ -1,7 +1,12 @@
 import type { ReportRow } from '@/services/reports'
 import { normalizeDate } from '@/types/models'
 import { generateXlsx } from '@/lib/xlsx-generator'
-import { formatarMoedaBRL, calcularCustoHoraUnitario } from '@/lib/custo-hora'
+import {
+  formatarMoedaBRL,
+  calcularCustoHoraUnitario,
+  calcularHorasTotaisPorUsuario,
+  normalizarChaveMembro,
+} from '@/lib/custo-hora'
 
 function formatDateBR(dateStr: string): string {
   const normalized = normalizeDate(dateStr)
@@ -58,6 +63,11 @@ export function exportExcelReport(rows: ReportRow[], incluirCustoHora = false): 
     return dateA.localeCompare(dateB)
   })
 
+  // Requisito Coluna M:
+  // Custo Hora Unitário = Valor Mensal ÷ Σ(Total de Horas do Usuário no período selecionado)
+  // O denominador é a soma de todas as horas do mesmo usuário no período atualmente selecionado.
+  const horasTotaisPorUsuario = calcularHorasTotaisPorUsuario(rows)
+
   const xlsxRows = sortedRows.map((row, idx) => {
     const totalHours = Number((row.allocatedHours + row.hoursWorked).toFixed(2))
     const balance = Number((row.plannedHours - totalHours).toFixed(2))
@@ -87,13 +97,19 @@ export function exportExcelReport(rows: ReportRow[], incluirCustoHora = false): 
     ]
 
     if (incluirCustoHora) {
-      // Sem divisão por zero: Total de Horas = 0 ou vazio → "N/A".
+      // Sem divisão por zero: Total de Horas acumulado = 0 ou valor inválido → "N/A".
+      const userKey = normalizarChaveMembro(row.memberName)
+      const userTotalPeriodHours = horasTotaisPorUsuario.get(userKey) || 0
+      const hasValidRate = row.monthlyValue !== undefined && Number.isFinite(row.monthlyValue)
+
+      const valorFormatado =
+        hasValidRate && userTotalPeriodHours > 0
+          ? formatarMoedaBRL(calcularCustoHoraUnitario(row.monthlyValue ?? 0, userTotalPeriodHours))
+          : 'N/A'
+
       cells.push({
         type: 'string' as const,
-        value:
-          totalHours > 0
-            ? formatarMoedaBRL(calcularCustoHoraUnitario(row.monthlyValue ?? 0, totalHours))
-            : 'N/A',
+        value: valorFormatado,
       })
     }
 

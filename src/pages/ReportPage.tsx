@@ -27,7 +27,12 @@ import { exportExcelReport } from '@/lib/export-excel-report'
 import { getProjects } from '@/services/projects'
 import { getTeamMembers } from '@/services/team-members'
 import { fetchValoresMensais, temPermissaoCusto } from '@/services/custo-hora'
-import { formatarMoedaBRL, calcularCustoHoraUnitario } from '@/lib/custo-hora'
+import {
+  formatarMoedaBRL,
+  calcularCustoHoraUnitario,
+  calcularHorasTotaisPorUsuario,
+  normalizarChaveMembro,
+} from '@/lib/custo-hora'
 import { normalizeDate } from '@/types/models'
 import type { Project, TeamMember } from '@/types/models'
 import { cn } from '@/lib/utils'
@@ -190,6 +195,12 @@ export default function ReportPage() {
   )
   const totalAll = totals.imported + totals.worked
   const totalBalance = totals.planned - totalAll
+
+  // Requisito Coluna M:
+  // Custo Hora Unitário = Valor Mensal ÷ Σ(Total de Horas do Usuário no período selecionado)
+  // Agrupa as horas de todas as linhas de cada usuário no período selecionado para
+  // servir como denominador único para todas as linhas daquele usuário.
+  const horasTotaisPorUsuario = calcularHorasTotaisPorUsuario(rows)
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12 animate-fade-in-up">
@@ -379,15 +390,28 @@ export default function ReportPage() {
                         >
                           {balance.toFixed(2)}
                         </TableCell>
-                        {podeVerCustoHora && (
-                          <TableCell className="text-right font-medium">
-                            {totalHours > 0
-                              ? formatarMoedaBRL(
-                                  calcularCustoHoraUnitario(row.monthlyValue ?? 0, totalHours),
-                                )
-                              : 'N/A'}
-                          </TableCell>
-                        )}
+                        {podeVerCustoHora &&
+                          (() => {
+                            const userKey = normalizarChaveMembro(row.memberName)
+                            const userTotalPeriodHours = horasTotaisPorUsuario.get(userKey) || 0
+                            const hasValidRate =
+                              row.monthlyValue !== undefined && Number.isFinite(row.monthlyValue)
+
+                            if (!hasValidRate || userTotalPeriodHours <= 0) {
+                              return <TableCell className="text-right font-medium">N/A</TableCell>
+                            }
+
+                            const custoHora = calcularCustoHoraUnitario(
+                              row.monthlyValue ?? 0,
+                              userTotalPeriodHours,
+                            )
+
+                            return (
+                              <TableCell className="text-right font-medium">
+                                {formatarMoedaBRL(custoHora)}
+                              </TableCell>
+                            )
+                          })()}
                       </TableRow>
                     )
                   })}

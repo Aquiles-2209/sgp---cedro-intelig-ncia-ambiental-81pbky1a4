@@ -1,7 +1,17 @@
 /**
  * Custo Hora Unitário — cálculo puro (incremento isolado).
  *
- * Fórmula do requisito: Custo Hora Unitário = Valor Mensal ÷ Total de Horas
+ * Requisito:
+ * O custo por hora NÃO deve ser calculado individualmente sobre as horas de cada linha.
+ * Para cada usuário, o sistema soma todas as horas alocadas daquele usuário dentro
+ * do período selecionado nos filtros do relatório e, somente depois, divide o
+ * Valor Mensal do Usuário pelo total de horas acumuladas no período.
+ *
+ * Fórmula:
+ * Custo Hora Unitário = Valor Mensal ÷ Σ(Total de Horas do Usuário no período selecionado)
+ *
+ * O resultado deve ser o MESMO Custo Hora Unitário em todas as linhas daquele usuário
+ * dentro do período selecionado, independentemente da quantidade de horas de cada linha.
  */
 
 /** Arredonda para 2 casas decimais sem erros de ponto flutuante. */
@@ -10,7 +20,68 @@ export function arredondarMoeda(valor: number): number {
 }
 
 /**
- * Calcula o Custo Hora Unitário.
+ * Normaliza o identificador/nome do membro para chave de agrupamento consistente.
+ */
+export function normalizarChaveMembro(nome: string | undefined | null): string {
+  return (nome || '').trim().toLowerCase()
+}
+
+/**
+ * Calcula a soma total de horas alocadas/trabalhadas por usuário no período selecionado.
+ * O total de horas de uma linha é a soma de (allocatedHours + hoursWorked).
+ */
+export function calcularHorasTotaisPorUsuario<
+  T extends { memberName: string; allocatedHours: number; hoursWorked: number },
+>(rows: T[]): Map<string, number> {
+  const horasPorUsuario = new Map<string, number>()
+  for (const row of rows) {
+    const chave = normalizarChaveMembro(row.memberName)
+    if (!chave || chave === '—' || chave === '-') continue
+    const rowHoras = (Number(row.allocatedHours) || 0) + (Number(row.hoursWorked) || 0)
+    horasPorUsuario.set(chave, (horasPorUsuario.get(chave) || 0) + rowHoras)
+  }
+  return horasPorUsuario
+}
+
+/**
+ * Retorna o mapa de Custo Hora Unitário pré-calculado por usuário no período.
+ *
+ * Para cada usuário:
+ *   Custo Hora Unitário = Valor Mensal ÷ Σ(Total de Horas do Usuário no período selecionado)
+ *
+ * Caso o total de horas acumulado do usuário no período seja 0 ou não positivo,
+ * ou o valor mensal não esteja definido ou não seja numérico válido, o valor retornado é 0.
+ */
+export function calcularCustosHoraPorUsuario<
+  T extends {
+    memberName: string
+    allocatedHours: number
+    hoursWorked: number
+    monthlyValue?: number
+  },
+>(rows: T[]): Map<string, number> {
+  const horasTotais = calcularHorasTotaisPorUsuario(rows)
+  const valoresMensais = new Map<string, number>()
+
+  for (const row of rows) {
+    const chave = normalizarChaveMembro(row.memberName)
+    if (!chave || chave === '—' || chave === '-') continue
+    if (row.monthlyValue !== undefined && Number.isFinite(row.monthlyValue)) {
+      valoresMensais.set(chave, row.monthlyValue)
+    }
+  }
+
+  const custos = new Map<string, number>()
+  for (const [chave, totalHoras] of horasTotais.entries()) {
+    const valorMensal = valoresMensais.get(chave) ?? 0
+    custos.set(chave, calcularCustoHoraUnitario(valorMensal, totalHoras))
+  }
+
+  return custos
+}
+
+/**
+ * Calcula o Custo Hora Unitário direto: Valor Mensal ÷ Total de Horas Acumulado.
  * Retorna 0 quando o total de horas é 0, negativo ou não numérico.
  */
 export function calcularCustoHoraUnitario(valorMensal: number, totalHoras: number): number {
