@@ -70,6 +70,8 @@ export function exportExcelReport(rows: ReportRow[], incluirCustoHora = false): 
   // O denominador é a soma de todas as horas do mesmo usuário no período atualmente selecionado.
   const horasTotaisPorUsuario = calcularHorasTotaisPorUsuario(rows)
 
+  let somaCustoTotal = 0
+
   const xlsxRows = sortedRows.map((row, idx) => {
     const totalHours = Number((row.allocatedHours + row.hoursWorked).toFixed(2))
     const balance = Number((row.plannedHours - totalHours).toFixed(2))
@@ -111,6 +113,9 @@ export function exportExcelReport(rows: ReportRow[], incluirCustoHora = false): 
 
       const valorFormatado = custoHora !== null ? formatarMoedaBRL(custoHora) : 'N/A'
       const custoTotal = calcularCustoTotalLinha(custoHora, totalHours)
+      if (custoTotal !== null) {
+        somaCustoTotal += custoTotal
+      }
       const custoTotalFormatado = custoTotal !== null ? formatarMoedaBRL(custoTotal) : ''
 
       cells.push({
@@ -157,8 +162,13 @@ export function exportExcelReport(rows: ReportRow[], incluirCustoHora = false): 
   ]
 
   if (incluirCustoHora) {
+    // Coluna M (Custo Hora Unitário): em branco na linha de TOTAL GERAL
     totalRow.push({ type: 'string' as const, value: '' })
-    totalRow.push({ type: 'string' as const, value: '' })
+    // Coluna N (Custo Total): somatório de todos os valores da Coluna N em R$ 0,00
+    totalRow.push({
+      type: 'string' as const,
+      value: formatarMoedaBRL(somaCustoTotal),
+    })
   }
 
   xlsxRows.push(totalRow)

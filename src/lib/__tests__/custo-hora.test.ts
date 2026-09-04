@@ -163,4 +163,20 @@ describe('calcularCustoTotalLinha (Coluna N)', () => {
     const soma = linha1 + linha2 + linha3
     expect(soma).toBeCloseTo(6000, -1) // ≈ R$ 6.000,00
   })
+
+  it('calcula a soma de Custo Total da Coluna N para a linha TOTAL GERAL e formata em R$ 0,00', () => {
+    // Simula linhas filtradas de um projeto específico, ex: [0785] Consultoria Usinas Elera
+    const rows = [
+      { custoTotal: 2117.4 },
+      { custoTotal: 352.9 },
+      { custoTotal: null }, // linha sem valor de custo total
+      { custoTotal: 1500.0 },
+    ]
+
+    const soma = rows.reduce((acc, r) => acc + (r.custoTotal ?? 0), 0)
+    expect(soma).toBe(3970.3)
+    const formatado = formatarMoedaBRL(soma)
+    expect(formatado).toContain('R$')
+    expect(formatado).toContain('3.970,30')
+  })
 })
