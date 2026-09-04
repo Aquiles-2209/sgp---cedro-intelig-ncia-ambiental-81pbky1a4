@@ -1,6 +1,6 @@
 import type { ReportRow } from '@/services/reports'
 import { normalizeDate } from '@/types/models'
-import { generateXlsx } from '@/lib/xlsx-generator'
+import { generateXlsx, type XlsxCell } from '@/lib/xlsx-generator'
 import {
   formatarMoedaBRL,
   calcularCustoHoraUnitario,
@@ -72,11 +72,11 @@ export function exportExcelReport(rows: ReportRow[], incluirCustoHora = false): 
 
   let somaCustoTotal = 0
 
-  const xlsxRows = sortedRows.map((row, idx) => {
+  const xlsxRows: XlsxCell[][] = sortedRows.map((row, idx) => {
     const totalHours = Number((row.allocatedHours + row.hoursWorked).toFixed(2))
     const balance = Number((row.plannedHours - totalHours).toFixed(2))
     const showTask = idx === 0 || sortedRows[idx - 1].activityTitle !== row.activityTitle
-    const cells = [
+    const cells: XlsxCell[] = [
       { type: 'string' as const, value: row.client },
       { type: 'string' as const, value: row.projectName },
       { type: 'string' as const, value: row.memberSector },
@@ -111,21 +111,38 @@ export function exportExcelReport(rows: ReportRow[], incluirCustoHora = false): 
           ? calcularCustoHoraUnitario(row.monthlyValue ?? 0, userTotalPeriodHours)
           : null
 
-      const valorFormatado = custoHora !== null ? formatarMoedaBRL(custoHora) : 'N/A'
       const custoTotal = calcularCustoTotalLinha(custoHora, totalHours)
       if (custoTotal !== null) {
         somaCustoTotal += custoTotal
       }
-      const custoTotalFormatado = custoTotal !== null ? formatarMoedaBRL(custoTotal) : ''
 
-      cells.push({
-        type: 'string' as const,
-        value: valorFormatado,
-      })
-      cells.push({
-        type: 'string' as const,
-        value: custoTotalFormatado,
-      })
+      // Coluna M (Custo Hora Unitário): se válido, número com formatação de moeda R$; se inválido, 'N/A'
+      if (custoHora !== null) {
+        cells.push({
+          type: 'number' as const,
+          value: custoHora,
+          style: 'currency' as const,
+        })
+      } else {
+        cells.push({
+          type: 'string' as const,
+          value: 'N/A',
+        })
+      }
+
+      // Coluna N (Custo Total): se válido, número com formatação de moeda R$; se inválido, célula vazia
+      if (custoTotal !== null) {
+        cells.push({
+          type: 'number' as const,
+          value: custoTotal,
+          style: 'currency' as const,
+        })
+      } else {
+        cells.push({
+          type: 'string' as const,
+          value: '',
+        })
+      }
     }
 
     return cells
@@ -137,7 +154,7 @@ export function exportExcelReport(rows: ReportRow[], incluirCustoHora = false): 
   const totalTotal = Number((totalAllocated + totalWorked).toFixed(2))
   const totalBalance = Number((totalPlanned - totalTotal).toFixed(2))
 
-  const totalRow: (typeof xlsxRows)[number] = [
+  const totalRow: XlsxCell[] = [
     { type: 'string' as const, value: '' },
     { type: 'string' as const, value: '' },
     { type: 'string' as const, value: '' },
@@ -164,10 +181,16 @@ export function exportExcelReport(rows: ReportRow[], incluirCustoHora = false): 
   if (incluirCustoHora) {
     // Coluna M (Custo Hora Unitário): em branco na linha de TOTAL GERAL
     totalRow.push({ type: 'string' as const, value: '' })
-    // Coluna N (Custo Total): somatório de todos os valores da Coluna N em R$ 0,00
+
+    // Coluna N (Custo Total): fórmula =SUM(N2:N{lastDataRow}) com fallback de valor numérico calculado
+    const dataRowCount = sortedRows.length
+    const formulaN = dataRowCount > 0 ? `SUM(N2:N${dataRowCount + 1})` : undefined
+
     totalRow.push({
-      type: 'string' as const,
-      value: formatarMoedaBRL(somaCustoTotal),
+      type: 'number' as const,
+      value: Number(somaCustoTotal.toFixed(2)),
+      formula: formulaN,
+      style: 'currency' as const,
     })
   }
 

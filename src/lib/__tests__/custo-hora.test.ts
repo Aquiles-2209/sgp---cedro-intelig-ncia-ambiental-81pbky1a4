@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   calcularCustoHoraUnitario,
   calcularCustoTotalLinha,
@@ -8,6 +8,9 @@ import {
   calcularHorasTotaisPorUsuario,
   calcularCustosHoraPorUsuario,
 } from '../custo-hora'
+import { exportExcelReport } from '../export-excel-report'
+import * as xlsxGen from '../xlsx-generator'
+import type { ReportRow } from '@/services/reports'
 
 describe('calcularCustoHoraUnitario', () => {
   it('retorna 0 quando total de horas é 0', () => {
@@ -178,5 +181,171 @@ describe('calcularCustoTotalLinha (Coluna N)', () => {
     const formatado = formatarMoedaBRL(soma)
     expect(formatado).toContain('R$')
     expect(formatado).toContain('3.970,30')
+  })
+})
+
+describe('exportExcelReport — gravação numérica das Colunas M e N e fórmula na linha TOTAL', () => {
+  it('grava Coluna N como number com style currency e linha TOTAL com fórmula SUM e number', () => {
+    const mockGenerateXlsx = vi.spyOn(xlsxGen, 'generateXlsx').mockReturnValue(new Blob())
+    // Mock createObjectURL/revokeObjectURL
+    const origCreateObjectURL = globalThis.URL.createObjectURL
+    const origRevokeObjectURL = globalThis.URL.revokeObjectURL
+    globalThis.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock')
+    globalThis.URL.revokeObjectURL = vi.fn()
+
+    const rows: ReportRow[] = [
+      {
+        client: 'Cliente A',
+        projectName: 'Projeto A',
+        memberSector: 'Engenharia',
+        memberName: 'Aquiles Souza',
+        activityTitle: 'Atividade 1',
+        activityLaunchDate: '2025-01-10',
+        launchDate: '2025-01-10T10:00:00Z',
+        plannedHours: 60,
+        allocatedHours: 60,
+        hoursWorked: 0,
+        monthlyValue: 6000,
+      },
+      {
+        client: 'Cliente A',
+        projectName: 'Projeto A',
+        memberSector: 'Engenharia',
+        memberName: 'Aquiles Souza',
+        activityTitle: 'Atividade 2',
+        activityLaunchDate: '2025-01-11',
+        launchDate: '2025-01-11T10:00:00Z',
+        plannedHours: 110,
+        allocatedHours: 110,
+        hoursWorked: 0,
+        monthlyValue: 6000,
+      },
+    ]
+
+    exportExcelReport(rows, true)
+
+    expect(mockGenerateXlsx).toHaveBeenCalledTimes(1)
+    const [headers, xlsxRows] = mockGenerateXlsx.mock.calls[0]
+
+    expect(headers).toContain('Custo Hora Unitário')
+    expect(headers).toContain('Custo Total')
+
+    // Linha 1 de dados (Aquiles Souza: 170h total, custo hora = 6000/170 = 35.29)
+    // Linha 1: 60h => custo total = 35.29 * 60 = 2117.4
+    const row1 = xlsxRows[0]
+    const colM_row1 = row1[12]
+    const colN_row1 = row1[13]
+
+    expect(colM_row1).toEqual({
+      type: 'number',
+      value: 35.29,
+      style: 'currency',
+    })
+    expect(colN_row1).toEqual({
+      type: 'number',
+      value: 2117.4,
+      style: 'currency',
+    })
+
+    // Linha 2: 110h => custo total = 35.29 * 110 = 3881.9
+    const row2 = xlsxRows[1]
+    const colN_row2 = row2[13]
+    expect(colN_row2).toEqual({
+      type: 'number',
+      value: 3881.9,
+      style: 'currency',
+    })
+
+    // Linha TOTAL GERAL (índice 2)
+    const totalRow = xlsxRows[2]
+    expect(totalRow[4].value).toBe('TOTAL GERAL')
+
+    // Coluna M na linha TOTAL GERAL deve ser string vazia
+    expect(totalRow[12]).toEqual({
+      type: 'string',
+      value: '',
+    })
+
+    // Coluna N na linha TOTAL GERAL deve ser número com fórmula de soma
+    const colN_total = totalRow[13]
+    expect(colN_total.type).toBe('number')
+    expect(colN_total.value).toBe(5999.3)
+    expect(colN_total.formula).toBe('SUM(N2:N3)')
+    expect(colN_total.style).toBe('currency')
+
+    globalThis.URL.createObjectURL = origCreateObjectURL
+    globalThis.URL.revokeObjectURL = origRevokeObjectURL
+    mockGenerateXlsx.mockRestore()
+  })
+
+  it('quando incluirCustoHora é false, não inclui Colunas M e N e termina na Coluna L', () => {
+    const mockGenerateXlsx = vi.spyOn(xlsxGen, 'generateXlsx').mockReturnValue(new Blob())
+    const origCreateObjectURL = globalThis.URL.createObjectURL
+    const origRevokeObjectURL = globalThis.URL.revokeObjectURL
+    globalThis.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock')
+    globalThis.URL.revokeObjectURL = vi.fn()
+
+    const rows: ReportRow[] = [
+      {
+        client: 'Cliente A',
+        projectName: 'Projeto A',
+        memberSector: 'Engenharia',
+        memberName: 'Outro Membro',
+        activityTitle: 'Atividade 1',
+        activityLaunchDate: '2025-01-10',
+        launchDate: '2025-01-10T10:00:00Z',
+        plannedHours: 10,
+        allocatedHours: 10,
+        hoursWorked: 0,
+      },
+    ]
+
+    exportExcelReport(rows, false)
+
+    const [headers, xlsxRows] = mockGenerateXlsx.mock.calls[0]
+    expect(headers.length).toBe(12)
+    expect(headers).not.toContain('Custo Hora Unitário')
+    expect(headers).not.toContain('Custo Total')
+    expect(xlsxRows[0].length).toBe(12)
+    expect(xlsxRows[1].length).toBe(12) // linha TOTAL
+
+    globalThis.URL.createObjectURL = origCreateObjectURL
+    globalThis.URL.revokeObjectURL = origRevokeObjectURL
+    mockGenerateXlsx.mockRestore()
+  })
+
+  it('gera célula vazia na Coluna N quando horas ou taxa forem inválidas/nulas', () => {
+    const mockGenerateXlsx = vi.spyOn(xlsxGen, 'generateXlsx').mockReturnValue(new Blob())
+    const origCreateObjectURL = globalThis.URL.createObjectURL
+    const origRevokeObjectURL = globalThis.URL.revokeObjectURL
+    globalThis.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock')
+    globalThis.URL.revokeObjectURL = vi.fn()
+
+    const rows: ReportRow[] = [
+      {
+        client: 'Cliente A',
+        projectName: 'Projeto A',
+        memberSector: 'Engenharia',
+        memberName: 'Sem Horas',
+        activityTitle: 'Atividade 1',
+        activityLaunchDate: '2025-01-10',
+        launchDate: '2025-01-10T10:00:00Z',
+        plannedHours: 0,
+        allocatedHours: 0,
+        hoursWorked: 0,
+        monthlyValue: 5000,
+      },
+    ]
+
+    exportExcelReport(rows, true)
+
+    const [, xlsxRows] = mockGenerateXlsx.mock.calls[0]
+    const row1 = xlsxRows[0]
+    expect(row1[12]).toEqual({ type: 'string', value: 'N/A' })
+    expect(row1[13]).toEqual({ type: 'string', value: '' })
+
+    globalThis.URL.createObjectURL = origCreateObjectURL
+    globalThis.URL.revokeObjectURL = origRevokeObjectURL
+    mockGenerateXlsx.mockRestore()
   })
 })
