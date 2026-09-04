@@ -4,6 +4,7 @@ import { generateXlsx } from '@/lib/xlsx-generator'
 import {
   formatarMoedaBRL,
   calcularCustoHoraUnitario,
+  calcularCustoTotalLinha,
   calcularHorasTotaisPorUsuario,
   normalizarChaveMembro,
 } from '@/lib/custo-hora'
@@ -55,6 +56,7 @@ export function exportExcelReport(rows: ReportRow[], incluirCustoHora = false): 
 
   if (incluirCustoHora) {
     headers.push('Custo Hora Unitário')
+    headers.push('Custo Total')
   }
 
   const sortedRows = [...rows].sort((a, b) => {
@@ -102,14 +104,22 @@ export function exportExcelReport(rows: ReportRow[], incluirCustoHora = false): 
       const userTotalPeriodHours = horasTotaisPorUsuario.get(userKey) || 0
       const hasValidRate = row.monthlyValue !== undefined && Number.isFinite(row.monthlyValue)
 
-      const valorFormatado =
+      const custoHora =
         hasValidRate && userTotalPeriodHours > 0
-          ? formatarMoedaBRL(calcularCustoHoraUnitario(row.monthlyValue ?? 0, userTotalPeriodHours))
-          : 'N/A'
+          ? calcularCustoHoraUnitario(row.monthlyValue ?? 0, userTotalPeriodHours)
+          : null
+
+      const valorFormatado = custoHora !== null ? formatarMoedaBRL(custoHora) : 'N/A'
+      const custoTotal = calcularCustoTotalLinha(custoHora, totalHours)
+      const custoTotalFormatado = custoTotal !== null ? formatarMoedaBRL(custoTotal) : ''
 
       cells.push({
         type: 'string' as const,
         value: valorFormatado,
+      })
+      cells.push({
+        type: 'string' as const,
+        value: custoTotalFormatado,
       })
     }
 
@@ -147,6 +157,7 @@ export function exportExcelReport(rows: ReportRow[], incluirCustoHora = false): 
   ]
 
   if (incluirCustoHora) {
+    totalRow.push({ type: 'string' as const, value: '' })
     totalRow.push({ type: 'string' as const, value: '' })
   }
 

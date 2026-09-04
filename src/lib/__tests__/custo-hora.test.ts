@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   calcularCustoHoraUnitario,
+  calcularCustoTotalLinha,
   formatarMoedaBRL,
   arredondarMoeda,
   normalizarChaveMembro,
@@ -115,5 +116,51 @@ describe('Cálculo agrupado por usuário no período (Coluna M)', () => {
     const custos = calcularCustosHoraPorUsuario(rows)
     expect(custos.get('membro a')).toBe(25) // 5000 / 200 = 25.00
     expect(custos.get('membro b')).toBe(60) // 3000 / 50 = 60.00
+  })
+})
+
+describe('calcularCustoTotalLinha (Coluna N)', () => {
+  it('calcula o exemplo exato do requisito: R$ 35,29 × 60h = R$ 2.117,40', () => {
+    const custoTotal = calcularCustoTotalLinha(35.29, 60)
+    expect(custoTotal).toBe(2117.4)
+    expect(formatarMoedaBRL(custoTotal!)).toContain('2.117,40')
+  })
+
+  it('retorna null (célula vazia) quando M é inválido, zero, nulo ou indefinido', () => {
+    expect(calcularCustoTotalLinha(0, 60)).toBeNull()
+    expect(calcularCustoTotalLinha(-10, 60)).toBeNull()
+    expect(calcularCustoTotalLinha(null, 60)).toBeNull()
+    expect(calcularCustoTotalLinha(undefined, 60)).toBeNull()
+    expect(calcularCustoTotalLinha(NaN, 60)).toBeNull()
+    expect(calcularCustoTotalLinha(Infinity, 60)).toBeNull()
+  })
+
+  it('retorna null (célula vazia) quando K é inválido, zero, nulo ou indefinido', () => {
+    expect(calcularCustoTotalLinha(35.29, 0)).toBeNull()
+    expect(calcularCustoTotalLinha(35.29, -5)).toBeNull()
+    expect(calcularCustoTotalLinha(35.29, null)).toBeNull()
+    expect(calcularCustoTotalLinha(35.29, undefined)).toBeNull()
+    expect(calcularCustoTotalLinha(35.29, NaN)).toBeNull()
+    expect(calcularCustoTotalLinha(35.29, Infinity)).toBeNull()
+  })
+
+  it('garante que a soma do Custo Total de todas as linhas do usuário converge para o Valor Mensal', () => {
+    // Exemplo: Usuário com salário R$ 6.000,00 e 3 linhas com 60h, 10h e 100h (Total 170h)
+    // Custo Hora Unitário M = R$ 35,29
+    // Linha 1: 35,29 * 60 = 2.117,40
+    // Linha 2: 35,29 * 10 = 352,90
+    // Linha 3: 35,29 * 100 = 3.529,00
+    // Soma = 2.117,40 + 352,90 + 3.529,00 = 5.999,30 (diferença de centavos decorrente do arredondamento do unitário)
+    const custoHora = 35.29
+    const linha1 = calcularCustoTotalLinha(custoHora, 60)!
+    const linha2 = calcularCustoTotalLinha(custoHora, 10)!
+    const linha3 = calcularCustoTotalLinha(custoHora, 100)!
+
+    expect(linha1).toBe(2117.4)
+    expect(linha2).toBe(352.9)
+    expect(linha3).toBe(3529)
+
+    const soma = linha1 + linha2 + linha3
+    expect(soma).toBeCloseTo(6000, -1) // ≈ R$ 6.000,00
   })
 })

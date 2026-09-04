@@ -30,6 +30,7 @@ import { fetchValoresMensais, temPermissaoCusto } from '@/services/custo-hora'
 import {
   formatarMoedaBRL,
   calcularCustoHoraUnitario,
+  calcularCustoTotalLinha,
   calcularHorasTotaisPorUsuario,
   normalizarChaveMembro,
 } from '@/lib/custo-hora'
@@ -359,7 +360,10 @@ export default function ReportPage() {
                     <TableHead className="text-right">Total Horas</TableHead>
                     <TableHead className="text-right">Saldo Horas</TableHead>
                     {podeVerCustoHora && (
-                      <TableHead className="text-right">Custo Hora Unitário</TableHead>
+                      <>
+                        <TableHead className="text-right">Custo Hora Unitário</TableHead>
+                        <TableHead className="text-right">Custo Total</TableHead>
+                      </>
                     )}
                   </TableRow>
                 </TableHeader>
@@ -398,18 +402,29 @@ export default function ReportPage() {
                               row.monthlyValue !== undefined && Number.isFinite(row.monthlyValue)
 
                             if (!hasValidRate || userTotalPeriodHours <= 0) {
-                              return <TableCell className="text-right font-medium">N/A</TableCell>
+                              return (
+                                <>
+                                  <TableCell className="text-right font-medium">N/A</TableCell>
+                                  <TableCell className="text-right font-medium"></TableCell>
+                                </>
+                              )
                             }
 
                             const custoHora = calcularCustoHoraUnitario(
                               row.monthlyValue ?? 0,
                               userTotalPeriodHours,
                             )
+                            const custoTotal = calcularCustoTotalLinha(custoHora, totalHours)
 
                             return (
-                              <TableCell className="text-right font-medium">
-                                {formatarMoedaBRL(custoHora)}
-                              </TableCell>
+                              <>
+                                <TableCell className="text-right font-medium">
+                                  {formatarMoedaBRL(custoHora)}
+                                </TableCell>
+                                <TableCell className="text-right font-medium">
+                                  {custoTotal !== null ? formatarMoedaBRL(custoTotal) : ''}
+                                </TableCell>
+                              </>
                             )
                           })()}
                       </TableRow>
@@ -443,7 +458,12 @@ export default function ReportPage() {
                     >
                       {totalBalance.toFixed(2)}
                     </TableCell>
-                    {podeVerCustoHora && <TableCell className="text-right font-bold">—</TableCell>}
+                    {podeVerCustoHora && (
+                      <>
+                        <TableCell className="text-right font-bold">—</TableCell>
+                        <TableCell className="text-right font-bold">—</TableCell>
+                      </>
+                    )}
                   </TableRow>
                 </TableFooter>
               </Table>

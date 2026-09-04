@@ -99,3 +99,35 @@ export function formatarMoedaBRL(valor: number): string {
     maximumFractionDigits: 2,
   }).format(Number.isFinite(valor) ? valor : 0)
 }
+
+/**
+ * Calcula o Custo Total da linha (Coluna N):
+ * Custo Total = Custo Hora Unitário (M) × Total Horas (K).
+ *
+ * Regras:
+ * - Se M ou K estiver vazio, nulo, NaN, não finito ou <= 0, retorna null (célula vazia).
+ * - Exemplo: 35.29 * 60 = 2117.40
+ * - Arredonda para 2 casas decimais monetárias.
+ */
+export function calcularCustoTotalLinha(
+  custoHoraUnitario: number | null | undefined,
+  totalHoras: number | null | undefined,
+): number | null {
+  if (
+    custoHoraUnitario === null ||
+    custoHoraUnitario === undefined ||
+    !Number.isFinite(custoHoraUnitario) ||
+    custoHoraUnitario <= 0
+  ) {
+    return null
+  }
+  if (
+    totalHoras === null ||
+    totalHoras === undefined ||
+    !Number.isFinite(totalHoras) ||
+    totalHoras <= 0
+  ) {
+    return null
+  }
+  return arredondarMoeda(custoHoraUnitario * totalHoras)
+}
