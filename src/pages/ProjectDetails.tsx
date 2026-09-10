@@ -192,6 +192,7 @@ export default function ProjectDetails() {
   const projAllocs = allocations.filter((a) => a.project === id)
   const projTasks = tasks.filter((t) => t.project === id)
   const userAllocIds = projAllocs.filter((a) => a.user === user?.id).map((a) => a.id)
+  const totalPlannedHours = projTasks.reduce((acc, t) => acc + (t.planned_hours || 0), 0)
 
   const handleTaskStatusChange = async (taskId: string, status: TaskStatus) => {
     await editTask(taskId, { status })
@@ -458,7 +459,7 @@ export default function ProjectDetails() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Total de Horas Alocadas</span>
-                  <span className="font-medium">{formatDuration(reportTotals.planned * 3600)}</span>
+                  <span className="font-medium">{formatDuration(totalPlannedHours * 3600)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Tempo total trabalhado</span>
@@ -469,10 +470,10 @@ export default function ProjectDetails() {
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Saldo de horas disponíveis</span>
                   <span
-                    className={`font-medium ${reportTotals.planned - (reportTotals.imported + reportTotals.worked) < 0 ? 'text-red-600' : 'text-slate-900'}`}
+                    className={`font-medium ${totalPlannedHours - (reportTotals.imported + reportTotals.worked) < 0 ? 'text-red-600' : 'text-slate-900'}`}
                   >
                     {formatDuration(
-                      (reportTotals.planned - (reportTotals.imported + reportTotals.worked)) * 3600,
+                      (totalPlannedHours - (reportTotals.imported + reportTotals.worked)) * 3600,
                     )}
                   </span>
                 </div>
