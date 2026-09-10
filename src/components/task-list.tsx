@@ -186,8 +186,13 @@ export function TaskList({
                   // Admin and Master can act on any member. User role can only act on their own row.
                   const canActOnMember = isAdmin || isMaster || isCurrentUser
 
-                  // Botão "Adicionar/Subtrair Horas" em tarefas de Campo disponível SOMENTE para Admin e Master.
-                  const canAdjustHoursMember = (isAdmin || isMaster) && canActOnMember
+                  // Botão "Adicionar/Subtrair Horas":
+                  // - Em tarefas "Escritório": disponível SOMENTE para Admin e Master (User bloqueado).
+                  // - Em tarefas "Campo" (e demais): visível e acionável por todos os usuários, mantida a trava canActOnMember.
+                  const isEscritorio = task.activity_type === 'Escritório'
+                  const canAdjustHoursMember = isEscritorio
+                    ? (isAdmin || isMaster) && canActOnMember
+                    : canActOnMember
 
                   // Compute worked hours for this task
                   const taskEntries = timeEntries.filter((te) => te.task === task.id)

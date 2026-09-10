@@ -171,97 +171,98 @@ export function MemberTimer({
     ) : null
 
   const isCampo = activityType === 'Campo'
+  const isEscritorio = activityType === 'Escritório'
+  const showAdjustHours = (isCampo || isEscritorio) && canAdjustHours
 
-  const adjustHoursButtonAndDialog =
-    isCampo && canAdjustHours ? (
-      <>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="h-6 text-[11px] px-2 text-slate-600 hover:text-slate-900 border-slate-200"
-          onClick={() => {
-            setAdjustHoursValue('')
-            setAdjustDialogOpen(true)
-          }}
-        >
-          <Clock className="h-3 w-3 mr-1" />
-          Adicionar/Subtrair Horas
-        </Button>
+  const adjustHoursButtonAndDialog = showAdjustHours ? (
+    <>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="h-6 text-[11px] px-2 text-slate-600 hover:text-slate-900 border-slate-200"
+        onClick={() => {
+          setAdjustHoursValue('')
+          setAdjustDialogOpen(true)
+        }}
+      >
+        <Clock className="h-3 w-3 mr-1" />
+        Adicionar/Subtrair Horas
+      </Button>
 
-        <Dialog open={adjustDialogOpen} onOpenChange={setAdjustDialogOpen}>
-          <DialogContent className="sm:max-w-[360px]">
-            <DialogHeader>
-              <DialogTitle>Adicionar/Subtrair Horas</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3 py-2">
-              <label className="text-xs text-slate-600 block">
-                Valor em horas decimais (ex: 0.5 para 30 min, 1.0 para 1 hora):
-              </label>
-              {remainingCampoSeconds !== undefined && (
-                <p className="text-[11px] text-slate-500">
-                  Saldo diário restante em Campo:{' '}
-                  <strong className="text-slate-700">
-                    {(remainingCampoSeconds / 3600).toFixed(2).replace('.', ',')}h
-                  </strong>{' '}
-                  (limite de 08h30m/dia).
-                </p>
-              )}
-              <Input
-                type="number"
-                step="any"
-                min="0.01"
-                placeholder="Ex: 1.5"
-                value={adjustHoursValue}
-                onChange={(e) => setAdjustHoursValue(e.target.value)}
-                disabled={adjusting}
-                autoFocus
-              />
-            </div>
-            <DialogFooter className="flex-row justify-end gap-2 sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setAdjustDialogOpen(false)}
-                disabled={adjusting}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="destructive"
-                className="bg-red-600 hover:bg-red-700 text-white"
-                onClick={() => handleAdjust(false)}
-                disabled={
-                  adjusting ||
-                  !adjustHoursValue ||
-                  isNaN(parseFloat(adjustHoursValue.replace(',', '.'))) ||
-                  parseFloat(adjustHoursValue.replace(',', '.')) <= 0
-                }
-              >
-                Subtrair
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                onClick={() => handleAdjust(true)}
-                disabled={
-                  adjusting ||
-                  !adjustHoursValue ||
-                  isNaN(parseFloat(adjustHoursValue.replace(',', '.'))) ||
-                  parseFloat(adjustHoursValue.replace(',', '.')) <= 0
-                }
-              >
-                Adicionar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </>
-    ) : null
+      <Dialog open={adjustDialogOpen} onOpenChange={setAdjustDialogOpen}>
+        <DialogContent className="sm:max-w-[360px]">
+          <DialogHeader>
+            <DialogTitle>Adicionar/Subtrair Horas</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <label className="text-xs text-slate-600 block">
+              Valor em horas decimais (ex: 0.5 para 30 min, 1.0 para 1 hora):
+            </label>
+            {remainingCampoSeconds !== undefined && (
+              <p className="text-[11px] text-slate-500">
+                Saldo diário restante em Campo:{' '}
+                <strong className="text-slate-700">
+                  {(remainingCampoSeconds / 3600).toFixed(2).replace('.', ',')}h
+                </strong>{' '}
+                (limite de 08h30m/dia).
+              </p>
+            )}
+            <Input
+              type="number"
+              step="any"
+              min="0.01"
+              placeholder="Ex: 1.5"
+              value={adjustHoursValue}
+              onChange={(e) => setAdjustHoursValue(e.target.value)}
+              disabled={adjusting}
+              autoFocus
+            />
+          </div>
+          <DialogFooter className="flex-row justify-end gap-2 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setAdjustDialogOpen(false)}
+              disabled={adjusting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => handleAdjust(false)}
+              disabled={
+                adjusting ||
+                !adjustHoursValue ||
+                isNaN(parseFloat(adjustHoursValue.replace(',', '.'))) ||
+                parseFloat(adjustHoursValue.replace(',', '.')) <= 0
+              }
+            >
+              Subtrair
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={() => handleAdjust(true)}
+              disabled={
+                adjusting ||
+                !adjustHoursValue ||
+                isNaN(parseFloat(adjustHoursValue.replace(',', '.'))) ||
+                parseFloat(adjustHoursValue.replace(',', '.')) <= 0
+              }
+            >
+              Adicionar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  ) : null
 
   if (isActive) {
     return (
