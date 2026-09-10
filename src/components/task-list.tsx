@@ -20,6 +20,12 @@ import { TaskDialog } from '@/components/task-dialog'
 import { MemberTimer } from '@/components/task-timer'
 import { DatePicker } from '@/components/date-picker'
 import { cn } from '@/lib/utils'
+import {
+  findActiveTimerForMember,
+  calculateTodayCampoWorkedSeconds,
+  getRemainingCampoSecondsToday,
+  CAMPO_DAILY_LIMIT_SECONDS,
+} from '@/lib/timer-rules'
 
 const statusOptions: TaskStatus[] = ['Pendente', 'Em Andamento', 'Concluído']
 
@@ -32,12 +38,14 @@ const statusBadge: Record<TaskStatus, string> = {
 interface TaskListProps {
   tasks: Task[]
   timeEntries: TimeEntry[]
+  allTasks?: Task[]
   taskAssignments: TaskAssignment[]
   projectId: string
   teamMembers: TeamMember[]
   isAdmin: boolean
   isMaster?: boolean
   currentUserEmail?: string
+  currentUserId?: string
   userAllocIds: string[]
   onEdit: (id: string, data: Partial<Task>) => Promise<Task | void>
   onEditStatus: (id: string, status: TaskStatus) => Promise<void>
@@ -58,12 +66,14 @@ interface TaskListProps {
 export function TaskList({
   tasks,
   timeEntries,
+  allTasks,
   taskAssignments,
   projectId,
   teamMembers,
   isAdmin,
   isMaster = false,
   currentUserEmail,
+  currentUserId,
   userAllocIds,
   onEdit,
   onEditStatus,
@@ -186,8 +196,32 @@ export function TaskList({
                   let canStartMember = canStartTimer && canActOnMember
                   let disabledReason = ''
 
+                  // Verificação de timer ativo em OUTRA tarefa para este membro (Regra 1: Bloqueio de Play simultâneo)
+                  const memberActiveTimer = findActiveTimerForMember(timeEntries, member.id)
+                  const hasActiveTimerOnOtherTask =
+                    !!memberActiveTimer && memberActiveTimer.task !== task.id
+
+                  const tasksToCheck = allTasks && allTasks.length > 0 ? allTasks : tasks
+                  const remainingCampoSec =
+                    task.activity_type === 'Campo'
+                      ? getRemainingCampoSecondsToday(timeEntries, tasksToCheck, member.id)
+                      : undefined
+                  const isCampoLimitReached =
+                    task.activity_type === 'Campo' &&
+                    calculateTodayCampoWorkedSeconds(timeEntries, tasksToCheck, member.id) >=
+                      CAMPO_DAILY_LIMIT_SECONDS
+
                   if (!canActOnMember) {
                     disabledReason = 'Você só pode iniciar o cronômetro para o seu próprio usuário.'
+                  } else if (hasActiveTimerOnOtherTask) {
+                    canStartMember = false
+                    const otherTask = tasksToCheck.find((t) => t.id === memberActiveTimer.task)
+                    const otherTitle = otherTask?.title ? ` "${otherTask.title}"` : ''
+                    disabledReason = `Este usuário já possui um cronômetro ativo em andamento na tarefa${otherTitle}. Pause-o antes de iniciar outro.`
+                  } else if (isCampoLimitReached) {
+                    canStartMember = false
+                    disabledReason =
+                      'Limite diário de 08h30m para atividades de Campo atingido. Nova contagem disponível a partir de 00:00.'
                   } else if (!isMaster) {
                     if (plannedHours > 0 && workedHours >= plannedHours) {
                       canStartMember = false
@@ -260,6 +294,8 @@ export function TaskList({
                           canStart={canStartMember}
                           canAdjustHours={canActOnMember}
                           disabledReason={disabledReason}
+                          campoLimitSeconds={remainingCampoSec}
+                          remainingCampoSeconds={remainingCampoSec}
                         />
                       </div>
                       <div className="flex items-center gap-4 mt-2 ml-5">

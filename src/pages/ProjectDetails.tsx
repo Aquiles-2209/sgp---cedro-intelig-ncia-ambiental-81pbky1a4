@@ -36,6 +36,13 @@ import {
   formatDuration,
   isUserAllocatedToProject,
 } from '@/types/models'
+import {
+  findActiveTimerForMember,
+  calculateTodayCampoWorkedSeconds,
+  getRemainingCampoSecondsToday,
+  CAMPO_DAILY_LIMIT_SECONDS,
+} from '@/lib/timer-rules'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { ExportDialog } from '@/components/export-dialog'
 import { TaskDialog } from '@/components/task-dialog'
 import { TaskList } from '@/components/task-list'
@@ -203,13 +210,32 @@ export default function ProjectDetails() {
   }
 
   const handleStartTimer = async (taskId: string, memberId: string) => {
-    const active = timeEntries.find(
-      (te) => te.task === taskId && te.team_member === memberId && !te.end_time,
-    )
-    if (active) {
-      toast({ title: 'Já existe um timer ativo para este membro.', variant: 'destructive' })
+    // 1. Verificação de timer ativo simultâneo
+    const existingActiveTimer = findActiveTimerForMember(timeEntries, memberId)
+    if (existingActiveTimer) {
+      const activeTask = tasks.find((t) => t.id === existingActiveTimer.task)
+      const taskLabel = activeTask ? ` na tarefa "${activeTask.title}"` : ''
+      toast({
+        title: `Este usuário já possui um cronômetro ativo em andamento${taskLabel}. Pause-o antes de iniciar outro.`,
+        variant: 'destructive',
+      })
       return
     }
+
+    // 2. Verificação de limite de 08h30m para atividades de Campo
+    const targetTask = tasks.find((t) => t.id === taskId)
+    if (targetTask?.activity_type === 'Campo') {
+      const workedTodayCampo = calculateTodayCampoWorkedSeconds(timeEntries, tasks, memberId)
+      if (workedTodayCampo >= CAMPO_DAILY_LIMIT_SECONDS) {
+        toast({
+          title:
+            'Limite diário de 08h30m para atividades de Campo atingido. Nova contagem disponível a partir de 00:00.',
+          variant: 'destructive',
+        })
+        return
+      }
+    }
+
     try {
       const todaysEntries = await getTodaysTimeEntriesByTeamMember(memberId)
       const totalSeconds = todaysEntries.reduce((sum, te) => sum + (te.duration || 0), 0)
@@ -226,14 +252,23 @@ export default function ProjectDetails() {
       /* If the check fails, proceed with starting the timer */
     }
     const userAlloc = projAllocs.find((a) => a.user === user?.id)
-    await addTimeEntry({
-      task: taskId,
-      team_member: memberId,
-      ...(userAlloc?.id ? { allocation: userAlloc.id } : {}),
-      start_time: new Date().toISOString(),
-      duration: 0,
-    })
-    toast({ title: 'Timer iniciado!' })
+    try {
+      await addTimeEntry({
+        task: taskId,
+        team_member: memberId,
+        ...(userAlloc?.id ? { allocation: userAlloc.id } : {}),
+        start_time: new Date().toISOString(),
+        duration: 0,
+      })
+      toast({ title: 'Timer iniciado!' })
+    } catch (err: unknown) {
+      console.error('Failed to start timer:', err)
+      const msg = getErrorMessage(err)
+      toast({
+        title: msg || 'Não foi possível iniciar o cronômetro.',
+        variant: 'destructive',
+      })
+    }
   }
 
   const handleStopTimer = async (entryId: string, endTime?: string, customDuration?: number) => {
@@ -270,8 +305,23 @@ export default function ProjectDetails() {
     hours: number,
     isAdd: boolean,
   ) => {
-    const userAlloc = projAllocs.find((a) => a.user === user?.id)
+    const targetTask = tasks.find((t) => t.id === taskId)
     const rawSeconds = Math.round(hours * 3600)
+
+    // Se for acréscimo em tarefa de Campo, validar teto de 08h30m diárias
+    if (isAdd && targetTask?.activity_type === 'Campo') {
+      const remainingSec = getRemainingCampoSecondsToday(timeEntries, tasks, memberId)
+      if (rawSeconds > remainingSec) {
+        const remainingHoursStr = (remainingSec / 3600).toFixed(2).replace('.', ',')
+        toast({
+          title: `Limite diário de 08h30m para atividades de Campo excedido. Horas disponíveis restantes hoje: ${remainingHoursStr}h.`,
+          variant: 'destructive',
+        })
+        return
+      }
+    }
+
+    const userAlloc = projAllocs.find((a) => a.user === user?.id)
     const finalDuration = isAdd ? rawSeconds : -rawSeconds
     const nowIso = new Date().toISOString()
 
@@ -291,11 +341,14 @@ export default function ProjectDetails() {
       })
     } catch (err) {
       console.error('Failed to adjust hours:', err)
-      toast({ title: 'Erro ao ajustar horas.', variant: 'destructive' })
+      const msg = getErrorMessage(err)
+      toast({
+        title: msg || 'Erro ao ajustar horas.',
+        variant: 'destructive',
+      })
       throw err
     }
   }
-
   const handleRemoveMember = async (taskId: string, memberId: string) => {
     const assignment = localTaskAssignments.find(
       (ta) => ta.task === taskId && ta.team_member === memberId,
@@ -540,6 +593,7 @@ export default function ProjectDetails() {
           <TaskList
             tasks={projTasks}
             timeEntries={timeEntries}
+            allTasks={tasks}
             taskAssignments={localTaskAssignments.filter((ta) =>
               projTasks.some((t) => t.id === ta.task),
             )}
@@ -548,6 +602,7 @@ export default function ProjectDetails() {
             isAdmin={isAdmin}
             isMaster={isMaster}
             currentUserEmail={user?.email}
+            currentUserId={user?.id}
             userAllocIds={userAllocIds}
             onEdit={editTask}
             onEditStatus={handleTaskStatusChange}

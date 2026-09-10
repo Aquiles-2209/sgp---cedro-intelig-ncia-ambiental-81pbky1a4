@@ -25,6 +25,8 @@ interface MemberTimerProps {
   canStart?: boolean
   canAdjustHours?: boolean
   disabledReason?: string
+  campoLimitSeconds?: number
+  remainingCampoSeconds?: number
 }
 
 export function MemberTimer({
@@ -40,6 +42,8 @@ export function MemberTimer({
   canStart = true,
   canAdjustHours = true,
   disabledReason,
+  campoLimitSeconds,
+  remainingCampoSeconds,
 }: MemberTimerProps) {
   const [elapsed, setElapsed] = useState(0)
   const isStoppingRef = useRef(false)
@@ -51,6 +55,7 @@ export function MemberTimer({
   const plannedHoursRef = useRef(0)
   const previousSecondsRef = useRef(0)
   const wasActiveRef = useRef(false)
+  const campoLimitSecondsRef = useRef<number | undefined>(undefined)
 
   const activeEntry = timeEntries.find(
     (te) => te.task === taskId && te.team_member === memberId && !te.end_time,
@@ -60,6 +65,7 @@ export function MemberTimer({
   if (isActive) {
     plannedHoursRef.current = plannedHours || 0
     previousSecondsRef.current = previousSeconds
+    campoLimitSecondsRef.current = campoLimitSeconds
     if (!wasActiveRef.current && activeEntry) {
       startTimeRef.current = new Date(activeEntry.start_time).getTime()
       entryIdRef.current = activeEntry.id
@@ -71,6 +77,7 @@ export function MemberTimer({
       entryIdRef.current = ''
       plannedHoursRef.current = 0
       previousSecondsRef.current = 0
+      campoLimitSecondsRef.current = undefined
       isStoppingRef.current = false
       wasActiveRef.current = false
     }
@@ -92,7 +99,21 @@ export function MemberTimer({
       const currentNow = Date.now()
       const currentElapsed = Math.max(0, Math.floor((currentNow - startTimeRef.current) / 1000))
 
+      // Checagem de auto-pause por limite de Campo (08h30m no dia)
       if (
+        !isStoppingRef.current &&
+        campoLimitSecondsRef.current !== undefined &&
+        campoLimitSecondsRef.current > 0 &&
+        currentElapsed >= campoLimitSecondsRef.current
+      ) {
+        isStoppingRef.current = true
+        const clampedDuration = campoLimitSecondsRef.current
+        const stopEndTime = new Date(startTimeRef.current + clampedDuration * 1000).toISOString()
+        setElapsed(clampedDuration)
+        onStopRef.current(entryIdRef.current, stopEndTime, clampedDuration).catch(() => {
+          isStoppingRef.current = false
+        })
+      } else if (
         !isStoppingRef.current &&
         plannedHoursRef.current > 0 &&
         previousSecondsRef.current + currentElapsed >= plannedHoursRef.current * 3600
@@ -177,6 +198,15 @@ export function MemberTimer({
               <label className="text-xs text-slate-600 block">
                 Valor em horas decimais (ex: 0.5 para 30 min, 1.0 para 1 hora):
               </label>
+              {remainingCampoSeconds !== undefined && (
+                <p className="text-[11px] text-slate-500">
+                  Saldo diário restante em Campo:{' '}
+                  <strong className="text-slate-700">
+                    {(remainingCampoSeconds / 3600).toFixed(2).replace('.', ',')}h
+                  </strong>{' '}
+                  (limite de 08h30m/dia).
+                </p>
+              )}
               <Input
                 type="number"
                 step="any"
