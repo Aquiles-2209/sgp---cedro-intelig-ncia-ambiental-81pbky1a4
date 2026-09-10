@@ -183,8 +183,11 @@ export function TaskList({
                     !!member.email &&
                     member.email.trim().toLowerCase() === currentUserEmail.trim().toLowerCase()
 
-                  // Admin and Master can act on any member. User role can only act on their own row.
-                  const canActOnMember = isAdmin || isMaster || isCurrentUser
+                  // Regra de permissão para acionar Play e ações por linha de membro:
+                  // - Master: irrestrito (pode acionar em qualquer linha).
+                  // - Administrativo (Admin não-Master): SOMENTE na própria linha (isCurrentUser).
+                  // - User: SOMENTE na própria linha (isCurrentUser).
+                  const canActOnMember = isMaster || isCurrentUser
 
                   // Botão "Adicionar/Subtrair Horas":
                   // 1. Usuários Master: acesso irrestrito — podem ver e acionar em qualquer linha.

@@ -132,4 +132,91 @@ describe('timer-rules', () => {
     const remainingSec = getRemainingCampoSecondsToday(entries, tasks, 'm1', refDate)
     expect(remainingSec).toBe(0)
   })
+
+  it('valida regras de permissão de acionamento do Play por linha de membro', () => {
+    // Simula a lógica de permissão de linha usada no TaskList
+    const evaluateCanStart = ({
+      isMaster,
+      isAdmin,
+      currentUserEmail,
+      memberEmail,
+      canStartTimer = true,
+    }: {
+      isMaster: boolean
+      isAdmin: boolean
+      currentUserEmail: string
+      memberEmail: string
+      canStartTimer?: boolean
+    }) => {
+      const isCurrentUser =
+        !!currentUserEmail &&
+        !!memberEmail &&
+        memberEmail.trim().toLowerCase() === currentUserEmail.trim().toLowerCase()
+
+      const canActOnMember = isMaster || isCurrentUser
+      return canStartTimer && canActOnMember
+    }
+
+    // 1. Usuário Master: pode acionar em qualquer linha
+    expect(
+      evaluateCanStart({
+        isMaster: true,
+        isAdmin: true,
+        currentUserEmail: 'master@cedro.com',
+        memberEmail: 'outro@cedro.com',
+      }),
+    ).toBe(true)
+
+    // 2. Usuário Admin (Administrativo, não Master):
+    // Na própria linha -> liberado
+    expect(
+      evaluateCanStart({
+        isMaster: false,
+        isAdmin: true,
+        currentUserEmail: 'admin@cedro.com',
+        memberEmail: 'admin@cedro.com',
+      }),
+    ).toBe(true)
+
+    // Linha de outro usuário -> bloqueado
+    expect(
+      evaluateCanStart({
+        isMaster: false,
+        isAdmin: true,
+        currentUserEmail: 'admin@cedro.com',
+        memberEmail: 'outro@cedro.com',
+      }),
+    ).toBe(false)
+
+    // Com espaçamento ou diferença de caixa na própria linha -> liberado
+    expect(
+      evaluateCanStart({
+        isMaster: false,
+        isAdmin: true,
+        currentUserEmail: 'Admin@Cedro.com ',
+        memberEmail: ' admin@cedro.com',
+      }),
+    ).toBe(true)
+
+    // 3. Usuário User comum:
+    // Na própria linha -> liberado
+    expect(
+      evaluateCanStart({
+        isMaster: false,
+        isAdmin: false,
+        currentUserEmail: 'user@cedro.com',
+        memberEmail: 'user@cedro.com',
+      }),
+    ).toBe(true)
+
+    // Linha de outro usuário -> bloqueado
+    expect(
+      evaluateCanStart({
+        isMaster: false,
+        isAdmin: false,
+        currentUserEmail: 'user@cedro.com',
+        memberEmail: 'outro@cedro.com',
+      }),
+    ).toBe(false)
+  })
 })
