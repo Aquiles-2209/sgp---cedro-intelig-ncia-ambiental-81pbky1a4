@@ -1,17 +1,44 @@
 import { Link } from 'react-router-dom'
-import { Briefcase, Activity, Users, AlertTriangle, ChevronRight, CheckCircle2 } from 'lucide-react'
+import {
+  Briefcase,
+  Activity,
+  Users,
+  AlertTriangle,
+  ChevronRight,
+  CheckCircle2,
+  FileCheck,
+  ShieldAlert,
+} from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
+import { useAuth } from '@/hooks/use-auth'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { getProgress, isDeadlineSoon, normalizeDate } from '@/types/models'
+import { getProgress, isDeadlineSoon, normalizeDate, safeFormatDate } from '@/types/models'
+import { calculateLicenseStatus } from '@/lib/environmental-licenses'
 
 export default function Dashboard() {
-  const { projects, allocations } = useAppState()
+  const { projects, allocations, environmentalLicenses } = useAppState()
+  const { user } = useAuth()
+  const canViewLicenseAlerts = user?.role === 'master' || user?.role === 'admin'
 
   const activeProjects = projects.filter((p) => p.status === 'Em Andamento')
   const completedProjects = projects.filter((p) => p.status === 'Concluído')
   const upcomingDeadlines = allocations.filter((a) => isDeadlineSoon(a.end_date))
+
+  // Licenças ambientais a vencer (somente dentro da janela de alerta 180 ou 30 dias, ou já vencidas para atenção)
+  const expiringLicenses = environmentalLicenses
+    .map((lic) => {
+      const proj = projects.find((p) => p.id === lic.project)
+      const alertInfo = calculateLicenseStatus(lic)
+      return {
+        ...lic,
+        projectName: proj?.name || 'Projeto',
+        ...alertInfo,
+      }
+    })
+    .filter((lic) => lic.isAlert || lic.status === 'Vencida')
+    .sort((a, b) => a.daysRemaining - b.daysRemaining)
 
   const metrics = [
     {
@@ -184,6 +211,91 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {canViewLicenseAlerts && (
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <ShieldAlert className="h-5 w-5 text-amber-500" />
+                Licenças Ambientais a Vencer
+              </CardTitle>
+              <CardDescription>
+                Alertas automáticos de vigência e prazos de renovação (visível para Master e
+                Administrativo).
+              </CardDescription>
+            </div>
+            {expiringLicenses.length > 0 && (
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                {expiringLicenses.length} licença(s) requerem atenção
+              </Badge>
+            )}
+          </CardHeader>
+          <CardContent>
+            {expiringLicenses.length === 0 ? (
+              <div className="text-center py-6 text-slate-500 text-sm">
+                Nenhuma licença ambiental próxima do vencimento no momento.
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {expiringLicenses.map((lic) => {
+                  const displayType =
+                    lic.license_type === 'Outras' && lic.description
+                      ? `Outras — ${lic.description}`
+                      : lic.license_type
+                  const isExpired = lic.status === 'Vencida'
+
+                  return (
+                    <Link
+                      key={lic.id}
+                      to={`/projetos/${lic.project}#licencas-ambientais`}
+                      className={`block p-4 rounded-xl border transition-all hover:shadow-md ${
+                        isExpired
+                          ? 'bg-red-50/60 border-red-200 hover:border-red-300'
+                          : 'bg-amber-50/60 border-amber-200 hover:border-amber-300'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block truncate">
+                            {lic.projectName}
+                          </span>
+                          <h4 className="text-sm font-bold text-slate-900 mt-0.5 line-clamp-1">
+                            {displayType}
+                          </h4>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={
+                            isExpired
+                              ? 'bg-red-100 text-red-800 border-red-300 shrink-0 text-[11px]'
+                              : 'bg-amber-100 text-amber-800 border-amber-300 shrink-0 text-[11px]'
+                          }
+                        >
+                          {isExpired ? 'Vencida' : `${lic.daysRemaining} dias`}
+                        </Badge>
+                      </div>
+
+                      <div className="mt-3 pt-2.5 border-t border-slate-200/60 flex items-center justify-between text-xs">
+                        <span className="text-slate-600">
+                          Vencimento: <strong>{safeFormatDate(lic.end_date)}</strong>
+                        </span>
+                        <span
+                          className={`font-medium ${isExpired ? 'text-red-700' : 'text-amber-700'}`}
+                        >
+                          {isExpired
+                            ? `Venceu há ${Math.abs(lic.daysRemaining)}d`
+                            : 'Providenciar renovação'}
+                        </span>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Bell, Check, AlertCircle, Info } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -10,6 +11,7 @@ import { safeFormatDate, type Notification } from '@/types/models'
 
 export function NotificationBell() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
 
@@ -44,6 +46,24 @@ export function NotificationBell() {
     }
   }
 
+  const handleNotificationClick = async (n: Notification) => {
+    if (!n.is_read) {
+      handleMarkAsRead(n.id)
+    }
+
+    // Se o alerta for de Licença Ambiental ou menção a Projeto, tentar navegar até o projeto
+    if (
+      n.title.toLowerCase().includes('licença') ||
+      n.content.toLowerCase().includes('licença ambiental') ||
+      n.content.includes('Projeto:')
+    ) {
+      setOpen(false)
+      // Tentar encontrar o id do projeto ou navegar para dashboard / projetos
+      // Se tiver padrão Projeto: [Nome], podemos navegar para /projetos ou tentar casar
+      navigate('/projetos')
+    }
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -70,8 +90,9 @@ export function NotificationBell() {
             notifications.slice(0, 30).map((n) => (
               <div
                 key={n.id}
+                onClick={() => handleNotificationClick(n)}
                 className={cn(
-                  'flex items-start gap-2 p-3 border-b border-slate-50 hover:bg-slate-50 transition-colors',
+                  'flex items-start gap-2 p-3 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer',
                   !n.is_read && 'bg-blue-50/30',
                 )}
               >
@@ -91,8 +112,11 @@ export function NotificationBell() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-6 w-6 shrink-0"
-                    onClick={() => handleMarkAsRead(n.id)}
+                    className="h-6 w-6 shrink-0 z-10"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleMarkAsRead(n.id)
+                    }}
                   >
                     <Check className="h-3 w-3" />
                   </Button>

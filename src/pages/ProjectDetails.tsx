@@ -51,6 +51,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
 import { getTodaysTimeEntriesByTeamMember } from '@/services/time-entries'
 import { fetchReportData, type ReportRow } from '@/services/reports'
+import { EnvironmentalLicensesSection } from '@/components/environmental-licenses-section'
 
 const statusColors: Record<string, string> = {
   'Em Andamento': 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -66,6 +67,7 @@ export default function ProjectDetails() {
     allocations,
     tasks,
     timeEntries,
+    environmentalLicenses,
     loading,
     addTask,
     editTask,
@@ -75,6 +77,9 @@ export default function ProjectDetails() {
     addTaskAssignment,
     editTaskAssignment,
     removeTaskAssignment,
+    addEnvironmentalLicense,
+    editEnvironmentalLicense,
+    removeEnvironmentalLicense,
   } = useAppState()
   const { toast } = useToast()
   const { user } = useAuth()
@@ -198,6 +203,7 @@ export default function ProjectDetails() {
 
   const projAllocs = allocations.filter((a) => a.project === id)
   const projTasks = tasks.filter((t) => t.project === id)
+  const projLicenses = environmentalLicenses.filter((l) => l.project === id)
   const userAllocIds = projAllocs.filter((a) => a.user === user?.id).map((a) => a.id)
   const totalPlannedHours = projTasks.reduce((acc, t) => acc + (t.planned_hours || 0), 0)
 
@@ -535,6 +541,35 @@ export default function ProjectDetails() {
           </Card>
         </div>
       </div>
+      <EnvironmentalLicensesSection
+        licenses={projLicenses}
+        readOnly={!isAdmin}
+        onAddLicense={
+          isAdmin
+            ? async (lic) => {
+                await addEnvironmentalLicense({ ...lic, project: id })
+                toast({ title: 'Licença ambiental adicionada!' })
+              }
+            : undefined
+        }
+        onUpdateLicense={
+          isAdmin
+            ? async (licId, licData) => {
+                await editEnvironmentalLicense(licId, licData)
+                toast({ title: 'Licença ambiental atualizada!' })
+              }
+            : undefined
+        }
+        onDeleteLicense={
+          isAdmin
+            ? async (licId) => {
+                await removeEnvironmentalLicense(licId)
+                toast({ title: 'Licença ambiental excluída.' })
+              }
+            : undefined
+        }
+      />
+
       {projAllocs.length > 0 && (
         <Card className="border-slate-200 shadow-sm">
           <CardContent className="p-6">

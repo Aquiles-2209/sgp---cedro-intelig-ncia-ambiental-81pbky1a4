@@ -22,6 +22,12 @@ import {
   deleteTaskAssignment,
 } from '@/services/task-assignments'
 import { getTeamMembers } from '@/services/team-members'
+import {
+  getEnvironmentalLicenses,
+  createEnvironmentalLicense,
+  updateEnvironmentalLicense,
+  deleteEnvironmentalLicense,
+} from '@/services/environmental-licenses'
 import type {
   Project,
   Allocation,
@@ -29,6 +35,7 @@ import type {
   TimeEntry,
   TaskAssignment,
   TeamMember,
+  EnvironmentalLicense,
 } from '@/types/models'
 
 interface AppStateType {
@@ -38,6 +45,7 @@ interface AppStateType {
   timeEntries: TimeEntry[]
   taskAssignments: TaskAssignment[]
   teamMembers: TeamMember[]
+  environmentalLicenses: EnvironmentalLicense[]
   loading: boolean
   addProject: (data: Partial<Project>) => Promise<Project>
   editProject: (id: string, data: Partial<Project>) => Promise<Project>
@@ -54,6 +62,12 @@ interface AppStateType {
   addTaskAssignment: (data: Partial<TaskAssignment>) => Promise<void>
   editTaskAssignment: (id: string, data: Partial<TaskAssignment>) => Promise<void>
   removeTaskAssignment: (id: string) => Promise<void>
+  addEnvironmentalLicense: (data: Partial<EnvironmentalLicense>) => Promise<EnvironmentalLicense>
+  editEnvironmentalLicense: (
+    id: string,
+    data: Partial<EnvironmentalLicense>,
+  ) => Promise<EnvironmentalLicense>
+  removeEnvironmentalLicense: (id: string) => Promise<void>
 }
 
 const AppStateContext = createContext<AppStateType | undefined>(undefined)
@@ -72,17 +86,19 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([])
   const [taskAssignments, setTaskAssignments] = useState<TaskAssignment[]>([])
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  const [environmentalLicenses, setEnvironmentalLicenses] = useState<EnvironmentalLicense[]>([])
   const [loading, setLoading] = useState(true)
 
   const loadData = useCallback(async () => {
     try {
-      const [p, a, t, te, ta, tm] = await Promise.all([
+      const [p, a, t, te, ta, tm, el] = await Promise.all([
         getProjects(),
         getAllocations(),
         getTasks(),
         getTimeEntries(),
         getTaskAssignments().catch(() => []),
         getTeamMembers().catch(() => []),
+        getEnvironmentalLicenses().catch(() => []),
       ])
       setProjects(p)
       setAllocations(a)
@@ -90,6 +106,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
       setTimeEntries(te)
       setTaskAssignments(ta)
       setTeamMembers(tm)
+      setEnvironmentalLicenses(el)
     } catch (err) {
       console.error('Failed to load app state:', err)
     } finally {
@@ -109,6 +126,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   useRealtime('time_entries', () => loadData(), !!user)
   useRealtime('task_assignments', () => loadData(), !!user)
   useRealtime('team_members', () => loadData(), !!user)
+  useRealtime('environmental_licenses', () => loadData(), !!user)
 
   const addProject = async (data: Partial<Project>): Promise<Project> => {
     const created = await createProject(data)
@@ -171,6 +189,25 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const removeTaskAssignment = async (id: string) => {
     await deleteTaskAssignment(id)
   }
+  const addEnvironmentalLicense = async (
+    data: Partial<EnvironmentalLicense>,
+  ): Promise<EnvironmentalLicense> => {
+    const created = await createEnvironmentalLicense(data)
+    setEnvironmentalLicenses((prev) => [...prev, created])
+    return created
+  }
+  const editEnvironmentalLicense = async (
+    id: string,
+    data: Partial<EnvironmentalLicense>,
+  ): Promise<EnvironmentalLicense> => {
+    const updated = await updateEnvironmentalLicense(id, data)
+    setEnvironmentalLicenses((prev) => prev.map((l) => (l.id === id ? updated : l)))
+    return updated
+  }
+  const removeEnvironmentalLicense = async (id: string) => {
+    await deleteEnvironmentalLicense(id)
+    setEnvironmentalLicenses((prev) => prev.filter((l) => l.id !== id))
+  }
 
   return (
     <AppStateContext.Provider
@@ -181,6 +218,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         timeEntries,
         taskAssignments,
         teamMembers,
+        environmentalLicenses,
         loading,
         addProject,
         editProject,
@@ -197,6 +235,9 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         addTaskAssignment,
         editTaskAssignment,
         removeTaskAssignment,
+        addEnvironmentalLicense,
+        editEnvironmentalLicense,
+        removeEnvironmentalLicense,
       }}
     >
       {children}

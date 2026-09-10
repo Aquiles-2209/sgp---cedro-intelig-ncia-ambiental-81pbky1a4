@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
 import { useToast } from '@/hooks/use-toast'
-import { ProjectStatus, ProjectSetor } from '@/types/models'
+import { ProjectStatus, ProjectSetor, EnvironmentalLicense } from '@/types/models'
 import { getUsers, SimpleUser } from '@/services/users'
+import { EnvironmentalLicensesSection } from '@/components/environmental-licenses-section'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,6 +25,7 @@ export default function ProjectNew() {
   const { addProject } = useAppState()
   const [saving, setSaving] = useState(false)
   const [adminUsers, setAdminUsers] = useState<SimpleUser[]>([])
+  const [pendingLicenses, setPendingLicenses] = useState<EnvironmentalLicense[]>([])
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -44,6 +46,23 @@ export default function ProjectNew() {
 
   const update = (field: string, value: string) => setForm((prev) => ({ ...prev, [field]: value }))
 
+  const handleAddPendingLicense = (license: Omit<EnvironmentalLicense, 'id'>) => {
+    const tempLicense: EnvironmentalLicense = {
+      ...license,
+      id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      project: '',
+    }
+    setPendingLicenses((prev) => [...prev, tempLicense])
+  }
+
+  const handleUpdatePendingLicense = (id: string, updated: Partial<EnvironmentalLicense>) => {
+    setPendingLicenses((prev) => prev.map((l) => (l.id === id ? { ...l, ...updated } : l)))
+  }
+
+  const handleDeletePendingLicense = (id: string) => {
+    setPendingLicenses((prev) => prev.filter((l) => l.id !== id))
+  }
+
   const handleSubmit = async () => {
     if (!form.name) return
     setSaving(true)
@@ -54,6 +73,26 @@ export default function ProjectNew() {
         ...(project_manager ? { project_manager } : {}),
       }
       const project = await addProject(payload)
+
+      // Create any pending licenses linked to the new project
+      if (pendingLicenses.length > 0) {
+        const { createEnvironmentalLicense } = await import('@/services/environmental-licenses')
+        for (const lic of pendingLicenses) {
+          try {
+            await createEnvironmentalLicense({
+              project: project.id,
+              license_type: lic.license_type,
+              description: lic.description,
+              validity_months: lic.validity_months,
+              start_date: lic.start_date,
+              end_date: lic.end_date,
+            })
+          } catch (licErr) {
+            console.error('Error saving initial license:', licErr)
+          }
+        }
+      }
+
       navigate(`/projetos/${project.id}/editar`)
     } catch (err) {
       setSaving(false)
@@ -176,6 +215,15 @@ export default function ProjectNew() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="pt-4 border-t border-slate-100">
+            <EnvironmentalLicensesSection
+              licenses={pendingLicenses}
+              onAddLicense={handleAddPendingLicense}
+              onUpdateLicense={handleUpdatePendingLicense}
+              onDeleteLicense={handleDeletePendingLicense}
+            />
           </div>
         </CardContent>
       </Card>

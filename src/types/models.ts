@@ -137,6 +137,36 @@ export interface TimeEntry {
   expand?: { task?: Task; allocation?: Allocation; team_member?: TeamMember }
 }
 
+export type EnvironmentalLicenseType =
+  | 'LAP - Licença Ambiental Prévia'
+  | 'LAI - Licença Ambiental de Instalação'
+  | 'LAO - Licença Ambiental de Operação'
+  | 'LP - Licença Prévia'
+  | 'LI - Licença de Instalação'
+  | 'LO - Licença de Operação'
+  | 'AuC - Autorização de Corte'
+  | 'LAS - Licença Ambiental Simplificada'
+  | 'LAC - Licença Ambiental Corretiva'
+  | 'Licença de Ampliação ou Modificação'
+  | 'ASV - Autorização de Supressão da Vegetação'
+  | 'Outras'
+
+export type EnvironmentalLicenseStatus = 'Vigente' | 'Próxima do vencimento' | 'Vencida'
+
+export interface EnvironmentalLicense {
+  id: string
+  project: string
+  license_type: EnvironmentalLicenseType
+  description?: string
+  validity_months?: number
+  start_date?: string
+  end_date: string
+  last_notified_period?: string
+  created?: string
+  updated?: string
+  expand?: { project?: Project }
+}
+
 export function formatDuration(seconds: number): string {
   const isNegative = seconds < 0
   const absSeconds = Math.abs(seconds)

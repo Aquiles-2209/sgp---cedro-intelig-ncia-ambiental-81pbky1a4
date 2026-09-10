@@ -27,6 +27,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { EnvironmentalLicensesSection } from '@/components/environmental-licenses-section'
+import type { EnvironmentalLicense } from '@/types/models'
 
 interface LocalAlloc {
   id: string
@@ -42,8 +44,18 @@ const statusOptions: ProjectStatus[] = ['Planejado', 'Em Andamento', 'Concluído
 export default function ProjectEdit() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { projects, allocations, editProject, addAllocation, editAllocation, removeAllocation } =
-    useAppState()
+  const {
+    projects,
+    allocations,
+    environmentalLicenses,
+    editProject,
+    addAllocation,
+    editAllocation,
+    removeAllocation,
+    addEnvironmentalLicense,
+    editEnvironmentalLicense,
+    removeEnvironmentalLicense,
+  } = useAppState()
   const { toast } = useToast()
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin' || user?.role === 'master'
@@ -257,6 +269,24 @@ export default function ProjectEdit() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="pt-4 border-t border-slate-100">
+            <EnvironmentalLicensesSection
+              licenses={environmentalLicenses.filter((l) => l.project === id)}
+              onAddLicense={async (lic) => {
+                await addEnvironmentalLicense({ ...lic, project: id })
+                toast({ title: 'Licença ambiental adicionada com sucesso!' })
+              }}
+              onUpdateLicense={async (licId, licData) => {
+                await editEnvironmentalLicense(licId, licData)
+                toast({ title: 'Licença ambiental atualizada!' })
+              }}
+              onDeleteLicense={async (licId) => {
+                await removeEnvironmentalLicense(licId)
+                toast({ title: 'Licença ambiental excluída.' })
+              }}
+            />
           </div>
         </CardContent>
       </Card>
