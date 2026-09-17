@@ -68,6 +68,8 @@ interface AppStateType {
     data: Partial<EnvironmentalLicense>,
   ) => Promise<EnvironmentalLicense>
   removeEnvironmentalLicense: (id: string) => Promise<void>
+  refreshEnvironmentalLicenses: () => Promise<void>
+  loadData: () => Promise<void>
 }
 
 const AppStateContext = createContext<AppStateType | undefined>(undefined)
@@ -99,7 +101,12 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         getTimeEntries(),
         getTaskAssignments().catch(() => []),
         getTeamMembers().catch(() => []),
-        isPrivileged ? getEnvironmentalLicenses().catch(() => []) : Promise.resolve([]),
+        isPrivileged
+          ? getEnvironmentalLicenses().catch((err) => {
+              console.error('Failed to load environmental licenses:', err)
+              return []
+            })
+          : Promise.resolve([]),
       ])
       setProjects(p)
       setAllocations(a)
@@ -113,7 +120,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [user?.role])
 
   useEffect(() => {
     if (!user) return
@@ -129,9 +136,19 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   useRealtime('team_members', () => loadData(), !!user)
   useRealtime(
     'environmental_licenses',
-    () => loadData(),
+    () => refreshEnvironmentalLicenses(),
     !!user && (user.role === 'admin' || user.role === 'master'),
   )
+
+  const refreshEnvironmentalLicenses = useCallback(async () => {
+    if (user?.role !== 'admin' && user?.role !== 'master') return
+    try {
+      const el = await getEnvironmentalLicenses()
+      setEnvironmentalLicenses(el)
+    } catch (err) {
+      console.error('Failed to refresh environmental licenses:', err)
+    }
+  }, [user?.role])
 
   const addProject = async (data: Partial<Project>): Promise<Project> => {
     const created = await createProject(data)
@@ -198,7 +215,10 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     data: Partial<EnvironmentalLicense>,
   ): Promise<EnvironmentalLicense> => {
     const created = await createEnvironmentalLicense(data)
-    setEnvironmentalLicenses((prev) => [...prev, created])
+    setEnvironmentalLicenses((prev) => {
+      const exists = prev.some((l) => l.id === created.id)
+      return exists ? prev.map((l) => (l.id === created.id ? created : l)) : [...prev, created]
+    })
     return created
   }
   const editEnvironmentalLicense = async (
@@ -243,6 +263,8 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         addEnvironmentalLicense,
         editEnvironmentalLicense,
         removeEnvironmentalLicense,
+        refreshEnvironmentalLicenses,
+        loadData,
       }}
     >
       {children}

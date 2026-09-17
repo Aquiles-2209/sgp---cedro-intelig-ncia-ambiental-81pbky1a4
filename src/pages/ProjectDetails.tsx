@@ -16,7 +16,8 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { getTeamMembers, type TeamMember } from '@/services/team-members'
 import { getUsers, type SimpleUser } from '@/services/users'
 import { getTaskAssignments } from '@/services/task-assignments'
-import type { TaskAssignment } from '@/types/models'
+import { getEnvironmentalLicensesByProject } from '@/services/environmental-licenses'
+import type { TaskAssignment, EnvironmentalLicense } from '@/types/models'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -80,6 +81,7 @@ export default function ProjectDetails() {
     addEnvironmentalLicense,
     editEnvironmentalLicense,
     removeEnvironmentalLicense,
+    refreshEnvironmentalLicenses,
   } = useAppState()
   const { toast } = useToast()
   const { user } = useAuth()
@@ -88,6 +90,8 @@ export default function ProjectDetails() {
   const [managerName, setManagerName] = useState<string>('')
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [localTaskAssignments, setLocalTaskAssignments] = useState<TaskAssignment[]>([])
+  const [projectLicenses, setProjectLicenses] = useState<EnvironmentalLicense[]>([])
+  const [licensesLoaded, setLicensesLoaded] = useState(false)
   const [assignmentsLoaded, setAssignmentsLoaded] = useState(false)
   const [savingAssignmentKey, setSavingAssignmentKey] = useState<string>('')
   const [reportTotals, setReportTotals] = useState<{
@@ -170,17 +174,52 @@ export default function ProjectDetails() {
     }
   }, [id])
 
+  const loadProjectLicenses = useCallback(async () => {
+    if (!id || !isAdmin) {
+      setProjectLicenses([])
+      setLicensesLoaded(true)
+      return
+    }
+    try {
+      const data = await getEnvironmentalLicensesByProject(id)
+      setProjectLicenses(data)
+    } catch (err) {
+      console.error('Failed to load project licenses directly:', err)
+    } finally {
+      setLicensesLoaded(true)
+    }
+  }, [id, isAdmin])
+
   useEffect(() => {
     loadTeamMembers()
     loadTaskAssignments()
     loadReportTotals()
-  }, [loadTeamMembers, loadTaskAssignments, loadReportTotals])
+    loadProjectLicenses()
+  }, [loadTeamMembers, loadTaskAssignments, loadReportTotals, loadProjectLicenses])
+
+  // Synchronize with global environmentalLicenses when it updates
+  useEffect(() => {
+    if (!id || !isAdmin) return
+    const globalFiltered = environmentalLicenses.filter((l) => l.project === id)
+    if (globalFiltered.length > 0) {
+      setProjectLicenses(globalFiltered)
+      setLicensesLoaded(true)
+    }
+  }, [environmentalLicenses, id, isAdmin])
 
   useRealtime('team_members', () => loadTeamMembers())
   useRealtime('task_assignments', () => loadTaskAssignments())
   useRealtime('time_entries', () => loadReportTotals())
   useRealtime('tasks', () => loadReportTotals())
   useRealtime('allocations', () => loadReportTotals())
+  useRealtime(
+    'environmental_licenses',
+    () => {
+      loadProjectLicenses()
+      refreshEnvironmentalLicenses()
+    },
+    isAdmin,
+  )
 
   useEffect(() => {
     if (loading || isAdmin || !project || !assignmentsLoaded) return
@@ -203,7 +242,10 @@ export default function ProjectDetails() {
 
   const projAllocs = allocations.filter((a) => a.project === id)
   const projTasks = tasks.filter((t) => t.project === id)
-  const projLicenses = environmentalLicenses.filter((l) => l.project === id)
+  // Use projectLicenses (direct project query) or fallback to global state
+  const projLicenses = licensesLoaded
+    ? projectLicenses
+    : environmentalLicenses.filter((l) => l.project === id)
   const userAllocIds = projAllocs.filter((a) => a.user === user?.id).map((a) => a.id)
   const totalPlannedHours = projTasks.reduce((acc, t) => acc + (t.planned_hours || 0), 0)
 
@@ -547,7 +589,11 @@ export default function ProjectDetails() {
         onAddLicense={
           isAdmin
             ? async (lic) => {
-                await addEnvironmentalLicense({ ...lic, project: id })
+                const created = await addEnvironmentalLicense({ ...lic, project: id })
+                setProjectLicenses((prev) => {
+                  const exists = prev.some((l) => l.id === created.id)
+                  return exists ? prev : [...prev, created]
+                })
                 toast({ title: 'Licença ambiental adicionada!' })
               }
             : undefined
@@ -555,7 +601,8 @@ export default function ProjectDetails() {
         onUpdateLicense={
           isAdmin
             ? async (licId, licData) => {
-                await editEnvironmentalLicense(licId, licData)
+                const updated = await editEnvironmentalLicense(licId, licData)
+                setProjectLicenses((prev) => prev.map((l) => (l.id === licId ? updated : l)))
                 toast({ title: 'Licença ambiental atualizada!' })
               }
             : undefined
@@ -564,6 +611,7 @@ export default function ProjectDetails() {
           isAdmin
             ? async (licId) => {
                 await removeEnvironmentalLicense(licId)
+                setProjectLicenses((prev) => prev.filter((l) => l.id !== licId))
                 toast({ title: 'Licença ambiental excluída.' })
               }
             : undefined
