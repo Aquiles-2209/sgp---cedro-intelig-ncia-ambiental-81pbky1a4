@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T19:17:57.351Z",
+  "generatedAt": "2026-09-17T14:30:32.806Z",
   "collections": [
     {
       "name": "users",
@@ -643,8 +643,8 @@
       "name": "environmental_licenses",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
+        "list": "@request.auth.role = 'admin' || @request.auth.role = 'master'",
+        "view": "@request.auth.role = 'admin' || @request.auth.role = 'master'",
         "create": "@request.auth.role = 'admin' || @request.auth.role = 'master'",
         "update": "@request.auth.role = 'admin' || @request.auth.role = 'master'",
         "delete": "@request.auth.role = 'admin' || @request.auth.role = 'master'"

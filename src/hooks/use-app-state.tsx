@@ -91,6 +91,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
 
   const loadData = useCallback(async () => {
     try {
+      const isPrivileged = user?.role === 'admin' || user?.role === 'master'
       const [p, a, t, te, ta, tm, el] = await Promise.all([
         getProjects(),
         getAllocations(),
@@ -98,7 +99,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         getTimeEntries(),
         getTaskAssignments().catch(() => []),
         getTeamMembers().catch(() => []),
-        getEnvironmentalLicenses().catch(() => []),
+        isPrivileged ? getEnvironmentalLicenses().catch(() => []) : Promise.resolve([]),
       ])
       setProjects(p)
       setAllocations(a)
@@ -126,7 +127,11 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   useRealtime('time_entries', () => loadData(), !!user)
   useRealtime('task_assignments', () => loadData(), !!user)
   useRealtime('team_members', () => loadData(), !!user)
-  useRealtime('environmental_licenses', () => loadData(), !!user)
+  useRealtime(
+    'environmental_licenses',
+    () => loadData(),
+    !!user && (user.role === 'admin' || user.role === 'master'),
+  )
 
   const addProject = async (data: Partial<Project>): Promise<Project> => {
     const created = await createProject(data)

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useMemo } from 'react'
 import {
   Briefcase,
   Activity,
@@ -8,6 +9,7 @@ import {
   CheckCircle2,
   FileCheck,
   ShieldAlert,
+  BellRing,
 } from 'lucide-react'
 import { useAppState } from '@/hooks/use-app-state'
 import { useAuth } from '@/hooks/use-auth'
@@ -25,6 +27,19 @@ export default function Dashboard() {
   const activeProjects = projects.filter((p) => p.status === 'Em Andamento')
   const completedProjects = projects.filter((p) => p.status === 'Concluído')
   const upcomingDeadlines = allocations.filter((a) => isDeadlineSoon(a.end_date))
+
+  // Mapeamento dos projetos que possuem pelo menos uma licença ambiental com status "Próxima do vencimento"
+  const projectsWithExpiringLicense = useMemo(() => {
+    const set = new Set<string>()
+    if (!canViewLicenseAlerts) return set
+    for (const lic of environmentalLicenses) {
+      const statusInfo = calculateLicenseStatus(lic)
+      if (statusInfo.status === 'Próxima do vencimento') {
+        set.add(lic.project)
+      }
+    }
+    return set
+  }, [environmentalLicenses, canViewLicenseAlerts])
 
   // Licenças ambientais a vencer (somente dentro da janela de alerta 180 ou 30 dias, ou já vencidas para atenção)
   const expiringLicenses = environmentalLicenses
@@ -122,14 +137,28 @@ export default function Dashboard() {
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-semibold text-slate-900 line-clamp-1">
-                        <Link
-                          to={`/projetos/${project.id}`}
-                          className="hover:text-primary transition-colors"
-                        >
-                          {project.name}
-                        </Link>
-                      </h4>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="font-semibold text-slate-900 line-clamp-1">
+                          <Link
+                            to={`/projetos/${project.id}`}
+                            className="hover:text-primary transition-colors"
+                          >
+                            {project.name}
+                          </Link>
+                        </h4>
+                        {projectsWithExpiringLicense.has(project.id) && (
+                          <Link
+                            to={`/projetos/${project.id}#licencas-ambientais`}
+                            className="inline-flex items-center text-amber-600 hover:text-amber-700 transition-colors p-0.5"
+                            title="Possui licença ambiental próxima do vencimento"
+                            aria-label="Possui licença ambiental próxima do vencimento"
+                          >
+                            <span className="animate-vibrate">
+                              <BellRing className="h-4 w-4 fill-amber-100 text-amber-600" />
+                            </span>
+                          </Link>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-500 mt-0.5">
                         {project.contract_id} • {project.client}
                       </p>
@@ -197,10 +226,24 @@ export default function Dashboard() {
                   {completedProjects.slice(0, 3).map((project) => (
                     <div key={project.id} className="flex items-center gap-3 mb-2">
                       <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
-                      <div className="flex-1 overflow-hidden">
-                        <p className="text-sm font-semibold text-slate-900 truncate">
-                          {project.name}
-                        </p>
+                      <div className="flex-1 overflow-hidden min-w-0">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <p className="text-sm font-semibold text-slate-900 truncate">
+                            {project.name}
+                          </p>
+                          {projectsWithExpiringLicense.has(project.id) && (
+                            <Link
+                              to={`/projetos/${project.id}#licencas-ambientais`}
+                              className="inline-flex items-center text-amber-600 hover:text-amber-700 transition-colors shrink-0"
+                              title="Possui licença ambiental próxima do vencimento"
+                              aria-label="Possui licença ambiental próxima do vencimento"
+                            >
+                              <span className="animate-vibrate">
+                                <BellRing className="h-3.5 w-3.5 fill-amber-100 text-amber-600" />
+                              </span>
+                            </Link>
+                          )}
+                        </div>
                         <p className="text-xs text-slate-500 truncate">{project.client}</p>
                       </div>
                     </div>

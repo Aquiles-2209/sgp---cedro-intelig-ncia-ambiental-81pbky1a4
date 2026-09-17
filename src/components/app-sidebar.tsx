@@ -11,6 +11,7 @@ import {
   Clock,
   Upload,
   UserCircle,
+  BellRing,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -28,6 +29,7 @@ import logoImg from '@/assets/image-c5b1f.png'
 
 const adminNavigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Alertas', href: '/alertas', icon: BellRing },
   { name: 'Projetos', href: '/projetos', icon: Briefcase },
   { name: 'Usuário(a)s CEDRO', href: '/usuarios-cedro', icon: Users2 },
   { name: 'Mapa de Alocação', href: '/allocation-map', icon: CalendarRange },

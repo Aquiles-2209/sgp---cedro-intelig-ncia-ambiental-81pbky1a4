@@ -11,6 +11,7 @@ import { AdminRoute } from './components/admin-route'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 import Home from './pages/Home'
+import AlertasPage from './pages/Alertas'
 import Projects from './pages/Projects'
 import ProjectNew from './pages/ProjectNew'
 import ProjectDetails from './pages/ProjectDetails'
@@ -45,6 +46,14 @@ const App = () => (
               }
             >
               <Route path="/" element={<Home />} />
+              <Route
+                path="/alertas"
+                element={
+                  <AdminRoute>
+                    <AlertasPage />
+                  </AdminRoute>
+                }
+              />
               <Route path="/projetos" element={<Projects />} />
               <Route
                 path="/projetos/novo"
